@@ -37,7 +37,7 @@ export const DEFAULT_CONFIG2 = {
   maxHalls: 8,
   plantBHall: 6, // Plant B comes online with this hall
   band: { green: 0.9, red: 0.8 }, // green at or above 90%, red below 80%
-  meter: { start: 40, max: 100, fill: 1.25, yellowDrain: 0.5, redDrain: 2, safeFloor: 1 }, // safeFloor: until Delivery 1
+  meter: { start: 40, max: 100, fill: 1.25, yellowDrain: 0.5, redDrain: 2, safeFloor: 1, tutorialCap: 80 }, // safeFloor: until Delivery 1; tutorialCap: while the tutorial runs
   director: {
     enabled: true,
     firstSpawn: 5, // seconds before the first alarm of a run
@@ -55,6 +55,7 @@ export const DEFAULT_CONFIG2 = {
     quietAfterDelivery: 5, // seconds without director alarms after a Delivery
     firstHallTypes: ['breaker', 'chiller', 'leak'], // with one hall online, only these
   },
+  tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free
   timeScale: 60, // plant seconds per real second (1 real second = 1 plant minute)
 };

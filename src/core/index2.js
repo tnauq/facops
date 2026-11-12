@@ -33,6 +33,7 @@ export {
   results,
   resultsText,
   runningChillers,
+  setScripted,
   sortedAlarms,
   spareChillers,
   spawnInterval,

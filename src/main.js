@@ -1,4 +1,4 @@
-// FacOps pass 2, through milestone 11: the game on the new scrolling map (pass 2 spec, section 7).
+// FacOps pass 2, through milestone 12: the game on the new scrolling map (pass 2 spec, section 7).
 // The pass 1 screen (HUD, crew bar, alarm rail, overlays, tuning drawer, results with Copy) runs on
 // the pass 2 rules engine (src/core/index2.js). New here:
 //   - The map scrolls at pass 1's zoom: drag (finger or mouse), mouse wheel, arrow keys. A touch that
@@ -7,6 +7,9 @@
 //   - Off-map arrows point to alarms out of view; tapping one glides to it. Tapping a ticket or a
 //     crew card whose alarm or tech is out of view glides there too.
 //   - The crew bar grows a second column when the crew gets big.
+//   - A new player's first run starts with the hall 1 tutorial (src/ui/tutorial.js): scripted
+//     alarms one lesson at a time and one-line callouts, ended by the first Delivery. After the first
+//     finished run, Skip tutorial turns on by itself; it is a switch in the drawer.
 //   - A Delivery stops play on the Delivery card: the new hall, Plant B at hall 6, and either the
 //     tech who joined or three cards to pick from. Closing it glides the view to the new hall.
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
@@ -22,6 +25,9 @@ import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, set
 import { drawTech } from './render/icons.js';
 import { drawUpgrade } from './render/upgrades.js';
 import { deliveryCard } from './ui/delivery.js';
+import { createTutorial, lessonAlarms, updateTutorial } from './ui/tutorial.js';
+import { drawCallout } from './render/callout.js';
+import { cameraView } from './ui/camera.js';
 import { resultsPanel } from './ui/results.js';
 import { copyLabel, copyText } from './ui/copy.js';
 import { createClock, runFrame } from './ui/loop.js';
@@ -45,6 +51,7 @@ const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
 const GLIDE_MS = 350;
 const DELIVERY_GLIDE_MS = 1500; // spec 7.1: a Delivery glides the view to the new hall
 const AUTO_GAP = 0.8; // seconds between the scripted player's commands, as in pass 1's #auto
+const TUTORIAL_SEEN_KEY = 'facops.tutorialSeen.v2'; // set after the first finished run
 const KEY_PAN = { ArrowLeft: [160, 0], ArrowRight: [-160, 0], ArrowUp: [0, 160], ArrowDown: [0, -160] };
 
 const canvas = document.getElementById('game');
@@ -73,10 +80,31 @@ function newRound() {
     nextAuto: 0,
     selection: NOTHING,
     feel: createFeel(),
+    tutorial: null,
+    callout: '',
   };
+  // The tutorial is for hall 1 only, and never for the scripted player.
+  const cfg = round.state.config;
+  if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) round.tutorial = createTutorial(promptVerb());
   if (cam) cam = centreOn(cam, START_POINT.x, START_POINT.y);
   gliding = null;
   window.facops = round; // handy in the browser console; the page never reads it back
+}
+
+// Prompts say "Tap" on a touch screen and "Click" with a mouse.
+const promptVerb = () => (window.matchMedia?.('(pointer: coarse)').matches ? 'Tap' : 'Click');
+
+// After the first finished run, Skip tutorial turns on by itself (spec 8). Only once: if the player
+// turns it off again later, it stays off.
+function markTutorialSeen() {
+  try {
+    const storage = defaultStorage();
+    if (!storage || storage.getItem(TUTORIAL_SEEN_KEY)) return;
+    storage.setItem(TUTORIAL_SEEN_KEY, '1');
+  } catch {
+    return; // no storage: the tutorial simply shows again next visit
+  }
+  if (!tuning.skipTutorial) changeTuning(tuning2.setTuning(tuning, 'skipTutorial', true));
 }
 
 function showStart() {
@@ -128,6 +156,7 @@ function roundOver() {
   mode = reduceFlow(mode, 'over').mode;
   setResults(resultsPanel(r, record, formatClock));
   showOverlay('over');
+  markTutorialSeen();
 }
 
 // Runs inside the button's click handler: Safari only allows clipboard writes during a tap.
@@ -218,6 +247,15 @@ function draw() {
   markers = drawMap2(ctx, cam, size, s, { alarmId, techId });
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
   drawRail(ctx, railTickets(s, regs.rail, alarmId, api2));
+  if (round.callout) {
+    // Keep the callout away from the alarms the lesson is about.
+    const v = cameraView(cam);
+    const ys = lessonAlarms(round.tutorial)
+      .map((id) => s.alarms.find((a) => a.id === id))
+      .filter(Boolean)
+      .map((a) => v.oy + EQUIPMENT_BY_ID[a.equipId].y * v.scale);
+    drawCallout(ctx, cam.rect, round.callout, ys);
+  }
   const model = hudModel2(s, { auto: round.auto });
   drawHud(ctx, w, hudLayout(w), model, model.note);
   drawHudFlash(ctx, w, HUD_HEIGHT, flashAlpha(round.feel, s.t));
@@ -234,6 +272,14 @@ function frame(now) {
   }, paused);
   const events = state.events.splice(0); // drained every frame so the list never grows
   feelEvents(round.feel, events, state.config);
+  if (round.tutorial && mode === 'playing') {
+    round.callout = updateTutorial(round.tutorial, state, events);
+    if (round.tutorial.focus) {
+      const e = EQUIPMENT_BY_ID[round.tutorial.focus];
+      round.tutorial.focus = null;
+      if (!isVisible(cam, e.x, e.y, 40)) glideTo(e.x, e.y, 600);
+    }
+  }
   const card = deliveryCard(state, events);
   if (card && mode === 'playing') onDelivery(card);
   if (state.over && mode === 'playing') roundOver();

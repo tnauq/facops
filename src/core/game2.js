@@ -63,6 +63,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     fullCampusAt: null, // when the meter first filled with every hall online
     phaseStart: 0, // when the current phase (number of halls) began
     pendingPick: null, // { hall, cards } while the player chooses a crew reward
+    scripted: false, // true while the tutorial runs: no director alarms, meter held at tutorialCap
     upgrades: { carts: 0, tools: 0, radios: 0 },
     equip,
     thermal: 1, // campus cooling factor, 0..1
@@ -454,7 +455,7 @@ function directorSpawnOne(state) {
 
 function directorStep(state) {
   const d = state.config.director;
-  if (!d.enabled) return;
+  if (!d.enabled || state.scripted) return;
   if (state.t >= state.director.nextSpawn - EPS) {
     directorSpawnOne(state);
     const base = spawnInterval(state.config, state.halls, state.t - state.phaseStart);
@@ -463,6 +464,21 @@ function directorStep(state) {
   if (d.waveEvery > 0 && state.halls >= d.waveFromHalls && state.t >= state.director.nextWave - EPS) {
     for (let i = 0; i < d.waveSize; i++) directorSpawnOne(state);
     state.director.nextWave = state.t + d.waveEvery * (1 + d.waveJitter * state.rng.range(-1, 1));
+  }
+}
+
+/**
+ * The tutorial (spec 8) runs the first minutes by script: while `on`, the director adds no alarms
+ * and the meter stops at meter.tutorialCap so no Delivery arrives mid-lesson. Turning it off starts
+ * the director a few quiet seconds later, with the phase's tightening starting then.
+ */
+export function setScripted(state, on) {
+  state.scripted = Boolean(on);
+  if (!state.scripted) {
+    const d = state.config.director;
+    state.phaseStart = state.t;
+    state.director.nextSpawn = state.t + d.quietAfterDelivery;
+    state.director.nextWave = state.t + d.waveEvery;
   }
 }
 
@@ -682,6 +698,7 @@ export function step(state, dt) {
   else state.meter -= m.redDrain * dt;
   // The run cannot be lost before the first Delivery.
   if (state.deliveries === 0) state.meter = Math.max(m.safeFloor, state.meter);
+  if (state.scripted) state.meter = Math.min(m.tutorialCap, state.meter);
 
   const hours = (dt * state.config.timeScale) / 3600;
   state.stats.energyMwh += now.deliveredMw * hours;

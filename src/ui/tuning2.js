@@ -1,7 +1,7 @@
 // The pass 2 tuning drawer (pass 2 spec, section 9), saved under localStorage['facops.tuning.v2']
 // so it never mixes with pass 1's settings. Pass 1's controls carry over except "First alarm
 // interval": pass 2 starts each phase from the table in spec 4.7 instead. Then the new controls
-// from spec section 9. (Skip tutorial arrives with the tutorial in milestone 12.)
+// from spec section 9, including Skip tutorial.
 
 import { DEFAULT_CONFIG2 } from '../core/index2.js';
 import { createTuning } from './tuning.js';
@@ -31,6 +31,8 @@ export const TUNING2_FIELDS = [
     get: (c) => c.chillersPerHall, set: (o, v) => { o.chillersPerHall = v; } },
   { id: 'startHalls', label: 'Start with halls', kind: 'range', min: 1, max: 8, step: 1,
     get: (c) => c.startHalls, set: (o, v) => { o.startHalls = v; } },
+  { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',
+    get: (c) => !c.tutorial, set: (o, v) => { o.tutorial = !v; } },
 ];
 
 export const tuning2 = createTuning(TUNING2_FIELDS, D, TUNING2_KEY);

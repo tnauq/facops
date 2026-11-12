@@ -30,10 +30,38 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 | M9. Rules engine for pass 2 | `m9` | Done |
 | M10. Playable on the new map | `m10` | Done |
 | M11. Deliveries and crew picks | `m11` | Done |
-| M12. Tutorial | `m12` | Next |
-| M13. Feel and phone check for pass 2 | `m13` | To do |
+| M12. Tutorial | `m12` | Done |
+| M13. Feel and phone check for pass 2 | `m13` | Next |
 
 ## Log
+
+### M12. Tutorial
+
+Built:
+
+- The hall 1 tutorial (`src/ui/tutorial.js`), following design doc section 9, steps 1 to 5. It runs inside a normal first run, one lesson at a time, each with a one-line callout:
+  1. Assign: a breaker trip. "Alarm! Tap the alarm, then tap a tech to send them." Once a tech is sent: one switchboard down costs nothing yet; its partner carries the load.
+  2. Matching hat: a chiller trip. The red dot means the red hat fixes it a little faster; any hat can fix anything.
+  3. A leak: it costs power straight away.
+  4. Choosing: a leak and a breaker at once. Losing power now, or about to lose more?
+  5. Redirect: both techs are sent to jobs, then a leak arrives: tap it, then a busy tech.
+  Then the alarm director takes over: "Keep the load in the green to fill the Stability meter and bring Hall 2 online." The first Delivery ends the tutorial; there is no completion screen.
+- While the lessons run, the rules hold back (`setScripted` in the rules engine): no director alarms, and the meter stops at 80 so no Delivery arrives mid-lesson. Real rules otherwise: an ignored lesson alarm still escalates.
+- Each lesson glides the view to its alarm, and the callout sits at the top or bottom of the map, whichever keeps the lesson's alarms clear (`src/render/callout.js`).
+- Prompts say "Tap" on a touch screen and "Click" with a mouse.
+- Skip tutorial is a switch in the tuning drawer. After the first finished run it turns on by itself, once; if you turn it off again it stays off. There is never a tutorial with "Start with halls" above 1, or in `#auto`.
+- 8 new tests (293 in all): lessons in order, no director alarms and the meter at 80 or below during the lessons, the redirect lesson, a learner who never redirects still gets through, Click prompts, callout length, Skip tutorial.
+
+Worth knowing:
+
+- A patient learner gets through the five lessons in about 55 seconds; hall 2 then comes about 1.5 to 2.5 minutes in, depending on how green they keep the load.
+- The design doc's step 6 (both sides of an MSB pair down) is not scripted; it happens for real if a breaker lesson is ignored for 45 seconds.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch: every callout in order, the view gliding to each lesson, the callout clear of the lesson's alarms, the tutorial ending at hall 2, Skip tutorial on after the first run, no tutorial in the second run or in `#auto`. No console errors.
+
+Owner's checklist:
+
+- To see the tutorial again: Tuning > Skip tutorial off, then Play again. (Your first run after this update shows it anyway.)
+- Hand the phone to someone new: can they get through hall 1 unaided?
 
 ### M11. Deliveries and crew picks
 
