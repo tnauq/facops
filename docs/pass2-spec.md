@@ -1,6 +1,6 @@
 # FacOps pass 2 build spec
 
-Version 1.1, 12 November 2026 (1.0 approved by the owner; 1.1 flips the map at the owner's request so the campus grows left to right). This is the source of truth for pass 2, exactly as `docs/pass1-spec.md` was for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner.
+Version 1.2, 12 November 2026 (1.0 approved by the owner; 1.1 flips the map at the owner's request so the campus grows left to right; 1.2 sets the meter fill and tightening from the M9 pacing checks). This is the source of truth for pass 2, exactly as `docs/pass1-spec.md` was for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Everything else follows from the owner's map drawing (12 November) and answers. Drafts 0.2 and 0.3 took in the owner's changes: a 300 MW building, 8 chillers and 2 pumps per plant, pass 1's zoom with a map that scrolls in every direction, and both CDUs of a hall feeding all 6 rows.
 
@@ -187,7 +187,7 @@ Each plant has a top pump and a bottom pump. A top pump's loop is the top CDUs, 
 
 ### 4.6 Deliveries
 
-- The Stability meter starts at 40. Green fills it **1.5 points per second** (pass 1: 1), so about 40 s of green brings a Delivery. Yellow and red drain as in pass 1.
+- The Stability meter starts at 40. Green fills it **1.25 points per second** (pass 1: 1), so about 48 s of green brings a Delivery. Yellow and red drain as in pass 1. (Draft value 1.5 brought Deliveries too fast; see M9 in `docs/PROGRESS.md`.)
 - **Full meter: a Delivery.** The next hall comes online with its 4 MSBs, 2 CDUs and 6 rows, at full health. Hall 6 also brings Plant B. A crew reward follows (section 6). The meter resets to 40 and the director holds off for 5 s.
 - After hall 8 the meter is a buffer only. A full meter at 8 halls is the **Full campus** milestone, shown on the results.
 - The meter cannot empty before the first Delivery: it stops at 1.
@@ -198,7 +198,7 @@ Each plant has a top pump and a bottom pump. A top pump's loop is the top CDUs, 
 | Value | Number |
 |---|---|
 | Interval at the start of each phase, by halls online (1 to 8) | 12, 9, 7.5, 6.5, 5.5, 5, 4.5, 4 s |
-| Tightening | 3% every 10 s, reset at each Delivery |
+| Tightening | 5% every 10 s (as in pass 1), reset at each Delivery |
 | Shortest interval | 1.5 s |
 | Jitter | ± 30% |
 | Waves | From 3 halls online, about every 45 s, two extra alarms |
@@ -287,7 +287,7 @@ Pass 1's controls stay. New ones:
 
 | Label | Config key | Range | Default |
 |---|---|---|---|
-| Meter fill per second | `meter.fill` | 0.5 to 3, step 0.25 | 1.5 |
+| Meter fill per second | `meter.fill` | 0.5 to 3, step 0.25 | 1.25 |
 | Chillers needed per hall | `chillersPerHall` | 0.5 to 2, step 0.25 | 1.25 |
 | Start with halls | `startHalls` | 1 to 8 | 1 |
 | Skip tutorial | `tutorial` off | | Off on the first run |

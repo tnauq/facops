@@ -27,13 +27,52 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 | Milestone | Tag | Status |
 |---|---|---|
 | M8. Pass 1 snapshot and the new map | `m8` | Done |
-| M9. Rules engine for pass 2 | `m9` | Next |
-| M10. Playable on the new map | `m10` | To do |
+| M9. Rules engine for pass 2 | `m9` | Done |
+| M10. Playable on the new map | `m10` | Next |
 | M11. Deliveries and crew picks | `m11` | To do |
 | M12. Tutorial | `m12` | To do |
 | M13. Feel and phone check for pass 2 | `m13` | To do |
 
 ## Log
+
+### M9. Rules engine for pass 2
+
+Built:
+
+- The pass 2 rules (`src/core/game2.js`, numbers in `src/core/config2.js`, public surface `src/core/index2.js`), built next to the pass 1 engine so the pass 1 game code keeps working until M10 moves the screen over:
+  - 8 halls coming online one Delivery at a time, a 300 MW building, MSB pairs per half hall, the CDU pair per hall, 8 chillers per plant with "needed = halls x 1.25", pump loops that split when Plant B arrives with hall 6.
+  - Deliveries: a full meter brings the next hall, resets the meter, and gives 5 quiet seconds. Critical Environment and Network join automatically with halls 2 and 3; from hall 4 the game waits for a pick of two Hire cards and one Upgrade (Carts, Better tools, Radios).
+  - The director by phase: start intervals by halls online, waves from hall 3, only Breaker, Chiller and Leak on hall 1, mercy rules for MSB pairs, CDU pairs and spare chillers, a rising cap after Full campus.
+  - The run cannot be lost before the first Delivery.
+  - Results and the Copy text now include halls reached, Full campus, the time of each Delivery, the crew and the picks.
+- A pass 2 scripted player (`src/core/bot2.js`) that understands redundancy: it puts real losses and backups that are about to run out ahead of first failures.
+- `#auto` on the main page: the scripted player runs a whole pass 2 run on the new map, with live faults, techs walking the aisles and the off-map arrows. A ×1 / ×2 / ×4 speed button and New run. The view glides to each hall as it comes online.
+- 40 new tests (256 in all), covering every loss figure, each escalation, cooling with spares, pump loops before and after Plant B, Deliveries, picks and upgrades, the director's rules, determinism, and the pacing targets.
+
+Pacing (12 seeds per row, scripted players; "hire" always takes a Hire card, "upgrade" takes the Upgrade when offered):
+
+| Player | Picks | Run length | Hall 2 at | Hall 6 at | Hall 8 at | Halls reached | GWh | Unfinished |
+|---|---|---|---|---|---|---|---|---|
+| careful (react 0.6 s, 1 cmd / 0.5 s) | hire | 9:43 (6:48 to 12:20) | 1:46 (12/12) | 5:10 (7/12) | 6:49 (7/12) | 5.9 | 1.46 | 0 |
+| careful (react 0.6 s, 1 cmd / 0.5 s) | upgrade | 10:47 (6:48 to 15:32) | 1:46 (12/12) | 5:11 (7/12) | 7:07 (7/12) | 5.9 | 1.73 | 0 |
+| good (react 1 s, 1 cmd / 0.8 s) | hire | 10:28 (6:08 to 13:54) | 1:54 (12/12) | 5:50 (8/12) | 7:36 (8/12) | 6.3 | 1.62 | 0 |
+| good (react 1 s, 1 cmd / 0.8 s) | upgrade | 11:42 (6:08 to 18:38) | 1:54 (12/12) | 5:56 (8/12) | 8:24 (8/12) | 6.3 | 1.92 | 0 |
+| slow (react 2 s, 1 cmd / 1.5 s) | hire | 10:26 (5:58 to 15:41) | 2:06 (12/12) | 6:14 (7/12) | 8:01 (7/12) | 5.9 | 1.56 | 0 |
+| slow (react 2 s, 1 cmd / 1.5 s) | upgrade | 10:58 (5:58 to 16:32) | 2:06 (12/12) | 6:26 (7/12) | 8:35 (7/12) | 5.9 | 1.68 | 0 |
+
+Worth knowing:
+
+- Two numbers changed from the draft after these checks: the meter fills at 1.25 a second (not 1.5) and the director tightens 5% every 10 s (not 3%). With the draft values every scripted player reached hall 8 by about 5:20 and the slow player did as well as the careful one. The spec is updated (version 1.2).
+- Targets met: first Delivery about 1:45 to 2:05, hall 8 about 6:50 to 8:35 when reached, runs about 10 to 12 minutes, and every run ends.
+- As the design doc predicted for pass 1, run length barely separates skill; halls reached and energy do a little. Upgrades came out slightly ahead of hires on energy, so the picks matter.
+- Because a run cannot be lost before the first Delivery, a player who never plays stays on hall 1 for ever. That is what the spec asks for; say if you would rather have a limit.
+- The game itself (tapping, rails, HUD) is still pass 1's code and moves onto the new map in M10.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/#auto in landscape (reload once). Tap ×4 to speed it up.
+- Watch halls come online and the view glide to each one; Plant B comes online with hall 6.
+- Scroll around while it plays and follow an arrow to an alarm.
 
 ### Map flipped to read left to right (after M8)
 

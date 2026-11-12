@@ -1,0 +1,43 @@
+// Public surface of the pass 2 rules engine. Screens and input import from here only.
+// (src/core/index.js stays the pass 1 engine's surface until the game moves to pass 2 in M10.)
+export { ALARMS2, DEFAULT_CONFIG2, TRADES, UPGRADES, makeConfig2 } from './config2.js';
+export { createRng } from './rng.js';
+export * from './layout2.js';
+export {
+  advance,
+  alarmCap,
+  alarmInfo,
+  arrivalPoint,
+  assign,
+  bandOf,
+  choose,
+  chillersNeeded,
+  coolingShield,
+  createGame,
+  dispatch,
+  eligibleEquipment,
+  fixDuration,
+  formatClock,
+  getAlarm,
+  getTech,
+  isHalfDark,
+  isOnline,
+  liquidShield,
+  load,
+  nearestIdleTech,
+  pickCards,
+  plantBOnline,
+  powerShield,
+  pumpLoop,
+  raiseAlarm,
+  results,
+  resultsText,
+  runningChillers,
+  sortedAlarms,
+  spareChillers,
+  spawnInterval,
+  step,
+  walkDistance,
+  walkSpeed,
+} from './game2.js';
+export { greedyMove, pickFor, playRun } from './bot2.js';
