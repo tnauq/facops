@@ -30,7 +30,7 @@ You are building pass 1 of FacOps, a small web game. The owner does not write co
 1. `node --test` passes, including the new tests for this milestone.
 2. Serve the folder (`python3 -m http.server 8000`) and go through the milestone's checks in the spec. If you can drive a browser, do it at 844 x 390 and at 660 x 300.
 3. Commit to `main` with a message that says what changed, and push. The owner has asked for work to go straight to `main`.
-4. Tag the commit with the milestone's tag (`m1`, `m2`, ...) and push the tag.
+4. Start the commit title with the milestone, for example `M6: results, pause and phone polish`. The `Tag milestones` GitHub Action then tags it (`m6`) automatically on GitHub; do not tag by hand. Check the tag appeared with `git ls-remote --tags origin`.
 5. Update `docs/PROGRESS.md`: mark the milestone done, say what was built, list anything the owner should know, and copy in the owner's checklist from the spec.
 6. Tell the owner what to try on the phone, in plain words, with the link.
 

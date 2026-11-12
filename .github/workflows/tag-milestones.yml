@@ -1,0 +1,43 @@
+# Tags milestones automatically. When commits reach main, every commit whose title starts with
+# "M<number>:" (for example "M6: results, pause and phone polish") gets the tag m<number>, unless
+# that tag already exists. Existing tags are never moved. Runs on every push to main, or by hand
+# from Actions > Tag milestones > Run workflow.
+name: Tag milestones
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tag-milestones
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Tag milestone commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --tags --force
+          made=""
+          # Oldest first, so if a milestone was redone the first commit keeps the tag.
+          while read -r sha subject; do
+            n=$(printf '%s' "$subject" | sed -nE 's/^M([0-9]+):.*/\1/p')
+            [ -z "$n" ] && continue
+            tag="m$n"
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then continue; fi
+            git tag -a "$tag" "$sha" -m "Milestone $n"
+            git push origin "refs/tags/$tag"
+            made="$made $tag"
+          done < <(git log --reverse --format='%H %s' origin/main)
+          if [ -n "$made" ]; then echo "Tagged:$made" | tee -a "$GITHUB_STEP_SUMMARY"; else echo "No new milestone tags" | tee -a "$GITHUB_STEP_SUMMARY"; fi
