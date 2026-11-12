@@ -1,77 +1,83 @@
-// Seed build: shows the pass 1 campus and crew so the page deploys and the art can be judged on a phone.
-// Milestone 1 replaces this file with the real game loop (see docs/pass1-spec.md).
-// Add #demo to the address to see how faults look.
+// Milestone 1: the live map. A round plays in real time; add #auto to the address to watch
+// the scripted player. Tapping, the HUD and the overlays come in later milestones.
 
-import { EQUIPMENT_BY_ID, advance, alarmInfo, assign, createGame, getTech, raiseAlarm } from './core/index.js';
-import { PAGE_COLOR, drawCampus, drawCrew, fitView, toScreen } from './render/campus.js';
-import { drawAlarmBubble } from './render/icons.js';
+import { createGame, step } from './core/index.js';
+import { PAGE_COLOR, fitView } from './render/campus.js';
+import { drawMap } from './render/map.js';
+import { createClock, runFrame } from './ui/loop.js';
+import { autoplayStep, createAutoplay } from './ui/autoplay.js';
+import { readoutText } from './ui/readout.js';
+
+const READOUT_HEIGHT = 34; // px, the strip the HUD will use from milestone 3
+const INK = '#1F3A5F';
+const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+let size = { w: 0, h: 0 };
+let round = null;
 
-function demoState() {
-  const state = createGame({ seed: 1, config: { director: { enabled: false }, meter: { start: 1e6, max: 1e6 } } });
-  raiseAlarm(state, 'breaker', 'msb-2-A');
-  raiseAlarm(state, 'breaker', 'msb-2-B');
-  raiseAlarm(state, 'chiller', 'chiller-1');
-  raiseAlarm(state, 'leak', 'cdu-1-1');
-  const net = raiseAlarm(state, 'network', 'rack-1-0-3');
-  raiseAlarm(state, 'pump', 'pump-0');
-  advance(state, 12);
-  assign(state, 'tech-0', net.id);
-  advance(state, 2);
-  const leak = state.alarms.find((a) => a.type === 'leak');
-  assign(state, 'tech-2', leak.id);
-  advance(state, 6);
-  return state;
+function newRound() {
+  const auto = window.location.hash === '#auto';
+  round = {
+    state: createGame({ seed: Date.now() % 1000000000 }),
+    clock: createClock(),
+    auto: auto ? createAutoplay() : null,
+  };
+  window.facops = round; // handy in the browser console; the page never reads it back
 }
 
-function freshState() {
-  const state = createGame({ seed: 1, config: { director: { enabled: false } } });
-  state.techs.forEach((tech, i) => {
-    tech.y += (i - 1) * 42;
-  });
-  return state;
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  size = { w: canvas.clientWidth, h: canvas.clientHeight };
+  canvas.width = Math.round(size.w * dpr);
+  canvas.height = Math.round(size.h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
+
+const portrait = () => size.h > size.w;
 
 function draw() {
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const { w, h } = size;
   ctx.fillStyle = PAGE_COLOR;
   ctx.fillRect(0, 0, w, h);
-
-  if (h > w) {
-    ctx.fillStyle = '#1F3A5F';
-    ctx.font = '600 18px system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = INK;
+  if (portrait()) {
+    ctx.font = `600 18px ${FONT}`;
     ctx.fillText('Turn your phone sideways', w / 2, h / 2);
     return;
   }
-
-  const state = window.location.hash === '#demo' ? demoState() : freshState();
-  const view = fitView({ x: 8, y: 8, w: w - 16, h: h - 30 });
-  drawCampus(ctx, view, state);
-  drawCrew(ctx, view, state.techs);
-  for (const alarm of state.alarms) {
-    const info = alarmInfo(state, alarm);
-    const e = EQUIPMENT_BY_ID[alarm.equipId];
-    const p = toScreen(view, e.x, e.y);
-    const tech = info.techId ? getTech(state, info.techId) : null;
-    drawAlarmBubble(ctx, p.x, p.y - 6, 15, info, { assignedTrade: tech && !info.attended ? tech.trade : null });
-  }
-
-  ctx.fillStyle = '#56606E';
-  ctx.font = '500 11px system-ui, -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText('FacOps seed build: map and art only. The game starts with milestone 1.', w / 2, h - 8);
+  ctx.font = `600 13px ${FONT}`;
+  ctx.fillText(readoutText(round.state, { auto: Boolean(round.auto) }), w / 2, READOUT_HEIGHT / 2);
+  const view = fitView({ x: 8, y: READOUT_HEIGHT + 2, w: w - 16, h: h - READOUT_HEIGHT - 6 });
+  drawMap(ctx, view, round.state);
 }
 
-window.addEventListener('resize', draw);
-window.addEventListener('hashchange', draw);
-draw();
+function frame(now) {
+  const { state, auto } = round;
+  // Pause while the page is hidden or held upright; the loop stops once the round is over.
+  const paused = document.hidden || portrait() || state.over;
+  runFrame(round.clock, now, (dt) => {
+    step(state, dt);
+    if (auto) autoplayStep(auto, state);
+  }, paused);
+  state.events.splice(0); // nothing listens yet; drained so the list never grows
+  draw();
+  if (!state.over || !round.drewOver) {
+    round.drewOver = state.over;
+    requestAnimationFrame(frame);
+  }
+}
+
+function start() {
+  const running = round && !round.drewOver;
+  newRound();
+  if (!running) requestAnimationFrame(frame);
+}
+
+window.addEventListener('resize', () => { resize(); draw(); });
+window.addEventListener('hashchange', start);
+resize();
+start();

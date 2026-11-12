@@ -2,7 +2,7 @@
 
 A frantic dispatch game set in a data center. Alarms pile up, your crew is small, and you decide who goes where. This repository holds pass 1, a small web prototype.
 
-Play it: https://tnuaq.github.io/facops/ (best in landscape on a phone; add `#demo` to the address to see what faults look like)
+Play it: https://tnauq.github.io/facops/ (best in landscape on a phone; add `#demo` to the address to see what faults look like)
 
 ## Status
 

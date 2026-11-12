@@ -2,7 +2,7 @@
 
 Version 1.0, 11 November 2026. This document is the source of truth for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner before guessing.
 
-Its home is `docs/pass1-spec.md` in the `tnuaq/facops` repository. A copy anywhere else is a snapshot: read it, but change only the one in the repository.
+Its home is `docs/pass1-spec.md` in the `tnauq/facops` repository. A copy anywhere else is a snapshot: read it, but change only the one in the repository.
 
 ## 0. Where things stand
 
