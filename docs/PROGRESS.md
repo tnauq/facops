@@ -20,6 +20,10 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 3. On GitHub: Settings, Pages, "Deploy from a branch", branch `main`, folder `/ (root)`, Save.
 4. After a minute, open https://tnauq.github.io/facops/ on the phone, in landscape.
 
+## Pass 2
+
+The pass 2 spec is drafted in `docs/pass2-spec.md` and waits for the owner's approval. Its milestones are M8 to M13. Nothing is built until it is approved.
+
 ## Log
 
 ### M7. Feel
