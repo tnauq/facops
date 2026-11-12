@@ -7,8 +7,8 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 | M0. Repo seed: rules engine, tests, art, map page | `m0-seed` | Done |
 | M1. Live map | `m1` | Done |
 | M2. Two-tap dispatch on the map | `m2` | Done |
-| M3. HUD and round over | `m3` | Next |
-| M4. Crew bar and alarm rail | `m4` | To do |
+| M3. HUD and round over | `m3` | Done |
+| M4. Crew bar and alarm rail | `m4` | Next |
 | M5. One-tap switch and tuning drawer | `m5` | To do |
 | M6. Results, pause and phone polish | `m6` | To do |
 | M7. Feel | `m7` | To do |
@@ -21,6 +21,33 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 4. After a minute, open https://tnauq.github.io/facops/ on the phone, in landscape.
 
 ## Log
+
+### M3. HUD and round over
+
+Built:
+
+- Screen regions (`src/ui/regions.js`): `regions(W, H)` from spec 6.1, tested at 844 x 390, 750 x 340 and 660 x 300, plus the layout of the HUD strip.
+- The HUD strip (`src/ui/hud.js`, `src/render/hud.js`): clock, a band mark (green circle, yellow triangle, red square) with the load in GW, the Stability meter in the band color, and settings and pause buttons. The temporary text readout is gone from the screen.
+- Start, pause and round-over cards, as plain HTML over the map (`src/render/overlays.js`), driven by a small tested reducer (`src/ui/flow.js`). The game is paused while a card is open. Play again and Restart start a fresh round without reloading.
+- Space toggles pause on a keyboard.
+- Best score (`src/ui/best.js`), saved under `facops.best.v1` and shown on the start card and the round-over card ("New best!" when you beat it). If storage is blocked, the game plays normally and just forgets the best on reload.
+- 30 new tests (132 in all).
+
+Worth knowing:
+
+- The map still uses the full width under the HUD. The spec's map region leaves room at the sides for the crew bar and alarm rail, so the map moves into it in M4 when those arrive.
+- The settings button opens the pause card for now; tuning lives behind it from M5. The Tuning buttons on the cards also come in M5.
+- The pause and settings buttons are drawn 44 x 34 to fit the strip, as the spec says, but their tap areas reach 10 px further down so they are a full 44 x 44.
+- The round-over card shows time and energy only; the full results panel and the Copy button are M6.
+- With `#auto` the scripted player still starts straight away, with "Auto" shown in the HUD.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch taps: Start, the pause button (including a tap just below it), settings, Resume, Restart, Space, round over, Play again, and the best score surviving a reload. Also checked with storage blocked. HUD numbers matched the rules engine; no console errors.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape. The start card shows; tap Start.
+- Watch the HUD as alarms pile up: you can always tell why the meter is draining.
+- Tap pause, then Resume. Let a round end, tap Play again.
+- Reload: the start card shows your best score.
 
 ### M2. Two-tap dispatch on the map
 

@@ -1,4 +1,5 @@
-// The temporary text readout for milestone 1. The real HUD replaces it in milestone 3.
+// The temporary text readout from milestone 1. The HUD strip (src/ui/hud.js) replaced it on screen in
+// milestone 3; gwText is still used there, and readoutText stays for its tests and the console.
 
 import { formatClock, gw, results } from '../core/index.js';
 
