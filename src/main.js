@@ -1,19 +1,23 @@
-// FacOps pass 1, up to milestone 3: the live map with two-tap dispatch, the HUD strip, and the
-// start, pause and round-over overlays with a saved best score. Tap an alarm then a tech, or a tech
-// then an alarm, to send that tech; a busy tech is redirected. Add #auto to the address to watch
-// the scripted player. The crew bar and alarm rail come in milestone 4.
+// FacOps pass 1, up to milestone 4: the live map with two-tap dispatch, the HUD strip, the crew bar
+// and alarm rail, and the start, pause and round-over overlays with a saved best score. Tap an alarm
+// (bubble or ticket) then a tech (on the map or its card), or the other way round, to send that
+// tech; a busy tech is redirected. Keys 1 to 3 tap the crew cards. Add #auto to watch the scripted
+// player.
 
 import { assign, createGame, formatClock, results, step } from './core/index.js';
 import { PAGE_COLOR, fitView } from './render/campus.js';
 import { drawMap } from './render/map.js';
 import { drawHud } from './render/hud.js';
+import { drawCrewBar, drawRail } from './render/rails.js';
 import { bindOverlays, showOverlay } from './render/overlays.js';
 import { createClock, runFrame } from './ui/loop.js';
 import { autoplayStep, createAutoplay } from './ui/autoplay.js';
 import { hitTest } from './ui/hittest.js';
 import { NOTHING, pruneSelection, reduceTap } from './ui/selection.js';
-import { mapTargets } from './ui/targets.js';
-import { hudButtonTargets, hudLayout, mapRectBeforeRails } from './ui/regions.js';
+import { screenTargets } from './ui/targets.js';
+import { hudLayout, regions } from './ui/regions.js';
+import { crewCards, techForKey } from './ui/crewbar.js';
+import { railTickets } from './ui/rail.js';
 import { hudModel } from './ui/hud.js';
 import { reduceFlow } from './ui/flow.js';
 import { bestText, loadBest, recordBest, saveBest } from './ui/best.js';
@@ -90,12 +94,14 @@ function draw() {
     ctx.fillText('Turn your phone sideways', w / 2, h / 2);
     return;
   }
-  view = fitView(mapRectBeforeRails(w, h));
+  const regs = regions(w, h);
+  view = fitView(regs.map);
   const sel = round.selection;
-  drawMap(ctx, view, round.state, {
-    alarmId: sel.kind === 'alarm' ? sel.id : null,
-    techId: sel.kind === 'tech' ? sel.id : null,
-  });
+  const alarmId = sel.kind === 'alarm' ? sel.id : null;
+  const techId = sel.kind === 'tech' ? sel.id : null;
+  drawMap(ctx, view, round.state, { alarmId, techId });
+  drawCrewBar(ctx, crewCards(round.state, regs.crew, techId));
+  drawRail(ctx, railTickets(round.state, regs.rail, alarmId));
   drawHud(ctx, w, hudLayout(w), hudModel(round.state), round.auto ? 'Auto' : '');
 }
 
@@ -119,12 +125,16 @@ function onTap(event) {
   event.preventDefault();
   const box = canvas.getBoundingClientRect();
   const p = { x: event.clientX - box.left, y: event.clientY - box.top };
-  const hit = hitTest(p, { buttons: hudButtonTargets(size.w), ...mapTargets(round.state, view) });
+  const hit = hitTest(p, screenTargets(round.state, view, regions(size.w, size.h)));
   if (hit.kind === 'button') {
     // Settings opens the pause card for now; the tuning drawer behind it arrives in milestone 5.
     act('pause');
     return;
   }
+  applyTap(hit);
+}
+
+function applyTap(hit) {
   const result = reduceTap(round.selection, hit);
   round.selection = result.selection;
   if (result.assign) assign(round.state, result.assign.techId, result.assign.alarmId);
@@ -132,9 +142,15 @@ function onTap(event) {
 }
 
 function onKey(event) {
-  if (event.code !== 'Space' || event.repeat) return;
-  event.preventDefault();
-  act('togglePause');
+  if (event.repeat) return;
+  if (event.code === 'Space') {
+    event.preventDefault();
+    act('togglePause');
+    return;
+  }
+  // Keys 1 to 3 tap the crew cards (spec 7.4), only while playing.
+  const hit = techForKey(round.state, event.key);
+  if (hit && mode === 'playing' && !round.state.over && !portrait()) applyTap(hit);
 }
 
 function begin() {

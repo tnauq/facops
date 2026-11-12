@@ -15,8 +15,8 @@ export function regions(W, H) {
   };
 }
 
-// The crew bar and the alarm rail arrive in milestone 4. Until then the map uses the full width
-// below the HUD, so the sides of the phone are not left empty.
+// The map's rectangle in milestone 3, before the crew bar and alarm rail existed: the full width
+// below the HUD. Not used on screen since milestone 4, which puts the map in regions().map.
 export function mapRectBeforeRails(W, H) {
   return { x: 8, y: HUD_HEIGHT + 2, w: W - 16, h: H - HUD_HEIGHT - 6 };
 }

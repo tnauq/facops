@@ -8,8 +8,8 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 | M1. Live map | `m1` | Done |
 | M2. Two-tap dispatch on the map | `m2` | Done |
 | M3. HUD and round over | `m3` | Done |
-| M4. Crew bar and alarm rail | `m4` | Next |
-| M5. One-tap switch and tuning drawer | `m5` | To do |
+| M4. Crew bar and alarm rail | `m4` | Done |
+| M5. One-tap switch and tuning drawer | `m5` | Next |
 | M6. Results, pause and phone polish | `m6` | To do |
 | M7. Feel | `m7` | To do |
 
@@ -21,6 +21,29 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 4. After a minute, open https://tnauq.github.io/facops/ on the phone, in landscape.
 
 ## Log
+
+### M4. Crew bar and alarm rail
+
+Built:
+
+- The crew bar on the left (`src/ui/crewbar.js`, `src/render/rails.js`): one card per tech, in crew order, with the tech, a short trade name (Elec, Mech, CE), "Idle", "Walking" or "Fixing", and a thin progress bar while fixing. The whole card is a tap target.
+- The alarm rail on the right (`src/ui/rail.js`): one ticket per alarm, most urgent on top, in the same order as the rules engine's `sortedAlarms`. Each ticket has the fault picture and name, where it is (Yard, H1 A, H2 R1...), the fastest hat's dot top-right, the hat of the tech sent to it (or a hollow dot when queued) at the left, and a bar along the bottom: the clock in dark blue while nobody is on it, fix progress in lighter blue while a tech works, solid when the clock is spent. When they do not all fit, a "+N" chip at the bottom says how many more there are.
+- The map now sits between the two rails, as the spec's layout has it.
+- Tapping works everywhere: a ticket or a bubble picks an alarm, a card or a tech on the map picks a tech, in either order. The selected card and ticket get a dark outline.
+- Keys 1 to 3 act as taps on the crew cards.
+- 17 new tests (149 in all), including whole rounds played from the two rails alone at all three screen sizes. Those rounds lasted 4:13 to 5:12.
+
+Worth knowing:
+
+- The pause and settings buttons' tap areas reach 10 px below the top bar (from M3). That would cover the top of the first ticket, so wherever a ticket is drawn the ticket wins and the button stops just above it. With no tickets the buttons keep their full 44 px.
+- The "+N" chip only counts; it is not a tap target. The spec does not ask it to do anything.
+- The map is smaller now that the rails take the sides. At 660 x 300 bubbles crowd each other when many alarms are up, which is part of why the rails exist.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch taps: ticket then card, card then ticket, key 1 then ticket, and a crowded rail (4 tickets and "+9" at the small size, 6 at the large one). No console errors.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape and play a round using only the two rails, without touching the map.
+- Playing from the rails is comfortable with two thumbs.
 
 ### M3. HUD and round over
 
