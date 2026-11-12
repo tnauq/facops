@@ -111,3 +111,13 @@ export function drawHud(ctx, W, layout, model, note = '') {
     else drawPauseBars(ctx, cx, cy, 7);
   }
 }
+
+/** The flash on entering red (spec 11): the strip washed in the red band color, fading out. */
+export function drawHudFlash(ctx, W, h, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = 0.45 * alpha;
+  ctx.fillStyle = BAND_COLOR.red;
+  ctx.fillRect(0, 0, W, h);
+  ctx.restore();
+}

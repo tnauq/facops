@@ -1,6 +1,7 @@
-// FacOps pass 1, up to milestone 6: the live map, the HUD strip, the crew bar and alarm rail, the
+// FacOps pass 1, complete through milestone 7: the live map, the HUD strip, the crew bar and alarm rail, the
 // start, pause and round-over overlays (with full results, Copy and a saved best score), the tuning
-// drawer, and a rotate screen (pure CSS in index.html). The game pauses when the page is hidden.
+// drawer, a rotate screen (pure CSS in index.html), and the feel effects: floating MW losses, a HUD
+// flash on entering red, bubbles popping in and hats bobbing. The game pauses when the page is hidden.
 // Two-tap mode (the default): tap an alarm (bubble or ticket) then a tech (on the map or its card),
 // or the other way round, to send that tech; a busy tech is redirected. One-tap mode (a switch in
 // the drawer): tapping an alarm sends the nearest free tech, or queues the alarm if nobody is free;
@@ -10,7 +11,7 @@
 import { assign, createGame, dispatch, formatClock, results, resultsText, step } from './core/index.js';
 import { PAGE_COLOR, fitView } from './render/campus.js';
 import { drawMap } from './render/map.js';
-import { drawHud } from './render/hud.js';
+import { drawHud, drawHudFlash } from './render/hud.js';
 import { drawCrewBar, drawRail } from './render/rails.js';
 import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setResults, setTuningControls, showOverlay } from './render/overlays.js';
 import { resultsPanel } from './ui/results.js';
@@ -20,7 +21,8 @@ import { autoplayStep, createAutoplay } from './ui/autoplay.js';
 import { hitTest } from './ui/hittest.js';
 import { NOTHING, pruneSelection, reduceTap } from './ui/selection.js';
 import { screenTargets } from './ui/targets.js';
-import { hudLayout, regions } from './ui/regions.js';
+import { HUD_HEIGHT, hudLayout, regions } from './ui/regions.js';
+import { createFeel, feelEvents, flashAlpha, liveFloats } from './ui/feel.js';
 import { crewCards, techForKey } from './ui/crewbar.js';
 import { railTickets } from './ui/rail.js';
 import { hudModel } from './ui/hud.js';
@@ -49,6 +51,7 @@ function newRound() {
     clock: createClock(),
     auto: isAuto() ? createAutoplay() : null,
     selection: NOTHING,
+    feel: createFeel(),
   };
   window.facops = round; // handy in the browser console; the page never reads it back
 }
@@ -130,11 +133,12 @@ function draw() {
   const sel = round.selection;
   const alarmId = sel.kind === 'alarm' ? sel.id : null;
   const techId = sel.kind === 'tech' ? sel.id : null;
-  drawMap(ctx, view, round.state, { alarmId, techId });
+  drawMap(ctx, view, round.state, { alarmId, techId }, liveFloats(round.feel, round.state.t));
   drawCrewBar(ctx, crewCards(round.state, regs.crew, techId));
   drawRail(ctx, railTickets(round.state, regs.rail, alarmId));
   const note = round.auto ? 'Auto' : round.state.config.oneTap ? 'One-tap' : '';
   drawHud(ctx, w, hudLayout(w), hudModel(round.state), note);
+  drawHudFlash(ctx, w, HUD_HEIGHT, flashAlpha(round.feel, round.state.t));
 }
 
 function frame(now) {
@@ -145,7 +149,7 @@ function frame(now) {
     step(state, dt);
     if (auto) autoplayStep(auto, state);
   }, paused);
-  state.events.splice(0); // nothing listens yet; drained so the list never grows
+  feelEvents(round.feel, state.events.splice(0), state.config); // drained every frame so the list never grows
   if (state.over && mode === 'playing') roundOver();
   round.selection = pruneSelection(round.selection, state); // a fixed alarm drops out of the selection
   draw();

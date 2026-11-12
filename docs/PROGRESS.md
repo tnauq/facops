@@ -11,7 +11,7 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 | M4. Crew bar and alarm rail | `m4` | Done |
 | M5. One-tap switch and tuning drawer | `m5` | Done |
 | M6. Results, pause and phone polish | `m6` | Done |
-| M7. Feel | `m7` | Next |
+| M7. Feel | `m7` | Done |
 
 ## Owner setup, once
 
@@ -21,6 +21,32 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 4. After a minute, open https://tnauq.github.io/facops/ on the phone, in landscape.
 
 ## Log
+
+### M7. Feel
+
+Pass 1 is complete.
+
+Built (`src/ui/feel.js`, drawn in `src/render/map.js` and `src/render/hud.js`):
+
+- Floating loss labels at the equipment, rising 20 px and fading over 1 s: "-25 MW" when a rack's network fails, "-50 MW" when a CDU leaks, "-75 MW" when a leaking row shuts down, "-250 MW" when a hall goes dark (shown in the middle of the hall). The figures are worked out from the rules config and the map, and a test checks them against what the rules actually take away.
+- A 300 ms red flash of the top bar when the load turns red.
+- New alarm bubbles pop in over 150 ms, with a small overshoot.
+- Walking techs bob 1 px. Only the drawing moves; tap targets do not.
+- Everything runs on game time, so it all freezes while paused.
+- 10 new tests (180 in all).
+
+Worth knowing:
+
+- Leaks caused by a pump burst and network failures that spread each show their own label too, since each is a fresh loss.
+- Frame rate: with ten alarms on screen, a headless Chrome on the build machine held 60 frames per second, and drawing a whole frame took about 1 ms. Slowed down four times it dropped to about 22 fps, but that also slows its software rendering, so it is a very pessimistic stand-in. The phone itself is the real check; see below.
+- No console errors at 844 x 390 or 660 x 300.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape (reload once to get the new version).
+- Check it stays smooth on the phone with ten alarms up.
+- Play ten rounds and paste the results (Copy results on the round-over card).
+- Pass 1 passes if, after about ten rounds, you still want another and can name moments where a choice mattered (spec section 13).
 
 ### Automatic milestone tags
 
