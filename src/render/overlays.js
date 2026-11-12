@@ -117,3 +117,39 @@ export function selectResultsText(text) {
     return false;
   }
 }
+
+/**
+ * Fill the Delivery card (pass 2 spec 7.4) from deliveryCard (src/ui/delivery.js). Each choice is a
+ * button with data-action "pick-0", "pick-1" or "pick-2" and a small picture drawn by
+ * drawPicture(ctx, size, cardView). With nothing to choose, the card shows Continue instead.
+ */
+export function setDelivery(card, drawPicture) {
+  const root = document.querySelector('[data-overlay="delivery"]');
+  const field = (name, text) => {
+    root.querySelector(`[data-field="${name}"]`).textContent = text;
+  };
+  field('title', card.title);
+  field('plantB', card.plantB ? 'Plant B is online too: eight more chillers and two pumps.' : '');
+  field('joined', card.joinedText);
+  field('prompt', card.cards.length > 0 ? 'Choose one:' : '');
+  const box = document.getElementById('delivery-choices');
+  box.textContent = '';
+  card.cards.forEach((c, i) => {
+    const button = document.createElement('button');
+    button.dataset.action = `pick-${i}`;
+    const canvas = document.createElement('canvas');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(44 * dpr);
+    canvas.height = Math.round(44 * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawPicture(ctx, 44, c);
+    const title = document.createElement('strong');
+    title.textContent = c.title;
+    const detail = document.createElement('span');
+    detail.textContent = c.detail;
+    button.append(canvas, title, detail);
+    box.append(button);
+  });
+  document.getElementById('delivery-continue').hidden = card.cards.length > 0;
+}

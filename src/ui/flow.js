@@ -1,7 +1,8 @@
 // Which screen the game is on (spec section 6.7): the start overlay, playing, paused, round over,
-// or the tuning drawer. Pure reducer. The rules only run while the mode is 'playing'.
+// the tuning drawer, or (pass 2) the Delivery card. Pure reducer. The rules only run while the
+// mode is 'playing'.
 
-export const MODES = ['start', 'playing', 'paused', 'over', 'tuning'];
+export const MODES = ['start', 'playing', 'paused', 'over', 'tuning', 'delivery'];
 
 // The tuning drawer opens from the start, pause and round-over cards, and from the HUD's settings
 // button during play. Done goes back to the card it came from; from play it goes to the pause card
@@ -15,7 +16,10 @@ const TABLE = {
     pause: { mode: 'paused', newRound: false },
     togglePause: { mode: 'paused', newRound: false },
     over: { mode: 'over', newRound: false },
+    delivery: { mode: 'delivery', newRound: false }, // pass 2: a hall came online
   },
+  // The Delivery card closes with Continue or by taking a card; the run carries on.
+  delivery: { continue: { mode: 'playing', newRound: false } },
   paused: {
     resume: { mode: 'playing', newRound: false },
     togglePause: { mode: 'playing', newRound: false },

@@ -18,6 +18,22 @@ export function escalationsText(r) {
   return parts.length > 0 ? parts.join(', ') : 'none';
 }
 
+const SHORT = { electrical: 'Elec', mechanical: 'Mech', ce: 'CE', network: 'Net' };
+const UPGRADE_NAME = { carts: 'Carts', tools: 'Better tools', radios: 'Radios' };
+
+// Pass 2 (spec 7.5): halls reached takes the third headline spot; share of possible, crew and
+// upgrades join the list. Delivery times are in the Copy text, which has room for them.
+function addPass2(r, big, lines) {
+  const share = big[2].value;
+  big[2] = { value: `${r.halls} of 8`, label: r.fullCampus ? 'halls · full campus' : 'halls' };
+  lines.splice(1, 0, ['Of possible energy', share]);
+  const crew = {};
+  for (const t of r.crew) crew[t] = (crew[t] ?? 0) + 1;
+  lines.push(['Crew', Object.entries(crew).map(([t, n]) => `${n} ${SHORT[t] ?? t}`).join(', ')]);
+  const ups = r.picks.filter((p) => !p.card.startsWith('hire ')).map((p) => UPGRADE_NAME[p.card] ?? p.card);
+  lines.push(['Upgrades', ups.length > 0 ? ups.join(', ') : 'none']);
+}
+
 /**
  * { big, lines, bestLine }.
  * big: the headline numbers, shown large: time survived, energy delivered, share of possible.
@@ -38,6 +54,7 @@ export function resultsPanel(r, record, formatClock) {
     ['Redirects', String(r.redirects)],
     ['Matching hat', cleared ? `${pct(r.matchedShare)} of fixes` : 'no fixes'],
   ];
+  if (r.halls !== undefined) addPass2(r, big, lines);
   const bestLine = record.isNew ? 'New best!' : `Best: ${record.best.energyGwh.toFixed(2)} GWh in ${formatClock(record.best.seconds)}`;
   return { big, lines, bestLine };
 }

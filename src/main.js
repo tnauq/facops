@@ -1,4 +1,4 @@
-// FacOps pass 2, through milestone 10: the game on the new scrolling map (pass 2 spec, section 7).
+// FacOps pass 2, through milestone 11: the game on the new scrolling map (pass 2 spec, section 7).
 // The pass 1 screen (HUD, crew bar, alarm rail, overlays, tuning drawer, results with Copy) runs on
 // the pass 2 rules engine (src/core/index2.js). New here:
 //   - The map scrolls at pass 1's zoom: drag (finger or mouse), mouse wheel, arrow keys. A touch that
@@ -7,17 +7,21 @@
 //   - Off-map arrows point to alarms out of view; tapping one glides to it. Tapping a ticket or a
 //     crew card whose alarm or tech is out of view glides there too.
 //   - The crew bar grows a second column when the crew gets big.
-//   - Deliveries take the first card automatically until milestone 11 brings the pick.
+//   - A Delivery stops play on the Delivery card: the new hall, Plant B at hall 6, and either the
+//     tech who joined or three cards to pick from. Closing it glides the view to the new hall.
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
 import * as api2 from './core/index2.js';
-import { EQUIPMENT_BY_ID, START_POINT, WORLD, assign, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
+import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
 import { drawHud, drawHudFlash } from './render/hud.js';
 import { drawCrewBar, drawRail } from './render/rails.js';
-import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setResults, setTuningControls, showOverlay } from './render/overlays.js';
+import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setDelivery, setResults, setTuningControls, showOverlay } from './render/overlays.js';
+import { drawTech } from './render/icons.js';
+import { drawUpgrade } from './render/upgrades.js';
+import { deliveryCard } from './ui/delivery.js';
 import { resultsPanel } from './ui/results.js';
 import { copyLabel, copyText } from './ui/copy.js';
 import { createClock, runFrame } from './ui/loop.js';
@@ -39,6 +43,7 @@ import { markerAt } from './ui/offmap.js';
 const INK = '#1F3A5F';
 const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
 const GLIDE_MS = 350;
+const DELIVERY_GLIDE_MS = 1500; // spec 7.1: a Delivery glides the view to the new hall
 const AUTO_GAP = 0.8; // seconds between the scripted player's commands, as in pass 1's #auto
 const KEY_PAN = { ArrowLeft: [160, 0], ArrowRight: [-160, 0], ArrowUp: [0, 160], ArrowDown: [0, -160] };
 
@@ -47,7 +52,7 @@ const ctx = canvas.getContext('2d');
 let size = { w: 0, h: 0 };
 let round = null;
 let cam = null;
-let gliding = null; // { from, to, start }
+let gliding = null; // { from, to, start, ms }
 let gesture = null;
 let markers = [];
 let mode = 'start'; // see src/ui/flow.js
@@ -87,6 +92,14 @@ function act(action) {
     copyResults();
     return;
   }
+  if (action.startsWith('pick-')) {
+    // Take a card (spec 6), then carry on as Continue does.
+    if (round.state.pendingPick) choose(round.state, Number(action.slice(5)));
+    action = 'continue';
+  }
+  // Continue never skips a pick: the rules wait until a card is taken.
+  if (action === 'continue' && round.state.pendingPick) return;
+  if (action === 'continue' && mode === 'delivery') glideTo(HALLS[round.state.halls].cx, MID_Y, DELIVERY_GLIDE_MS);
   const next = reduceFlow(mode, action, tuningBack);
   if (next.back) tuningBack = next.back;
   if (next.newRound) newRound();
@@ -154,8 +167,25 @@ function resize() {
   if (round) syncCamera();
 }
 
-function glideTo(x, y) {
-  gliding = { from: cam, to: centreOn(cam, x, y), start: performance.now() };
+function glideTo(x, y, ms = GLIDE_MS) {
+  gliding = { from: cam, to: centreOn(cam, x, y), start: performance.now(), ms };
+}
+
+// A hire card shows the trade's tech; an upgrade card its picture.
+function drawChoice(ctx, size, c) {
+  if (c.kind === 'hire') drawTech(ctx, size / 2, size / 2 + 2, size * 0.95, c.trade);
+  else drawUpgrade(ctx, size / 2, size / 2, size, c.upgrade);
+}
+
+// A hall came online: the scripted player just carries on (glide only); a player gets the card.
+function onDelivery(card) {
+  if (round.auto) {
+    glideTo(HALLS[card.hall].cx, MID_Y, DELIVERY_GLIDE_MS);
+    return;
+  }
+  mode = reduceFlow(mode, 'delivery').mode;
+  setDelivery(card, drawChoice);
+  showOverlay('delivery');
 }
 
 function pan(dx, dy) {
@@ -197,16 +227,19 @@ function frame(now) {
   const { state } = round;
   const paused = mode !== 'playing' || document.hidden || portrait() || state.over;
   runFrame(round.clock, now, (dt) => {
-    // Until milestone 11 brings the Delivery card, a pick takes the first card (always a Hire).
-    if (state.pendingPick) choose(state, pickFor(state, 'first'));
+    // #auto takes the first card; a player chooses on the Delivery card (step waits until then).
+    if (round.auto && state.pendingPick) choose(state, pickFor(state, 'first'));
     step(state, dt);
     if (round.auto && state.t >= round.nextAuto && greedyMove(state, { reaction: 1 })) round.nextAuto = state.t + AUTO_GAP;
   }, paused);
-  feelEvents(round.feel, state.events.splice(0), state.config); // drained every frame so the list never grows
+  const events = state.events.splice(0); // drained every frame so the list never grows
+  feelEvents(round.feel, events, state.config);
+  const card = deliveryCard(state, events);
+  if (card && mode === 'playing') onDelivery(card);
   if (state.over && mode === 'playing') roundOver();
   round.selection = pruneSelection(round.selection, state);
   if (gliding) {
-    const k = Math.min(1, (now - gliding.start) / GLIDE_MS);
+    const k = Math.min(1, (now - gliding.start) / gliding.ms);
     cam = glide(gliding.from, gliding.to, k);
     if (k >= 1) gliding = null;
   }

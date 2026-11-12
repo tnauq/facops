@@ -29,11 +29,34 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 | M8. Pass 1 snapshot and the new map | `m8` | Done |
 | M9. Rules engine for pass 2 | `m9` | Done |
 | M10. Playable on the new map | `m10` | Done |
-| M11. Deliveries and crew picks | `m11` | Next |
-| M12. Tutorial | `m12` | To do |
+| M11. Deliveries and crew picks | `m11` | Done |
+| M12. Tutorial | `m12` | Next |
 | M13. Feel and phone check for pass 2 | `m13` | To do |
 
 ## Log
+
+### M11. Deliveries and crew picks
+
+Built:
+
+- The Delivery card (`src/ui/delivery.js`, `src/render/overlays.js`): when the meter fills, play stops on a card saying which hall is online, that Plant B came too at hall 6, and either which tech joined (halls 2 and 3) or three choices to pick from (from hall 4): two Hire cards with the tech's hat and how many of that trade you have, and an Upgrade with its picture (`src/render/upgrades.js`) and what it does. Each choice is a big button.
+- Closing the card, by Continue or a pick, glides the view to the new hall over 1.5 s.
+- `#auto` takes the first card without showing the card, and glides.
+- Results (spec 7.5): halls reached is now a headline number ("6 of 8 halls", with "full campus" when reached); share of possible energy, the final crew and the upgrades taken join the list. The Copy text already had every Delivery time.
+- The tuning drawer gains Meter fill per second, Chillers needed per hall, and Start with halls (to jump straight to a busy campus). Skip tutorial comes with the tutorial in M12.
+- 10 new tests (278 in all).
+
+Worth knowing:
+
+- Found and fixed while checking: the Continue button showed under the three choices, and tapping it would have closed the card without a pick, leaving the game waiting for ever. Continue is now hidden whenever there is a pick, and does nothing if somehow tapped.
+- At 660 x 300 the tuning drawer (now ten controls) scrolls; Reset and Done stay pinned at the bottom. On the iPhone it fits without scrolling.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch: halls 2 and 3 show who joined and pause play; hall 4 shows three choices and no Continue; an upgrade pick and a hire pick both apply; hall 6 says Plant B is online; the view glides to the new hall; the round-over card shows halls reached, crew and upgrades without scrolling; Start with halls 5 starts a run on hall 5. `#auto` carries on without the card. No console errors.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape (reload once) and play until hall 4 or further.
+- Do the picks feel like real choices?
+- Try Tuning > Start with halls 5 to jump to a busy campus.
 
 ### M10. Playable on the new map
 
