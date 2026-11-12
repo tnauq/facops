@@ -31,7 +31,71 @@ export const TUNING_FIELDS = [
     get: (c) => c.oneTap, set: (o, v) => { o.oneTap = v; } },
 ];
 
-const FIELD = Object.fromEntries(TUNING_FIELDS.map((f) => [f.id, f]));
+/**
+ * The drawer's logic for a list of fields, the default config they read, and a storage key.
+ * Pass 1 and pass 2 each make their own (pass 2 in src/ui/tuning2.js).
+ */
+export function createTuning(fields, defaults, key) {
+  const FIELD = Object.fromEntries(fields.map((f) => [f.id, f]));
+
+  const defaultTuning = () => {
+    const out = {};
+    for (const f of fields) out[f.id] = f.kind === 'range' ? snap(f, f.get(defaults)) : Boolean(f.get(defaults));
+    return out;
+  };
+
+  const cleanTuning = (values) => {
+    const out = defaultTuning();
+    if (!values || typeof values !== 'object') return out;
+    for (const f of fields) {
+      const v = values[f.id];
+      if (f.kind === 'range' && Number.isFinite(v) && v >= f.min && v <= f.max) out[f.id] = snap(f, v);
+      if (f.kind === 'toggle' && typeof v === 'boolean') out[f.id] = v;
+    }
+    return out;
+  };
+
+  const tuningToConfig = (values) => {
+    const clean = cleanTuning(values);
+    const overrides = { director: {} };
+    for (const f of fields) f.set(overrides, clean[f.id]);
+    return overrides;
+  };
+
+  const setTuning = (values, id, raw) => {
+    const f = FIELD[id];
+    if (!f) return values;
+    const v = f.kind === 'range' ? snap(f, Number(raw)) : Boolean(raw);
+    return { ...cleanTuning(values), [id]: v };
+  };
+
+  const tuningLabel = (id, value) => {
+    const f = FIELD[id];
+    if (f.kind === 'toggle') return value ? 'On' : 'Off';
+    return String(Number(value.toFixed(2)));
+  };
+
+  const loadTuning = (storage) => {
+    try {
+      const raw = storage?.getItem(key);
+      return cleanTuning(raw ? JSON.parse(raw) : null);
+    } catch {
+      return defaultTuning();
+    }
+  };
+
+  const saveTuning = (values, storage) => {
+    try {
+      if (!storage) return false;
+      storage.setItem(key, JSON.stringify(cleanTuning(values)));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  return { fields, key, defaultTuning, cleanTuning, tuningToConfig, setTuning, tuningLabel, loadTuning, saveTuning };
+}
 
 /** Snap a slider value to its step and range; hides float noise such as 15.000000000000002. */
 export function snap(field, value) {
@@ -40,65 +104,6 @@ export function snap(field, value) {
   return Math.min(field.max, Math.max(field.min, Number(v.toFixed(6))));
 }
 
-/** The drawer's values for the default rules: { startInterval: 10, tighten: 5, ... }. */
-export function defaultTuning() {
-  const out = {};
-  for (const f of TUNING_FIELDS) out[f.id] = f.kind === 'range' ? snap(f, f.get(D)) : Boolean(f.get(D));
-  return out;
-}
-
-/** Any values object, cleaned: unknown keys dropped, bad or out-of-range values back to defaults. */
-export function cleanTuning(values) {
-  const out = defaultTuning();
-  if (!values || typeof values !== 'object') return out;
-  for (const f of TUNING_FIELDS) {
-    const v = values[f.id];
-    if (f.kind === 'range' && Number.isFinite(v) && v >= f.min && v <= f.max) out[f.id] = snap(f, v);
-    if (f.kind === 'toggle' && typeof v === 'boolean') out[f.id] = v;
-  }
-  return out;
-}
-
-/** Config overrides for createGame. Defaults give the same rules as DEFAULT_CONFIG. */
-export function tuningToConfig(values) {
-  const clean = cleanTuning(values);
-  const overrides = { director: {} };
-  for (const f of TUNING_FIELDS) f.set(overrides, clean[f.id]);
-  return overrides;
-}
-
-/** One value changed in the drawer. Returns a new values object. */
-export function setTuning(values, id, raw) {
-  const f = FIELD[id];
-  if (!f) return values;
-  const v = f.kind === 'range' ? snap(f, Number(raw)) : Boolean(raw);
-  return { ...cleanTuning(values), [id]: v };
-}
-
-/** Text shown next to a slider. */
-export function tuningLabel(id, value) {
-  const f = FIELD[id];
-  if (f.kind === 'toggle') return value ? 'On' : 'Off';
-  return String(Number(value.toFixed(2)));
-}
-
-/** Saved values, or the defaults if there are none or storage is unavailable. */
-export function loadTuning(storage) {
-  try {
-    const raw = storage?.getItem(TUNING_KEY);
-    return cleanTuning(raw ? JSON.parse(raw) : null);
-  } catch {
-    return defaultTuning();
-  }
-}
-
-/** Returns true if the values were written. */
-export function saveTuning(values, storage) {
-  try {
-    if (!storage) return false;
-    storage.setItem(TUNING_KEY, JSON.stringify(cleanTuning(values)));
-    return true;
-  } catch {
-    return false;
-  }
-}
+// Pass 1's drawer, with the names the pass 1 code and tests use.
+const pass1 = createTuning(TUNING_FIELDS, D, TUNING_KEY);
+export const { defaultTuning, cleanTuning, tuningToConfig, setTuning, tuningLabel, loadTuning, saveTuning } = pass1;

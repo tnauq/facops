@@ -11,6 +11,9 @@ export function escalationsText(r) {
     [r.spreads, 'network spread', 'network spreads'],
     [r.bursts, 'pump burst', 'pump bursts'],
     [r.secondChillers, 'second chiller', 'second chillers'],
+    // Pass 2 only; pass 1 results have none of these, so they never show there.
+    [r.halfDark, 'half hall dark', 'half halls dark'],
+    [r.leakSpreads, 'leak to a second CDU', 'leaks to a second CDU'],
   ].filter(([n]) => n > 0).map(([n, one, many]) => plural(n, one, many));
   return parts.length > 0 ? parts.join(', ') : 'none';
 }

@@ -3,6 +3,7 @@
 // Storage is optional: if it is blocked or broken the game carries on without a saved best.
 
 export const BEST_KEY = 'facops.best.v1';
+export const BEST2_KEY = 'facops.best.v2'; // pass 2 keeps its own best: a 300 MW run scores differently
 
 const valid = (b) => b !== null && typeof b === 'object' && Number.isFinite(b.energyGwh) && Number.isFinite(b.seconds);
 
@@ -25,9 +26,9 @@ export function defaultStorage() {
 }
 
 /** The saved best, or null if there is none, it is unreadable, or storage is unavailable. */
-export function loadBest(storage = defaultStorage()) {
+export function loadBest(storage = defaultStorage(), key = BEST_KEY) {
   try {
-    const raw = storage?.getItem(BEST_KEY);
+    const raw = storage?.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return valid(parsed) ? { energyGwh: parsed.energyGwh, seconds: parsed.seconds } : null;
@@ -37,10 +38,10 @@ export function loadBest(storage = defaultStorage()) {
 }
 
 /** Save a best score. Returns true if it was written. */
-export function saveBest(best, storage = defaultStorage()) {
+export function saveBest(best, storage = defaultStorage(), key = BEST_KEY) {
   try {
     if (!storage) return false;
-    storage.setItem(BEST_KEY, JSON.stringify({ energyGwh: best.energyGwh, seconds: best.seconds }));
+    storage.setItem(key, JSON.stringify({ energyGwh: best.energyGwh, seconds: best.seconds }));
     return true;
   } catch {
     return false;

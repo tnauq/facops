@@ -39,6 +39,7 @@
     .card .big b { display: block; font-size: 26px; font-weight: 700; }
     .card .big span { color: #56606E; font-size: 12px; }
     .card .new { font-weight: 700; color: #1F3A5F; }
+    .card a { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 8px; color: #1F3A5F; font-weight: 600; }
     .buttons { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
     .buttons button {
       min-width: 110px; min-height: 44px; padding: 0 18px; border-radius: 8px; font: 600 15px system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -81,6 +82,7 @@
       <h1>FacOps</h1>
       <p>Alarms pile up. Send your crew. Keep the load in the green.</p>
       <p class="muted">Best: <span data-field="best"></span></p>
+      <p class="muted"><a href="./pass1/">Play pass 1</a> · <a href="./map.html">Map preview</a></p>
       <div class="buttons">
         <button class="primary" data-action="start">Start</button>
         <button data-action="tuning">Tuning</button>
@@ -117,7 +119,6 @@
     </div>
   </div>
   <div id="rotate"><p>Turn your phone sideways</p></div>
-  <!-- Milestone 8 shows the pass 2 map preview; the game returns on the new map in milestone 10 (src/main.js). -->
-  <script type="module" src="./src/preview.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>

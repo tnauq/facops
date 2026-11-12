@@ -52,13 +52,21 @@ export function drawCrewBar(ctx, cards) {
   for (const c of cards) {
     panel(ctx, c, c.selected);
     const cx = c.x + c.w / 2;
-    // Spread the three lines over the card's height, which shrinks on small screens.
-    const top = c.y + Math.min(26, c.h * 0.3);
-    drawTech(ctx, cx, top, 40, c.trade, { busy: c.status === 'Fixing' });
-    const lines = c.y + c.h * 0.62;
-    text(ctx, c.name, cx, lines, { weight: 600, align: 'center' });
-    text(ctx, c.status, cx, lines + 13, { color: MUTED, align: 'center' });
-    if (c.progress !== null) bar(ctx, c.x + 8, c.y + c.h - 7, c.w - 16, 3, c.progress, WORK);
+    if (c.h >= 70) {
+      // Tall card: the tech on top, two text lines at the bottom.
+      const textTop = c.h - 33;
+      drawTech(ctx, cx, c.y + 2 + textTop / 2, 40, c.trade, { busy: c.status === 'Fixing' });
+      text(ctx, c.name, cx, c.y + c.h - 25, { weight: 600, align: 'center' });
+      text(ctx, c.status, cx, c.y + c.h - 13, { color: MUTED, align: 'center' });
+    } else {
+      // Short card (a big crew or a small phone): the tech on the left, the text beside it, so
+      // neither has to shrink much.
+      const mid = c.y + c.h / 2 - 2;
+      drawTech(ctx, c.x + 17, mid, Math.min(30, (c.h - 8) / 0.85), c.trade, { busy: c.status === 'Fixing' });
+      text(ctx, c.name, c.x + 33, mid - 7, { weight: 600 });
+      text(ctx, c.status, c.x + 33, mid + 7, { color: MUTED });
+    }
+    if (c.progress !== null) bar(ctx, c.x + 8, c.y + c.h - 5, c.w - 16, 3, c.progress, WORK);
   }
 }
 

@@ -8,7 +8,8 @@
 import { HALLS, MID_Y, START_POINT, WORLD, choose, createGame, formatClock, greedyMove, load, pickFor, plantBOnline as plantBOnline2, step } from './core/index2.js';
 import { drawBuilding } from './render/campus2.js';
 import { drawCrew } from './render/campus.js';
-import { drawAlarmBubble, drawFaultGlyph } from './render/icons.js';
+import { drawAlarmBubble } from './render/icons.js';
+import { drawMarker } from './render/markers.js';
 import { BUBBLE_RADIUS, BUBBLE_RAISE } from './ui/bubbles.js';
 import { cameraView, centreOn, createCamera, glide, panBy, passOneScale } from './ui/camera.js';
 import { fannedCrew } from './ui/crew.js';
@@ -16,7 +17,7 @@ import { endGesture, moveGesture, startGesture } from './ui/drag.js';
 import { popScale } from './ui/feel.js';
 import { BAND_COLOR } from './ui/hud.js';
 import { createClock, runFrame } from './ui/loop.js';
-import { MARKER_RADIUS, markerAt, offMapMarkers } from './ui/offmap.js';
+import { markerAt, offMapMarkers } from './ui/offmap.js';
 import { MAX_HALLS, hallsFromHash, plantBOnline, sampleAlarms, sampleStatus } from './ui/preview.js';
 import { HUD_HEIGHT, regions } from './ui/regions.js';
 import { bubbles2, equipmentStatus } from './ui/view2.js';
@@ -151,44 +152,6 @@ function drawHud() {
   }
 }
 
-// ---- Off-map arrows ----
-
-function drawMarker(m) {
-  ctx.save();
-  ctx.translate(m.x, m.y);
-  ctx.save();
-  ctx.rotate(m.angle);
-  ctx.beginPath();
-  ctx.moveTo(MARKER_RADIUS - 2, -7);
-  ctx.lineTo(MARKER_RADIUS + 6, 0);
-  ctx.lineTo(MARKER_RADIUS - 2, 7);
-  ctx.closePath();
-  ctx.fillStyle = INK;
-  ctx.fill();
-  ctx.restore();
-  const r = 15;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = INK;
-  ctx.stroke();
-  drawFaultGlyph(ctx, 0, 0, 16, m.type, INK);
-  if (m.count > 1) {
-    ctx.beginPath();
-    ctx.arc(r * 0.8, -r * 0.8, 8, 0, Math.PI * 2);
-    ctx.fillStyle = INK;
-    ctx.fill();
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `700 10px ${FONT}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(m.count), r * 0.8, -r * 0.8 + 0.5);
-  }
-  ctx.restore();
-}
-
 // ---- Frame ----
 
 function draw() {
@@ -213,7 +176,7 @@ function draw() {
     for (const a of points) drawAlarmBubble(ctx, view.ox + a.x * view.scale, view.oy + a.y * view.scale - BUBBLE_RAISE, BUBBLE_RADIUS, a.info, {});
   }
   markers = offMapMarkers(points, cam);
-  for (const m of markers) drawMarker(m);
+  for (const m of markers) drawMarker(ctx, m);
   ctx.restore();
   drawHud();
 }

@@ -1,7 +1,7 @@
 // The alarm rail (spec section 6.6): one ticket per alarm, most urgent on top, 96 x 44 with 4 px
 // gaps. If they do not all fit, as many as fit and a "+N" chip at the bottom. Pure.
 
-import { alarmInfo, getTech, locationTag, sortedAlarms } from '../core/index.js';
+import * as pass1 from '../core/index.js';
 
 export const TICKET_WIDTH = 96;
 export const TICKET_HEIGHT = 44;
@@ -33,7 +33,9 @@ export function ticketsThatFit(railHeight, count) {
  * it shows: type, name, place, the fastest trade, the bar, the hat of the assigned tech (or queued),
  * and whether it is selected. chip is { x, y, w, h, text } or null.
  */
-export function railTickets(state, rect, selectedAlarmId = null) {
+export function railTickets(state, rect, selectedAlarmId = null, api = pass1) {
+  // `api` is the rules engine's surface: pass 1's by default, pass 2's from the pass 2 game.
+  const { alarmInfo, getTech, locationTag, sortedAlarms } = api;
   const alarms = sortedAlarms(state);
   const shown = ticketsThatFit(rect.h, alarms.length);
   const x = rect.x + (rect.w - TICKET_WIDTH) / 2;

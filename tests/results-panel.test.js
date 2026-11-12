@@ -79,3 +79,8 @@ test('escalations: only those that happened, or none', () => {
   assert.equal(escalationsText(zero), 'none');
   assert.equal(escalationsText({ ...zero, bursts: 1, secondChillers: 3 }), '1 pump burst, 3 second chillers');
 });
+
+test('pass 2 escalations show too', () => {
+  const zero = { rowShutdowns: 0, hallDark: 0, spreads: 0, bursts: 0, secondChillers: 0, halfDark: 0, leakSpreads: 0 };
+  assert.equal(escalationsText({ ...zero, halfDark: 1, leakSpreads: 2 }), '1 half hall dark, 2 leaks to a second CDU');
+});

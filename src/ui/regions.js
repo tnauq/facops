@@ -3,16 +3,30 @@
 
 export const HUD_HEIGHT = 34;
 const CREW_WIDTH = 76;
+const CREW_WIDTH_TWO = 148; // pass 2 spec 7.2: two columns of cards
 const RAIL_WIDTH = 104;
+const CARD_MIN = 48; // a card shorter than this means the crew bar needs a second column
 
-/** { hud, crew, rail, map } as rectangles { x, y, w, h }, for a canvas W x H. */
-export function regions(W, H) {
+/**
+ * { hud, crew, rail, map } as rectangles { x, y, w, h }, for a canvas W x H.
+ * With `crewColumns: 2` the crew bar is wider and the map starts further right (pass 2, spec 7.2).
+ */
+export function regions(W, H, { crewColumns = 1 } = {}) {
+  const crewW = crewColumns === 2 ? CREW_WIDTH_TWO : CREW_WIDTH;
+  const mapX = crewW + 4;
   return {
     hud: { x: 0, y: 0, w: W, h: HUD_HEIGHT },
-    crew: { x: 0, y: HUD_HEIGHT, w: CREW_WIDTH, h: H - HUD_HEIGHT },
+    crew: { x: 0, y: HUD_HEIGHT, w: crewW, h: H - HUD_HEIGHT },
     rail: { x: W - RAIL_WIDTH, y: HUD_HEIGHT, w: RAIL_WIDTH, h: H - HUD_HEIGHT },
-    map: { x: 80, y: 36, w: W - 188, h: H - 40 },
+    map: { x: mapX, y: 36, w: W - mapX - 108, h: H - 40 },
   };
+}
+
+/** One column of crew cards, or two when one column would make them shorter than 48 px. */
+export function crewColumns(H, crewSize) {
+  const barH = H - HUD_HEIGHT;
+  const oneColumn = (barH - 4 * (crewSize + 1)) / crewSize;
+  return oneColumn < CARD_MIN ? 2 : 1;
 }
 
 // The map's rectangle in milestone 3, before the crew bar and alarm rail existed: the full width

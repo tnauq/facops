@@ -28,12 +28,39 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 |---|---|---|
 | M8. Pass 1 snapshot and the new map | `m8` | Done |
 | M9. Rules engine for pass 2 | `m9` | Done |
-| M10. Playable on the new map | `m10` | Next |
-| M11. Deliveries and crew picks | `m11` | To do |
+| M10. Playable on the new map | `m10` | Done |
+| M11. Deliveries and crew picks | `m11` | Next |
 | M12. Tutorial | `m12` | To do |
 | M13. Feel and phone check for pass 2 | `m13` | To do |
 
 ## Log
+
+### M10. Playable on the new map
+
+Built:
+
+- The game now runs on the pass 2 rules and the new building (`src/main.js`), with pass 1's HUD, crew bar, alarm rail, overlays, tuning drawer and results.
+- The scrolling map in the game (`src/render/map2.js`, `src/ui/targets2.js`): pass 1's zoom, drag in any direction, mouse wheel or arrow keys. A touch that moves more than 8 px scrolls; otherwise it is a tap, acted on when the finger lifts. The rails and HUD still act at finger-down.
+- Off-map arrows in the game; tapping one glides to its alarm. Tapping a ticket or crew card whose alarm or tech is out of view also glides there.
+- The crew bar grows a second column when a column of cards would be shorter than 48 px (7 techs on the iPhone, 6 on the smallest screen). The map narrows to match; the zoom stays the same. Short cards show the tech beside its name instead of above it, so neither shrinks.
+- The HUD shows the load in MW against what is online (`106 / 113 MW`) and "Hall 3 of 8".
+- The Network tech plays like the others (blue hat, faster on network failures).
+- Deliveries take the first card (always a Hire) automatically until M11 brings the pick.
+- Pass 2 keeps its own saved best score (`facops.best.v2`) and tuning (`facops.tuning.v2`), separate from pass 1's.
+- The start card links to pass 1 and to the M8 map preview, now at `map.html`.
+- 12 new tests (268 in all), including whole pass 2 runs played only through ticket and crew-card taps at all three screen sizes, and a run played by scrolling to and tapping bubbles and techs on the map.
+
+Worth knowing:
+
+- The tuning drawer has pass 1's controls except "First alarm interval": pass 2 starts each hall's phase from the spec's table instead. The new controls in spec section 9 come in M11.
+- Floating MW losses are off for now: pass 1's figures do not apply to the new building. M13 brings pass 2's.
+- The camera does not yet glide to a new hall at a Delivery in the game (it does in `#auto`); that arrives with the Delivery card in M11.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch: tapping a bubble then a crew card sends that tech, dragging scrolls without selecting, a ticket for an alarm two halls away glides the view to it, nine techs fill two columns, the round-over card and Copy work, `#auto` plays, and `map.html` still works. No console errors.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape (reload once) and play a run with your thumbs.
+- Is panning comfortable? Do you lose track of alarms off screen?
 
 ### M9. Rules engine for pass 2
 
