@@ -6,6 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="FacOps">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#D5DBE3">
   <title>FacOps</title>
   <link rel="icon" href="data:,">
@@ -54,6 +56,22 @@
     .row input[type=checkbox] { width: 22px; height: 22px; margin: 0; justify-self: start; accent-color: #1F3A5F; }
     .row output { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
     label.row { cursor: pointer; }
+    /* Round-over results: headline numbers, then a two-column list. Sized to fit 660 x 300. */
+    .card.results { width: min(680px, 98vw); max-width: none; max-height: 97vh; padding: 8px 16px 10px; }
+    .card.results h1 { font-size: 18px; margin: 0; }
+    .card.results .big { margin: 4px 0 2px; gap: 36px; }
+    .card.results .big b { font-size: 24px; }
+    .card.results p { margin: 4px 0 0; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); column-gap: 18px; margin: 4px 0 0; text-align: left; font-size: 12px; }
+    .stats div { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; border-bottom: 1px solid #EEF1F5; }
+    .stats dt { color: #56606E; }
+    .stats dd { margin: 0; text-align: right; font-weight: 600; }
+    .card.results .buttons { margin-top: 8px; }
+    #results-text { width: 100%; height: 60px; margin-top: 6px; font: 11px ui-monospace, monospace; -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+    /* Spec 6.7: shown whenever the page is taller than it is wide, over everything else. */
+    #rotate { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: #D5DBE3; z-index: 10; }
+    #rotate p { color: #1F3A5F; font-size: 20px; font-weight: 600; }
+    @media (orientation: portrait) { #rotate { display: flex; } }
   </style>
 </head>
 <body>
@@ -76,14 +94,14 @@
         <button data-action="tuning">Tuning</button>
       </div>
     </div>
-    <div class="card" data-overlay="over" hidden>
+    <div class="card results" data-overlay="over" hidden>
       <h1>Round over</h1>
-      <div class="big">
-        <div><b data-field="time"></b><span>survived</span></div>
-        <div><b data-field="energy"></b><span>delivered</span></div>
-      </div>
-      <p data-field="bestLine"></p>
+      <div class="big" id="results-big"></div>
+      <dl class="stats" id="results-lines"></dl>
+      <p class="new" data-field="bestLine"></p>
+      <textarea id="results-text" readonly hidden aria-label="Results to copy"></textarea>
       <div class="buttons">
+        <button data-action="copy" id="copy-button">Copy results</button>
         <button class="primary" data-action="again">Play again</button>
         <button data-action="tuning">Tuning</button>
       </div>
@@ -98,6 +116,7 @@
       </div>
     </div>
   </div>
+  <div id="rotate"><p>Turn your phone sideways</p></div>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>

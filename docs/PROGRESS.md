@@ -10,8 +10,8 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 | M3. HUD and round over | `m3` | Done |
 | M4. Crew bar and alarm rail | `m4` | Done |
 | M5. One-tap switch and tuning drawer | `m5` | Done |
-| M6. Results, pause and phone polish | `m6` | Next |
-| M7. Feel | `m7` | To do |
+| M6. Results, pause and phone polish | `m6` | Done |
+| M7. Feel | `m7` | Next |
 
 ## Owner setup, once
 
@@ -21,6 +21,35 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 4. After a minute, open https://tnauq.github.io/facops/ on the phone, in landscape.
 
 ## Log
+
+### Automatic milestone tags
+
+A GitHub Action (`.github/workflows/tag-milestones.yml`) now tags milestones. Every commit on `main` whose title starts with `M<number>:` gets the tag `m<number>` if that tag does not exist yet; existing tags are never moved. No more tagging by hand. You can also run it from Actions > Tag milestones > Run workflow. `CLAUDE.md` tells the coding agent to rely on it.
+
+### M6. Results, pause and phone polish
+
+Built:
+
+- The full results on the round-over card (`src/ui/results.js`): time survived, energy delivered and the share of possible energy in large type; then time in green, yellow and red; alarms raised and cleared; average and longest time to clear; escalations; redirects; the share of fixes by the matching hat; and the best score. It fits the 660 x 300 screen without scrolling.
+- Copy results (`src/ui/copy.js`): writes exactly `resultsText(state)` to the clipboard from inside the tap, as Safari requires, then reads "Copied". If the clipboard refuses, the text appears in a box underneath, selected, and the button reads "Select and copy" if the phone would not copy it either.
+- Leaving the page (switching apps, locking the phone) pauses the round and shows the pause card.
+- The rotate screen: "Turn your phone sideways" covers everything whenever the page is taller than wide. The round stands still underneath and carries on when you turn back.
+- Home Screen: a web app manifest (`manifest.webmanifest`) so "Add to Home Screen" opens the game full screen, without Safari's bars.
+- 6 new tests (170 in all).
+
+Worth knowing:
+
+- Escalations on the card list only those that happened ("2 row shutdowns, 1 dark hall"), or "none", so the line fits a phone. The copied text still lists all five.
+- There is no Home Screen icon picture; iPhone uses a snapshot of the page. The spec has no image files in pass 1; say if you want an icon drawn.
+- The scripted player (`#auto`) does not pause when the page is hidden; only real rounds do.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: results card fits, Copy matched `resultsText` exactly, the fallback box appeared with the text selected when the clipboard was refused, hiding the page paused, portrait showed the rotate screen and froze the clock, and landscape resumed it. Taps on the rails and the gear land correctly with the notch on either side. No console errors.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape and play a round to the end.
+- Tap Copy results and paste the result into a chat.
+- Turn the phone upright mid-round: the game stops and asks you to turn it back; turning back carries on.
+- In Safari: Share > Add to Home Screen. Open FacOps from the Home Screen and play one round there.
 
 ### M5. One-tap switch and tuning drawer
 

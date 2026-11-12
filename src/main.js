@@ -1,17 +1,20 @@
-// FacOps pass 1, up to milestone 5: the live map, the HUD strip, the crew bar and alarm rail, the
-// start, pause and round-over overlays with a saved best score, and the tuning drawer.
+// FacOps pass 1, up to milestone 6: the live map, the HUD strip, the crew bar and alarm rail, the
+// start, pause and round-over overlays (with full results, Copy and a saved best score), the tuning
+// drawer, and a rotate screen (pure CSS in index.html). The game pauses when the page is hidden.
 // Two-tap mode (the default): tap an alarm (bubble or ticket) then a tech (on the map or its card),
 // or the other way round, to send that tech; a busy tech is redirected. One-tap mode (a switch in
 // the drawer): tapping an alarm sends the nearest free tech, or queues the alarm if nobody is free;
 // a tech then an alarm still sends that tech. Keys 1 to 3 tap the crew cards. Add #auto to watch
 // the scripted player.
 
-import { assign, createGame, dispatch, formatClock, results, step } from './core/index.js';
+import { assign, createGame, dispatch, formatClock, results, resultsText, step } from './core/index.js';
 import { PAGE_COLOR, fitView } from './render/campus.js';
 import { drawMap } from './render/map.js';
 import { drawHud } from './render/hud.js';
 import { drawCrewBar, drawRail } from './render/rails.js';
-import { bindOverlays, buildTuningControls, setTuningControls, showOverlay } from './render/overlays.js';
+import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setResults, setTuningControls, showOverlay } from './render/overlays.js';
+import { resultsPanel } from './ui/results.js';
+import { copyLabel, copyText } from './ui/copy.js';
 import { createClock, runFrame } from './ui/loop.js';
 import { autoplayStep, createAutoplay } from './ui/autoplay.js';
 import { hitTest } from './ui/hittest.js';
@@ -37,7 +40,6 @@ let mode = 'start'; // see src/ui/flow.js
 let best = loadBest(); // null when there is none or storage is blocked
 let tuning = loadTuning(defaultStorage()); // the drawer's values; used when the next round starts
 let tuningBack = null; // the card the drawer returns to
-let overFields = {}; // the round-over card's text, kept so the drawer can return to it
 
 const isAuto = () => window.location.hash === '#auto';
 
@@ -60,12 +62,16 @@ function act(action) {
     changeTuning(defaultTuning());
     return;
   }
+  if (action === 'copy') {
+    copyResults();
+    return;
+  }
   const next = reduceFlow(mode, action, tuningBack);
   if (next.back) tuningBack = next.back;
   if (next.newRound) newRound();
   mode = next.mode;
   if (mode === 'start') showStart();
-  else if (mode === 'over') showOverlay('over', overFields);
+  else if (mode === 'over') showOverlay('over'); // its contents were filled in when the round ended
   else if (mode === 'tuning') {
     setTuningControls(tuning, tuningLabel);
     showOverlay('tuning');
@@ -87,12 +93,14 @@ function roundOver() {
   best = record.best;
   if (record.isNew) saveBest(best);
   mode = reduceFlow(mode, 'over').mode;
-  overFields = {
-    time: formatClock(r.seconds),
-    energy: `${r.energyGwh.toFixed(2)} GWh`,
-    bestLine: record.isNew ? 'New best!' : `Best: ${bestText(best, formatClock)}`,
-  };
-  showOverlay('over', overFields);
+  setResults(resultsPanel(r, record, formatClock));
+  showOverlay('over');
+}
+
+// Runs inside the button's click handler: Safari only allows clipboard writes during a tap.
+function copyResults() {
+  copyText(resultsText(round.state), { clipboard: navigator.clipboard, selectFallback: selectResultsText })
+    .then((outcome) => setCopyLabel(copyLabel(outcome)));
 }
 
 function resize() {
@@ -192,6 +200,11 @@ canvas.addEventListener('pointerdown', onTap);
 window.addEventListener('keydown', onKey);
 window.addEventListener('resize', () => { resize(); draw(); });
 window.addEventListener('hashchange', begin);
+// Leaving the page (switching apps, locking the phone) pauses the round and shows the pause card,
+// so coming back never drops the player straight into the action.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && mode === 'playing' && !round.auto) act('pause');
+});
 resize();
 begin();
 requestAnimationFrame(frame);

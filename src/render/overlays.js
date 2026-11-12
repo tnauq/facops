@@ -66,3 +66,54 @@ export function setTuningControls(values, label) {
   }
   for (const out of document.querySelectorAll('#tuning-controls output')) out.textContent = label(out.dataset.id, values[out.dataset.id]);
 }
+
+/** Fill the round-over card from resultsPanel (src/ui/results.js). Resets the Copy button. */
+export function setResults(panel) {
+  const big = document.getElementById('results-big');
+  big.textContent = '';
+  for (const b of panel.big) {
+    const cell = document.createElement('div');
+    const value = document.createElement('b');
+    value.textContent = b.value;
+    const label = document.createElement('span');
+    label.textContent = b.label;
+    cell.append(value, label);
+    big.append(cell);
+  }
+  const list = document.getElementById('results-lines');
+  list.textContent = '';
+  for (const [name, value] of panel.lines) {
+    const row = document.createElement('div');
+    const dt = document.createElement('dt');
+    dt.textContent = name;
+    const dd = document.createElement('dd');
+    dd.textContent = value;
+    row.append(dt, dd);
+    list.append(row);
+  }
+  document.querySelector('[data-overlay="over"] [data-field="bestLine"]').textContent = panel.bestLine;
+  document.getElementById('results-text').hidden = true;
+  setCopyLabel('Copy results');
+}
+
+export function setCopyLabel(text) {
+  document.getElementById('copy-button').textContent = text;
+}
+
+/**
+ * The Copy fallback: show the text in a textarea, select it, and try the old copy command.
+ * Returns true if that command reports success. The text stays selected either way.
+ */
+export function selectResultsText(text) {
+  const area = document.getElementById('results-text');
+  area.value = text;
+  area.hidden = false;
+  area.focus();
+  area.select();
+  area.setSelectionRange(0, text.length); // iOS needs the range as well as select()
+  try {
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  }
+}
