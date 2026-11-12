@@ -50,7 +50,7 @@ Built:
 - Each lesson glides the view to its alarm, and the callout sits at the top or bottom of the map, whichever keeps the lesson's alarms clear (`src/render/callout.js`).
 - Prompts say "Tap" on a touch screen and "Click" with a mouse.
 - Skip tutorial is a switch in the tuning drawer. After the first finished run it turns on by itself, once; if you turn it off again it stays off. There is never a tutorial with "Start with halls" above 1, or in `#auto`.
-- 8 new tests (293 in all): lessons in order, no director alarms and the meter at 80 or below during the lessons, the redirect lesson, a learner who never redirects still gets through, Click prompts, callout length, Skip tutorial.
+- 8 new tests (286 in all): lessons in order, no director alarms and the meter at 80 or below during the lessons, the redirect lesson, a learner who never redirects still gets through, Click prompts, callout length, Skip tutorial.
 
 Worth knowing:
 
