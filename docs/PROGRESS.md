@@ -35,6 +35,10 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 
 ## Log
 
+### Map flipped to read left to right (after M8)
+
+At the owner's request the building is mirrored: Plant A and hall 1 are now on the left, and the campus grows rightward to hall 8 and Plant B. Spec version 1.1 has the new positions. Nothing else changed; all 216 tests pass.
+
 ### M8. Pass 1 snapshot and the new map
 
 Built:

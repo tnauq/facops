@@ -1,6 +1,6 @@
 # FacOps pass 2 build spec
 
-Version 1.0, approved by the owner on 12 November 2026. This is the source of truth for pass 2, exactly as `docs/pass1-spec.md` was for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner.
+Version 1.1, 12 November 2026 (1.0 approved by the owner; 1.1 flips the map at the owner's request so the campus grows left to right). This is the source of truth for pass 2, exactly as `docs/pass1-spec.md` was for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Everything else follows from the owner's map drawing (12 November) and answers. Drafts 0.2 and 0.3 took in the owner's changes: a 300 MW building, 8 chillers and 2 pumps per plant, pass 1's zoom with a map that scrolls in every direction, and both CDUs of a hall feeding all 6 rows.
 
@@ -39,39 +39,39 @@ Unchanged from pass 1 section 2 (plain JavaScript, no libraries, no build step, 
 
 ### 3.1 Shape
 
-The owner's drawing shows the right half of the building. The left half is its mirror image across the centre line (the pink line in the drawing), and the building is open along that line: no wall. The building is also symmetric top to bottom about the middle aisle of the halls.
+The owner's drawing shows one half of the building, here flipped so the game reads **left to right**: Plant A and halls 1 to 4 make the left half, and the right half is its mirror image across the centre line (the pink line in the drawing), and the building is open along that line: no wall. The building is also symmetric top to bottom about the middle aisle of the halls.
 
-World units are the same size as pass 1's, so every icon keeps its pass 1 size (`ICON_SIZE` in `src/render/icons.js`: rack 44, MSB 66, CDU 44, chiller 100, pump 80, tech 46). The building is **3920 wide and 780 tall**, origin top-left, y down. The centre line is x = 1960. Everything in the left half is the mirror of the right half: **x' = 3920 - x**. The bottom half mirrors the top: **y' = 780 - y**.
+World units are the same size as pass 1's, so every icon keeps its pass 1 size (`ICON_SIZE` in `src/render/icons.js`: rack 44, MSB 66, CDU 44, chiller 100, pump 80, tech 46). The building is **3920 wide and 780 tall**, origin top-left, y down. The centre line is x = 1960. Everything in the right half is the mirror of the left half: **x' = 3920 - x**. The bottom half mirrors the top: **y' = 780 - y**.
 
 From left to right:
 
 ```
-| Plant B | 8 | 7 |   | 6 | 5 |  :  | 4 | 3 |   | 2 | 1 | Plant A |
+| Plant A | 1 | 2 |   | 3 | 4 |  :  | 5 | 6 |   | 7 | 8 | Plant B |
             pair       pair     centre  pair       pair
 ```
 
-Halls come online in order 1 to 8, so the campus grows from Plant A outward across the building. Hall 5 mirrors hall 4, 6 mirrors 3, 7 mirrors 2 and 8 mirrors 1.
+Halls come online in order 1 to 8, so the campus grows from Plant A on the left across to Plant B on the right. Hall 5 mirrors hall 4, 6 mirrors 3, 7 mirrors 2 and 8 mirrors 1.
 
-### 3.2 Right half, exact positions
+### 3.2 Left half, exact positions
 
 Every hall is 320 wide and 430 tall, from y = 175 to y = 605. Its middle aisle is at y = 390, the building's horizontal centre line.
 
 | Thing | x | y | Notes |
 |---|---|---|---|
-| Hall 4 | 2040 to 2360 | 175 to 605 | Pair with hall 3, shared wall at x = 2360 |
-| Hall 3 | 2360 to 2680 | 175 to 605 | |
-| Hall 2 | 2800 to 3120 | 175 to 605 | Pair with hall 1, shared wall at x = 3120 |
-| Hall 1 | 3120 to 3440 | 175 to 605 | |
-| Plant A chiller area | 3490 to 3830 | 170 to 610 | 8 chillers in two columns of four |
-| Plant A top pump | icon (3870, 40) | | Service point (3870, 95) |
-| Plant A bottom pump | icon (3870, 740) | | Service point (3870, 685) |
+| Plant A chiller area | 90 to 430 | 170 to 610 | 8 chillers in two columns of four |
+| Plant A top pump | icon (50, 40) | | Service point (50, 95) |
+| Plant A bottom pump | icon (50, 740) | | Service point (50, 685) |
+| Hall 1 | 480 to 800 | 175 to 605 | Pair with hall 2, shared wall at x = 800 |
+| Hall 2 | 800 to 1120 | 175 to 605 | |
+| Hall 3 | 1240 to 1560 | 175 to 605 | Pair with hall 4, shared wall at x = 1560 |
+| Hall 4 | 1560 to 1880 | 175 to 605 | |
 | Building outline | 0 to 3920 | 0 to 780 | Outer walls on all sides except along the centre line |
 
-Chillers in Plant A: two columns at x = 3550 and x = 3770, four in each at y = 225, 335, 445, 555 (`chiller-A-0` to `chiller-A-7`, top to bottom, west column first). The plant lane runs between the columns at x = 3660; every chiller's service point is on it at the chiller's y.
+Chillers in Plant A: two columns at x = 370 and x = 150, four in each at y = 225, 335, 445, 555 (`chiller-A-0` to `chiller-A-7`, top to bottom, the column nearer the halls first). The plant lane runs between the columns at x = 260; every chiller's service point is on it at the chiller's y.
 
 ### 3.3 Inside a hall
 
-Positions inside a hall use **s**, the distance from the hall's shared wall toward its outer wall (0 to 320). For hall 1, s grows to the right from x = 3120; for hall 2, s grows to the left from x = 3120.
+Positions inside a hall use **s**, the distance from the hall's shared wall toward its outer wall (0 to 320). For hall 1, s grows to the left from x = 800; for hall 2, s grows to the right from x = 800.
 
 | Thing | Position | From the drawing |
 |---|---|---|
@@ -103,16 +103,16 @@ Techs walk only along lanes, and pass through walls only at doors:
 |---|---|
 | Top corridor | y = 95, x 50 to 3870 |
 | Bottom corridor | y = 685, x 50 to 3870 |
-| Plant lanes | x = 3660 and x = 260, y 95 to 685 |
+| Plant lanes | x = 260 and x = 3660, y 95 to 685 |
 | Centre lane (the open centre line) | x = 1960, y 95 to 685 |
-| Gaps between pairs | x = 2740 and x = 1180, y 95 to 685 |
+| Gaps between pairs | x = 1180 and x = 2740, y 95 to 685 |
 | In every hall | Outer aisle (corridor to corridor, through both outer doors), inner aisle, middle aisle, and the two shared-wall links |
 
 `route(from, to)` returns the shortest path; every hop is horizontal or vertical.
 
 Walk speed rises from 120 to **150** units per second because the building is much bigger than pass 1's map. Hall 1 to hall 4 is then about 9 s, and Plant A to hall 8 about 25 s. Long walks are on purpose (they were the first lever pass 1 named for adding depth); M9 checks the pacing.
 
-The crew starts on Plant A's lane at (3660, 390). A tech who joins later appears at the top outer door of the hall that just came online.
+The crew starts on Plant A's lane at (260, 390). A tech who joins later appears at the top outer door of the hall that just came online.
 
 ### 3.6 Equipment ids and labels
 
@@ -341,6 +341,6 @@ Owner's checklist: play five full runs and paste the results.
 | Pair (of halls) | Two halls sharing a wall, joined by two doors |
 | MSB pair | The two MSBs (A and B) feeding one half of a hall |
 | CDU pair | A hall's top and bottom CDUs, which together feed all 6 rows |
-| Plant A, Plant B | The chiller and pump areas at the right and left ends |
+| Plant A, Plant B | The chiller and pump areas at the left and right ends |
 | Delivery | A full Stability meter: the next hall comes online |
 | Full campus | A full meter with all 8 halls online |

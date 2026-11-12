@@ -1,6 +1,7 @@
 // Pass 2 map (spec docs/pass2-spec.md, section 3): one building of 8 halls in 4 pairs with a plant
 // at each end. World units are pass 1's size, so every icon keeps its pass 1 size.
-// The right half is laid out by hand from the owner's drawing; the left half is its mirror
+// The campus grows left to right: Plant A and halls 1 to 4 are the left half, laid out by hand
+// from the owner's drawing (flipped so it reads left to right); the right half is its mirror
 // (x' = WORLD.width - x). The bottom half mirrors the top about the middle aisle (y' = 780 - y).
 // Until milestone M9 the rules engine still runs on the pass 1 map (layout.js); this file is only
 // drawn and tested.
@@ -17,12 +18,12 @@ export const MID_Y = 390; // the halls' middle aisle, the building's horizontal 
 export const CORRIDOR_TOP = 95;
 export const CORRIDOR_BOTTOM = my(CORRIDOR_TOP); // 685
 
-// Hall x ranges in the right half; `shared` is the x of the wall it shares with its pair partner.
-const RIGHT_HALLS = [
-  { id: 1, x: 3120, shared: 3120 },
-  { id: 2, x: 2800, shared: 3120 },
-  { id: 3, x: 2360, shared: 2360 },
-  { id: 4, x: 2040, shared: 2360 },
+// Hall x ranges in the left half; `shared` is the x of the wall it shares with its pair partner.
+const LEFT_HALLS = [
+  { id: 1, x: 480, shared: 800 },
+  { id: 2, x: 800, shared: 800 },
+  { id: 3, x: 1240, shared: 1560 },
+  { id: 4, x: 1560, shared: 1560 },
 ];
 // Hall 5 mirrors 4, 6 mirrors 3, 7 mirrors 2, 8 mirrors 1.
 const MIRROR_OF = { 5: 4, 6: 3, 7: 2, 8: 1 };
@@ -36,9 +37,9 @@ function makeHall(id, x, shared) {
 
 export const HALLS = (() => {
   const out = {};
-  for (const h of RIGHT_HALLS) out[h.id] = makeHall(h.id, h.x, h.shared);
+  for (const h of LEFT_HALLS) out[h.id] = makeHall(h.id, h.x, h.shared);
   for (const [id, of] of Object.entries(MIRROR_OF)) {
-    const src = RIGHT_HALLS.find((h) => h.id === of);
+    const src = LEFT_HALLS.find((h) => h.id === of);
     out[id] = makeHall(Number(id), mx(src.x + HALL_W), mx(src.shared));
   }
   return out;
@@ -57,7 +58,8 @@ export const SHARED_DOOR_Y = [270, my(270)];
 const INNER_Y = [200, my(200)];
 
 // Plants (spec 3.2). Plant B mirrors Plant A.
-const PLANT_A = { id: 'A', x: 3490, w: 340, y: 170, h: 440, lane: 3660, cols: [3550, 3770], pumpX: 3870 };
+// cols: the column nearer the halls first.
+const PLANT_A = { id: 'A', x: 90, w: 340, y: 170, h: 440, lane: 260, cols: [370, 150], pumpX: 50 };
 export const CHILLER_Y = [225, 335, 445, 555];
 const PUMP_Y = { t: 40, b: my(40) };
 const MSB_Y = { t: 40, b: my(40) };
@@ -121,8 +123,8 @@ function buildLanes() {
   h('corridor-bottom', CORRIDOR_BOTTOM, 50, WORLD.width - 50);
   for (const plant of Object.values(PLANTS)) v(`plant-${plant.id}`, plant.lane, CORRIDOR_TOP, CORRIDOR_BOTTOM);
   v('centre', CENTRE_X, CORRIDOR_TOP, CORRIDOR_BOTTOM);
-  v('gap-right', 2740, CORRIDOR_TOP, CORRIDOR_BOTTOM);
-  v('gap-left', mx(2740), CORRIDOR_TOP, CORRIDOR_BOTTOM);
+  v('gap-left', 1180, CORRIDOR_TOP, CORRIDOR_BOTTOM);
+  v('gap-right', mx(1180), CORRIDOR_TOP, CORRIDOR_BOTTOM);
   for (const hall of Object.values(HALLS)) {
     const outer = hallX(hall, S_OUTER);
     const inner = hallX(hall, S_INNER);

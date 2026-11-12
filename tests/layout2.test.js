@@ -32,16 +32,18 @@ test('counts: 8 halls, 48 rows, 32 MSBs, 16 CDUs, 16 chillers, 4 pumps', () => {
   assert.equal(new Set(EQUIPMENT.map((e) => e.id)).size, EQUIPMENT.length, 'ids are unique');
 });
 
-test('the right half matches the spec table', () => {
-  assert.deepEqual([3, 4, 1, 2].map((id) => [HALLS[id].x, HALLS[id].x + HALLS[id].w]), [[2360, 2680], [2040, 2360], [3120, 3440], [2800, 3120]]);
+test('the left half matches the spec table: the campus grows left to right', () => {
+  assert.deepEqual([1, 2, 3, 4].map((id) => [HALLS[id].x, HALLS[id].x + HALLS[id].w]), [[480, 800], [800, 1120], [1240, 1560], [1560, 1880]]);
+  for (let id = 2; id <= 8; id++) assert.ok(HALLS[id].x > HALLS[id - 1].x, `hall ${id} is right of hall ${id - 1}`);
   for (const h of Object.values(HALLS)) {
     assert.equal(h.y, HALL_TOP);
     assert.equal(h.y + h.h, HALL_BOTTOM);
   }
-  assert.deepEqual(EQUIPMENT_BY_ID['pump-A-t'], { ...EQUIPMENT_BY_ID['pump-A-t'], x: 3870, y: 40, sx: 3870, sy: 95 });
-  assert.deepEqual([EQUIPMENT_BY_ID['chiller-A-0'].x, EQUIPMENT_BY_ID['chiller-A-0'].y], [3550, 225]);
-  assert.deepEqual([EQUIPMENT_BY_ID['chiller-A-7'].x, EQUIPMENT_BY_ID['chiller-A-7'].y], [3770, 555]);
-  assert.deepEqual(START_POINT, { x: 3660, y: 390 });
+  assert.deepEqual(EQUIPMENT_BY_ID['pump-A-t'], { ...EQUIPMENT_BY_ID['pump-A-t'], x: 50, y: 40, sx: 50, sy: 95 });
+  assert.deepEqual([EQUIPMENT_BY_ID['chiller-A-0'].x, EQUIPMENT_BY_ID['chiller-A-0'].y], [370, 225]);
+  assert.deepEqual([EQUIPMENT_BY_ID['chiller-A-7'].x, EQUIPMENT_BY_ID['chiller-A-7'].y], [150, 555]);
+  assert.deepEqual(START_POINT, { x: 260, y: 390 });
+  assert.ok(PLANTS.A.x < PLANTS.B.x, 'Plant A is on the left');
 });
 
 test('hall pairs share a wall: 1 and 2, 3 and 4, 5 and 6, 7 and 8', () => {
@@ -52,11 +54,11 @@ test('hall pairs share a wall: 1 and 2, 3 and 4, 5 and 6, 7 and 8', () => {
   }
 });
 
-test('the left half mirrors the right across the centre line', () => {
+test('the right half mirrors the left across the centre line', () => {
   for (const [l, r] of [[5, 4], [6, 3], [7, 2], [8, 1]]) {
     assert.equal(HALLS[l].x, WORLD.width - (HALLS[r].x + HALLS[r].w));
   }
-  for (const e of EQUIPMENT.filter((q) => q.x > CENTRE_X)) {
+  for (const e of EQUIPMENT.filter((q) => q.x < CENTRE_X)) {
     const twinId = e.id
       .replace(/^(row|cdu|msb)-(\d)/, (m, t, h) => `${t}-${{ 1: 8, 2: 7, 3: 6, 4: 5 }[h]}`)
       .replace(/^(chiller|pump)-A/, '$1-B');
