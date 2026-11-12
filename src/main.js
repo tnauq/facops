@@ -1,4 +1,4 @@
-// FacOps pass 2, through milestone 12: the game on the new scrolling map (pass 2 spec, section 7).
+// FacOps pass 2, complete through milestone 13: the game on the new scrolling map (pass 2 spec, section 7).
 // The pass 1 screen (HUD, crew bar, alarm rail, overlays, tuning drawer, results with Copy) runs on
 // the pass 2 rules engine (src/core/index2.js). New here:
 //   - The map scrolls at pass 1's zoom: drag (finger or mouse), mouse wheel, arrow keys. A touch that
@@ -10,6 +10,8 @@
 //   - A new player's first run starts with the hall 1 tutorial (src/ui/tutorial.js): scripted
 //     alarms one lesson at a time and one-line callouts, ended by the first Delivery. After the first
 //     finished run, Skip tutorial turns on by itself; it is a switch in the drawer.
+//   - Feel: floating MW losses at the equipment, the HUD flash on entering red, new bubbles popping
+//     in, walking hats bobbing, and a short celebration when a hall comes online.
 //   - A Delivery stops play on the Delivery card: the new hall, Plant B at hall 6, and either the
 //     tech who joined or three cards to pick from. Closing it glides the view to the new hall.
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
@@ -35,7 +37,7 @@ import { hitTest } from './ui/hittest.js';
 import { NOTHING, pruneSelection, reduceTap } from './ui/selection.js';
 import { mapTargets2, railTargets2 } from './ui/targets2.js';
 import { HUD_HEIGHT, crewColumns, hudLayout, regions } from './ui/regions.js';
-import { createFeel, feelEvents, flashAlpha } from './ui/feel.js';
+import { createFeel2, feelEvents2, flashAlpha, liveCelebrations, liveFloats } from './ui/feel2.js';
 import { crewCards, techForKey } from './ui/crewbar.js';
 import { railTickets } from './ui/rail.js';
 import { hudModel2 } from './ui/hud2.js';
@@ -79,7 +81,7 @@ function newRound() {
     auto: isAuto(),
     nextAuto: 0,
     selection: NOTHING,
-    feel: createFeel(),
+    feel: createFeel2(),
     tutorial: null,
     callout: '',
   };
@@ -244,7 +246,7 @@ function draw() {
   const sel = round.selection;
   const alarmId = sel.kind === 'alarm' ? sel.id : null;
   const techId = sel.kind === 'tech' ? sel.id : null;
-  markers = drawMap2(ctx, cam, size, s, { alarmId, techId });
+  markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t) });
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
   drawRail(ctx, railTickets(s, regs.rail, alarmId, api2));
   if (round.callout) {
@@ -271,7 +273,7 @@ function frame(now) {
     if (round.auto && state.t >= round.nextAuto && greedyMove(state, { reaction: 1 })) round.nextAuto = state.t + AUTO_GAP;
   }, paused);
   const events = state.events.splice(0); // drained every frame so the list never grows
-  feelEvents(round.feel, events, state.config);
+  feelEvents2(round.feel, events, state);
   if (round.tutorial && mode === 'playing') {
     round.callout = updateTutorial(round.tutorial, state, events);
     if (round.tutorial.focus) {

@@ -7,6 +7,8 @@ import { drawBuilding } from './campus2.js';
 import { drawCrew } from './campus.js';
 import { drawAlarmBubble } from './icons.js';
 import { drawMarker } from './markers.js';
+import { drawFloats } from './map.js';
+import { HALLS } from '../core/index2.js';
 import { BUBBLE_RADIUS, BUBBLE_RAISE } from '../ui/bubbles.js';
 import { cameraView } from '../ui/camera.js';
 import { fannedCrew } from '../ui/crew.js';
@@ -14,8 +16,62 @@ import { bobOffset, popScale } from '../ui/feel.js';
 import { offMapMarkers } from '../ui/offmap.js';
 import { bubbles2, equipmentStatus } from '../ui/view2.js';
 
-/** selection: { alarmId, techId }. screen: { w, h } of the canvas. */
-export function drawMap2(ctx, cam, screen, state, selection = {}) {
+const INK = '#1F3A5F';
+const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
+
+// A hall coming online (spec M13): a brief glow, an outline pulsing outwards with a few sparks,
+// and "Hall 4 online · +38 MW" rising above it. Ink and white only: hat colours mean trade and the
+// band colours belong to the HUD.
+function drawCelebration(ctx, v, c) {
+  const h = HALLS[c.hall];
+  const x = v.ox + h.x * v.scale;
+  const y = v.oy + h.y * v.scale;
+  const w = h.w * v.scale;
+  const hh = h.h * v.scale;
+  const fade = 1 - c.k;
+  ctx.save();
+  ctx.globalAlpha = 0.45 * fade;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(x, y, w, hh);
+  const grow = 14 * c.k * v.scale * 2;
+  ctx.globalAlpha = fade;
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x - grow, y - grow, w + 2 * grow, hh + 2 * grow);
+  // Sparks from the top corners and the middle of the top wall.
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  for (const [sx, dir] of [[x, -1], [x + w / 2, 0], [x + w, 1]]) {
+    for (let i = 0; i < 3; i++) {
+      const a = -Math.PI / 2 + dir * 0.6 + (i - 1) * 0.45;
+      const r0 = 8 + 30 * c.k;
+      const r1 = r0 + 10;
+      ctx.beginPath();
+      ctx.moveTo(sx + Math.cos(a) * r0, y + Math.sin(a) * r0);
+      ctx.lineTo(sx + Math.cos(a) * r1, y + Math.sin(a) * r1);
+      ctx.stroke();
+    }
+  }
+  // The headline, rising; fully visible for most of the celebration.
+  ctx.globalAlpha = c.k < 0.75 ? 1 : (1 - c.k) / 0.25;
+  ctx.font = `700 15px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#FFFFFF';
+  const ty = y + hh * 0.42 - 24 * c.k;
+  ctx.strokeText(c.text, x + w / 2, ty);
+  ctx.fillStyle = INK;
+  ctx.fillText(c.text, x + w / 2, ty);
+  ctx.restore();
+}
+
+/**
+ * selection: { alarmId, techId }. screen: { w, h } of the canvas.
+ * fx: { floats, celebrations } from src/ui/feel2.js (optional).
+ */
+export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   const v = cameraView(cam);
   ctx.save();
   ctx.beginPath();
@@ -30,6 +86,8 @@ export function drawMap2(ctx, cam, screen, state, selection = {}) {
     const r = BUBBLE_RADIUS * popScale(b.info.age);
     if (r > 0.5) drawAlarmBubble(ctx, v.ox + b.x * v.scale, v.oy + b.y * v.scale - BUBBLE_RAISE, r, b.info, b.options);
   }
+  for (const c of fx.celebrations ?? []) drawCelebration(ctx, v, c);
+  drawFloats(ctx, v, fx.floats ?? [], cam.rect.y);
   const markers = offMapMarkers(list, cam);
   for (const m of markers) drawMarker(ctx, m);
   ctx.restore();

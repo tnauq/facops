@@ -25,7 +25,10 @@ export function drawMap(ctx, view, state, selection = {}, floats = []) {
   drawFloats(ctx, view, floats);
 }
 
-function drawFloats(ctx, view, floats) {
+/** Floating loss labels (pass 1 and pass 2): rise and fade above where the loss happened. */
+// `top`: the y of the map region's top edge (pass 2's scrolling map). A label that would start
+// above it floats down from below its bubble instead, so it stays on screen.
+export function drawFloats(ctx, view, floats, top = -Infinity) {
   if (floats.length === 0) return;
   ctx.save();
   ctx.font = `700 13px ${FONT}`;
@@ -38,7 +41,8 @@ function drawFloats(ctx, view, floats) {
   for (const f of floats) {
     const p = toScreen(view, f.x, f.y);
     // Start just above the bubble so the label never sits on top of it.
-    const y = p.y - BUBBLE_RAISE - BUBBLE_RADIUS - 10 - f.rise;
+    const above = p.y - BUBBLE_RAISE - BUBBLE_RADIUS - 10;
+    const y = above - 8 >= top ? above - f.rise : p.y + BUBBLE_RADIUS + 12 + f.rise;
     ctx.globalAlpha = f.alpha;
     ctx.strokeText(f.text, p.x, y);
     ctx.fillText(f.text, p.x, y);

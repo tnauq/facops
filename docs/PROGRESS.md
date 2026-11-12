@@ -31,9 +31,31 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 | M10. Playable on the new map | `m10` | Done |
 | M11. Deliveries and crew picks | `m11` | Done |
 | M12. Tutorial | `m12` | Done |
-| M13. Feel and phone check for pass 2 | `m13` | Next |
+| M13. Feel and phone check for pass 2 | `m13` | Done |
 
 ## Log
+
+### M13. Feel and phone check for pass 2
+
+Pass 2 is complete.
+
+Built (`src/ui/feel2.js`, drawn in `src/render/map2.js`):
+
+- Floating MW losses with the pass 2 figures, worked out from the rules: -6 MW when a row's network fails, -4 MW for a first leak, -34 MW when the hall's second CDU goes, -19 MW when half a hall goes dark. A label that would start above the top of the map floats down from below its alarm instead, so it is always seen.
+- A celebration when a hall comes online: the hall glows, its outline pulses outwards with a few sparks, and "Hall 4 online · +38 MW" rises over it. It plays as the view glides to the new hall after the Delivery card closes. Ink and white only.
+- The HUD flash on entering red, new bubbles popping in and walking hats bobbing carry over from pass 1.
+- 6 new tests (295 in all): each label against what the rules take away, label positions, the celebration's text and timing, the flash.
+
+Smoothness, with all 8 halls online and 15 alarms on screen, at 844 x 390 and three pixels per point like the iPhone, in a headless Chrome on the build machine:
+
+- 60 frames per second. The game's own work each frame (rules, drawing, effects): about 1 ms typically and 2.6 ms at worst, against 16.7 ms for a frame.
+- With the CPU slowed four times the frame rate fell to about 22 per second while the game's own work stayed under 8 ms, so the slowdown is in the machine's software graphics. The phone is the real check.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape (reload once). Check it stays smooth with the whole campus busy (Tuning > Start with halls 8 is the quickest way there).
+- Play five full runs and paste the results (Copy results on the round-over card).
+- Pass 2 asks: is the run fun from 1 hall to 8; does the scrolling map stay readable and quick; do the crew picks add anything?
 
 ### Fix: halls are built on a timer (after M12)
 
