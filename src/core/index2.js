@@ -10,6 +10,7 @@ export {
   arrivalPoint,
   assign,
   bandOf,
+  buildProgress,
   choose,
   chillersNeeded,
   coolingShield,

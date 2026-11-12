@@ -53,9 +53,13 @@ test('the HUD shows MW against online capacity and the hall count', () => {
   const s = createGame({ config: { startHalls: 3, director: { enabled: false } } });
   const m = hudModel2(s);
   assert.equal(m.load, '113 / 113 MW');
-  assert.equal(m.note, 'Hall 3 of 8');
+  assert.equal(m.note, 'Hall 3 of 8 · Hall 4 0% built');
   assert.equal(m.clock, '0:00');
-  assert.equal(hudModel2(s, { auto: true }).note, 'Hall 3 of 8 · Auto');
+  assert.equal(hudModel2(s, { auto: true }).note, 'Hall 3 of 8 · Hall 4 0% built · Auto');
+  const full = createGame({ config: { startHalls: 8, director: { enabled: false } } });
+  assert.equal(hudModel2(full).note, 'Hall 8 of 8');
+  assert.equal(m.noteShort, 'H3/8 · next 0%');
+  assert.equal(hudModel2(full).noteShort, 'H8/8');
 });
 
 // ---- Map targets ----

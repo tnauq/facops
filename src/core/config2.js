@@ -28,7 +28,7 @@ export const DEFAULT_CONFIG2 = {
   walkSpeed: 150, // world units per second
   progressHold: 10, // seconds a dropped job keeps its progress
   recoverTime: 3, // seconds for a row to climb from 0 to full after its fault clears
-  leakThrottle: 0.8, // a hall's rows while one of its two CDUs leaks
+  leakThrottle: 0.9, // a hall's rows while one of its two CDUs leaks (owner, 12 Nov: 0.8 stalled hall 1)
   thermalRate: 0.02, // cooling factor change per second
   chillersPerHall: 1.25, // chillers needed = halls online x this, rounded up
   burstLeaks: 2, // CDU leaks caused by a pump burst
@@ -37,7 +37,9 @@ export const DEFAULT_CONFIG2 = {
   maxHalls: 8,
   plantBHall: 6, // Plant B comes online with this hall
   band: { green: 0.9, red: 0.8 }, // green at or above 90%, red below 80%
-  meter: { start: 40, max: 100, fill: 1.25, yellowDrain: 0.5, redDrain: 2, safeFloor: 1, tutorialCap: 80 }, // safeFloor: until Delivery 1; tutorialCap: while the tutorial runs
+  meter: { start: 40, max: 100, fill: 1.25, yellowDrain: 0.5, redDrain: 2, safeFloor: 1, tutorialCap: 80 }, // the survival buffer. safeFloor: until Delivery 1; tutorialCap: while the tutorial runs
+  // The next hall is built on a timer that runs faster while the load is green (spec 4.6).
+  build: { every: 90, greenBoost: 1.5 }, // seconds per hall at normal speed; speed-up while green
   director: {
     enabled: true,
     firstSpawn: 5, // seconds before the first alarm of a run
@@ -51,7 +53,7 @@ export const DEFAULT_CONFIG2 = {
     waveJitter: 0.15,
     waveSize: 2, // extra alarms per wave
     capExtra: 2, // the director stops at crew size + capExtra active alarms
-    capGrowEvery: 45, // after Full campus the cap rises by 1 every this many seconds
+    capGrowEvery: 30, // after Full campus the cap rises by 1 every this many seconds
     quietAfterDelivery: 5, // seconds without director alarms after a Delivery
     firstHallTypes: ['breaker', 'chiller', 'leak'], // with one hall online, only these
   },

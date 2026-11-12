@@ -1,6 +1,6 @@
 # FacOps pass 2 build spec
 
-Version 1.2, 12 November 2026 (1.0 approved by the owner; 1.1 flips the map at the owner's request so the campus grows left to right; 1.2 sets the meter fill and tightening from the M9 pacing checks). This is the source of truth for pass 2, exactly as `docs/pass1-spec.md` was for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner.
+Version 1.3, 12 November 2026 (1.0 approved by the owner; 1.1 flips the map at the owner's request so the campus grows left to right; 1.2 sets the meter fill and tightening from the M9 pacing checks; 1.3, at the owner's request after a stalled run, builds halls on a timer and halves a single leak's cost). This is the source of truth for pass 2, exactly as `docs/pass1-spec.md` was for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Everything else follows from the owner's map drawing (12 November) and answers. Drafts 0.2 and 0.3 took in the owner's changes: a 300 MW building, 8 chillers and 2 pumps per plant, pass 1's zoom with a map that scrolls in every direction, and both CDUs of a hall feeding all 6 rows.
 
@@ -18,7 +18,7 @@ The full Commissioning Run from the design doc, on a new, bigger map:
 
 - One long building of **300 MW**: **8 data halls** in **4 pairs**, with a **plant area at each end** (8 chillers and 2 pumps each).
 - The map keeps **pass 1's zoom** and **scrolls** in every direction, with small arrows at the edges pointing to alarms out of view.
-- The run starts with **hall 1** and grows. Each full Stability meter is a **Delivery**: the next hall comes online with its own MSBs and CDUs.
+- The run starts with **hall 1** and grows. Halls are built on a timer that runs faster while the load is green; each finished hall is a **Delivery**, coming online with its own MSBs and CDUs.
 - When **hall 6** comes online, the **second plant** (mirrored chillers and pumps) comes online with it.
 - **Four trades**, including the new blue **Network** tech, and a **growing crew** (section 6).
 - A short **tutorial** on hall 1.
@@ -140,15 +140,15 @@ The whole building is **300 MW**.
 
 - Capacity online is the sum of online halls. The HUD shows load in MW, for example `68 / 75 MW`.
 - Row output = 6.25 MW x row level x cooling factor.
-- Row level is 0 if the row has a network failure, if its half of the hall is dark, or if **both** of the hall's CDUs are leaking; 0.8 if **one** of them is leaking (the other CDU carries most of the load); otherwise 1. Recovery over 3 s, as in pass 1.
-- Losses on screen are rounded to whole MW: about -6 for a row, -8 for a first leak, -30 more when the second CDU goes, -19 for half a hall dark, -38 for a whole hall.
+- Row level is 0 if the row has a network failure, if its half of the hall is dark, or if **both** of the hall's CDUs are leaking; 0.9 if **one** of them is leaking (the other CDU carries most of the load); otherwise 1. Recovery over 3 s, as in pass 1. (Draft value 0.8 put hall 1 out of the green with a single leak; see 4.6.)
+- Losses on screen are rounded to whole MW: about -6 for a row, -4 for a first leak, -34 more when the second CDU goes, -19 for half a hall dark, -38 for a whole hall.
 
 ### 4.2 Alarms
 
 | Alarm | On | When it fires | Clock | When the clock runs out | Fix time |
 |---|---|---|---|---|---|
 | Network Failure | A rack row | That row drops to zero (-6.25 MW) | 30 s | Takes down the next row in the same half of the hall, which becomes its own alarm. Repeats every 30 s. | 3 s |
-| CDU Leak | A CDU | The hall's 6 rows throttle to 80% (-7.5 MW) | 30 s | The hall's other CDU starts leaking too, as its own alarm. Both leaking: all 6 rows shut down (-37.5 MW in all) until either is fixed. | 8 s |
+| CDU Leak | A CDU | The hall's 6 rows throttle to 90% (-3.75 MW) | 30 s | The hall's other CDU starts leaking too, as its own alarm. Both leaking: all 6 rows shut down (-37.5 MW in all) until either is fixed. | 8 s |
 | Breaker Trip | One MSB of a pair | Nothing lost | 45 s | The other MSB of the same pair trips. Both down: that half of the hall is dark (-18.75 MW) until either is reset. | 6 s |
 | Chiller Trip | A chiller | Nothing lost while enough chillers run (4.4) | 60 s | Another running chiller trips | 10 s |
 | Pump Overpressure | A pump | Nothing lost | 20 s | The loop bursts: up to two CDU Leaks on that pump's loop (4.5), and the pump alarm ends | 6 s |
@@ -161,7 +161,7 @@ Each half of a hall (top or bottom) has its own MSB pair. One MSB of a pair down
 
 ### 4.3a Liquid cooling (CDUs)
 
-The hall's two CDUs are a redundant pair feeding all 6 rows, the same idea as an MSB pair. One leaking costs a little (the rows throttle to 80%) because the other CDU carries most of the load; both leaking shuts every row down. Ignoring a leak lets it spread to the other CDU, the way an ignored breaker trips the other side.
+The hall's two CDUs are a redundant pair feeding all 6 rows, the same idea as an MSB pair. One leaking costs a little (the rows throttle to 90%) because the other CDU carries most of the load; both leaking shuts every row down. Ignoring a leak lets it spread to the other CDU, the way an ignored breaker trips the other side.
 
 ### 4.4 Cooling
 
@@ -187,11 +187,14 @@ Each plant has a top pump and a bottom pump. A top pump's loop is the top CDUs, 
 
 ### 4.6 Deliveries
 
-- The Stability meter starts at 40. Green fills it **1.25 points per second** (pass 1: 1), so about 48 s of green brings a Delivery. Yellow and red drain as in pass 1. (Draft value 1.5 brought Deliveries too fast; see M9 in `docs/PROGRESS.md`.)
-- **Full meter: a Delivery.** The next hall comes online with its 4 MSBs, 2 CDUs and 6 rows, at full health. Hall 6 also brings Plant B. A crew reward follows (section 6). The meter resets to 40 and the director holds off for 5 s.
-- After hall 8 the meter is a buffer only. A full meter at 8 halls is the **Full campus** milestone, shown on the results.
-- The meter cannot empty before the first Delivery: it stops at 1.
+- **Halls are built on a timer.** The next hall takes **90 s** to build, and construction runs **1.5 times faster while the load is green** (60 s if you stay green throughout). When it finishes, that is a **Delivery**: the next hall comes online with its 4 MSBs, 2 CDUs and 6 rows, at full health. Hall 6 also brings Plant B. A crew reward follows (section 6). The director holds off for 5 s.
+- **The Stability meter is the survival buffer.** It starts at 40, green fills it 1.25 points a second up to 100, yellow and red drain it as in pass 1, and it keeps its value through a Delivery.
+- **Full campus** is hall 8 coming online, shown on the results.
+- The meter cannot empty before the first Delivery: it stops at 1. Because hall 2 always comes on the timer, this can no longer stall a run.
+- Construction waits while the tutorial's lessons run (section 8).
 - **Run over**: the meter empties. Score: energy delivered in GWh (one real second counts as one plant minute).
+
+*Why the change (owner, 12 November):* in 1.2 a full meter brought the next hall. On hall 1 a single leak dropped the load to exactly 80%, out of the green, so the meter could stall below full while the safety floor kept it above empty: hall 2 never came and the run never ended. A timer guarantees progress; the green speed-up keeps good play rewarded.
 
 ### 4.7 The alarm director
 
@@ -202,7 +205,7 @@ Each plant has a top pump and a bottom pump. A top pump's loop is the top CDUs, 
 | Shortest interval | 1.5 s |
 | Jitter | ± 30% |
 | Waves | From 3 halls online, about every 45 s, two extra alarms |
-| Cap | No new director alarms while active alarms are at crew size + 2. After Full campus the cap rises by 1 every 45 s. |
+| Cap | No new director alarms while active alarms are at crew size + 2. After Full campus the cap rises by 1 every 30 s. |
 | Alarm types | Hall 1: Breaker, Chiller, Leak only. From hall 2: all five. |
 | Mix (among unlocked types) | Network 35, CDU Leak 25, Breaker 15, Pump 15, Chiller 10 |
 
@@ -210,7 +213,7 @@ Each plant has a top pump and a bottom pump. A top pump's loop is the top CDUs, 
 - Mercy: the director never trips the second MSB of a pair, never starts a leak on a hall whose other CDU is already leaking, and trips a chiller only when at least one spare is running. Several chiller alarms may be open at once while spares remain; that is the redundancy choice.
 - Escalations ignore the cap.
 
-These are starting values. M9 checks them with scripted players: target a first Delivery at 1:30 to 2:00 and hall 8 at 6 to 9 minutes for a good scripted player.
+These are starting values, checked with scripted players: with the 1.3 timer every scripted player gets hall 2 at 1:00, hall 6 at about 5:05 and hall 8 at about 7:05, and runs end after about 11 to 12 minutes (see `docs/PROGRESS.md`).
 
 ## 5. Technicians
 
@@ -267,7 +270,7 @@ With up to 9 techs, cards would be too short. When cards in one column would be 
 
 ### 7.3 HUD
 
-Unchanged, plus a short "Hall 3 of 8" text in the free space after the Stability meter. The load readout is in MW against online capacity (for example `68 / 75 MW`).
+Unchanged, plus a short "Hall 3 of 8 · Hall 4 37% built" text in the free space after the Stability meter ("H3/8 · next 37%" when the screen is narrow). The load readout is in MW against online capacity (for example `68 / 75 MW`).
 
 ### 7.4 Delivery card
 
@@ -279,7 +282,7 @@ Pass 1's results plus: halls reached, Full campus yes or no, the time of each De
 
 ## 8. Tutorial (hall 1)
 
-Short and seamless, following the design doc section 9, steps 1 to 5 only: assign, a matching hat, a leak's immediate loss, choosing between two alarms, and a redirect. One-line callouts, scripted alarms, no "tutorial complete" screen. The first Delivery ends it. A "Skip tutorial" switch in the tuning drawer, on by default after the first finished run.
+Short and seamless, following the design doc section 9, steps 1 to 5 only: assign, a matching hat, a leak's immediate loss, choosing between two alarms, and a redirect. One-line callouts, scripted alarms, no "tutorial complete" screen. Construction waits while the lessons run; a lesson nobody answers for 45 s hands over to the normal game so hall 1 can never stall. The first Delivery ends it. A "Skip tutorial" switch in the tuning drawer, on by default after the first finished run.
 
 ## 9. Tuning drawer
 
@@ -287,6 +290,7 @@ Pass 1's controls stay. New ones:
 
 | Label | Config key | Range | Default |
 |---|---|---|---|
+| Hall build time (s) | `build.every` | 30 to 180, step 5 | 90 |
 | Meter fill per second | `meter.fill` | 0.5 to 3, step 0.25 | 1.25 |
 | Chillers needed per hall | `chillersPerHall` | 0.5 to 2, step 0.25 | 1.25 |
 | Start with halls | `startHalls` | 1 to 8 | 1 |
@@ -342,5 +346,5 @@ Owner's checklist: play five full runs and paste the results.
 | MSB pair | The two MSBs (A and B) feeding one half of a hall |
 | CDU pair | A hall's top and bottom CDUs, which together feed all 6 rows |
 | Plant A, Plant B | The chiller and pump areas at the left and right ends |
-| Delivery | A full Stability meter: the next hall comes online |
-| Full campus | A full meter with all 8 halls online |
+| Delivery | Construction finished: the next hall comes online |
+| Full campus | All 8 halls online |

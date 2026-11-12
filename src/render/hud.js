@@ -55,7 +55,7 @@ function drawPauseBars(ctx, cx, cy, r) {
   ctx.fillRect(cx + r * 0.25, cy - r, r * 0.55, r * 2);
 }
 
-/** layout: hudLayout(W). model: hudModel(state). note: optional muted text, e.g. "Auto". */
+/** layout: hudLayout(W). model: hudModel(state). note: optional muted text (or wordings, longest first). */
 export function drawHud(ctx, W, layout, model, note = '') {
   const { cy } = layout;
   // The strip: a white panel with an edge along the bottom.
@@ -95,8 +95,12 @@ export function drawHud(ctx, W, layout, model, note = '') {
   ctx.stroke();
 
   if (note) {
+    // `note` may be a list of wordings, longest first: use the first that fits before the buttons.
+    const room = layout.buttons[0].x - 8 - layout.note.x;
+    const options = Array.isArray(note) ? note : [note];
+    const fit = options.find((n) => ctx.measureText(n).width <= room) ?? '';
     ctx.fillStyle = MUTED;
-    ctx.fillText(note, layout.note.x, cy);
+    ctx.fillText(fit, layout.note.x, cy);
   }
 
   for (const b of layout.buttons) {

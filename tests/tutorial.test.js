@@ -111,3 +111,14 @@ test('each lesson asks the screen to bring its alarm into view', () => {
   updateTutorial(tut, s, s.events.splice(0));
   assert.equal(tut.focus, 'msb-1-t-A');
 });
+
+test('a learner who does nothing still gets hall 2: an unanswered lesson hands over after 45 s', () => {
+  const s = createGame({ seed: 2 });
+  const tut = createTutorial();
+  while (s.halls < 2 && s.t < 400) {
+    step(s, 0.05);
+    updateTutorial(tut, s, s.events.splice(0));
+  }
+  assert.equal(s.halls, 2, 'hall 2 came');
+  assert.ok(s.t < 45 + 90 + 5, `at ${s.t.toFixed(0)} s`);
+});

@@ -6,6 +6,8 @@ import {
   UPGRADES,
   advance,
   alarmCap,
+  buildProgress,
+  setScripted,
   arrivalPoint,
   assign,
   choose,
@@ -38,9 +40,9 @@ const lost = (s, f) => {
   tick(s, 0.1);
   return full - load(s).deliveredMw;
 };
-// Fill the meter so the next step is a Delivery.
+// Finish construction so the next step is a Delivery.
 function deliverNow(s) {
-  s.meter = s.config.meter.max - 0.01;
+  s.build = s.config.build.every - 0.01;
   step(s, 0.05);
 }
 function deliverTo(s, halls) {
@@ -86,9 +88,10 @@ test('a network failure costs one row: 6.25 MW', () => {
   assert.ok(near(lost(s, () => raiseAlarm(s, 'network', 'row-1-t-1')), 6.25));
 });
 
-test('one CDU leaking throttles the hall to 80%: 7.5 MW', () => {
+test('one CDU leaking throttles the hall to 90%: 3.75 MW, and hall 1 stays green', () => {
   const s = quiet();
-  assert.ok(near(lost(s, () => raiseAlarm(s, 'leak', 'cdu-1-b')), 7.5));
+  assert.ok(near(lost(s, () => raiseAlarm(s, 'leak', 'cdu-1-b')), 3.75));
+  assert.equal(load(s).band, 'green');
   assert.equal(liquidShield(s, 1), 'cracked');
 });
 
@@ -96,7 +99,7 @@ test('both CDUs leaking shut every row of the hall', () => {
   const s = quiet();
   raiseAlarm(s, 'leak', 'cdu-1-t');
   tick(s, 0.1);
-  assert.ok(near(lost(s, () => raiseAlarm(s, 'leak', 'cdu-1-b')), 30));
+  assert.ok(near(lost(s, () => raiseAlarm(s, 'leak', 'cdu-1-b')), 33.75));
   assert.equal(load(s).deliveredMw, 0);
   assert.equal(liquidShield(s, 1), 'broken');
 });
@@ -227,12 +230,14 @@ test('a burst leaks only on its own loop, never both CDUs of one hall', () => {
 
 // ---- Deliveries and crew (spec 4.6 and 6) ----
 
-test('a full meter brings the next hall, resets the meter and gives 5 quiet seconds', () => {
+test('finished construction brings the next hall; the meter keeps its value; 5 quiet seconds', () => {
   const s = createGame({ seed: 2 });
   tick(s, 6); // past the first alarm
+  const meter = s.meter;
   deliverNow(s);
   assert.equal(s.halls, 2);
-  assert.equal(s.meter, 40);
+  assert.ok(Math.abs(s.meter - meter) < 0.2, 'no reset: the meter is the survival buffer');
+  assert.equal(s.build, 0);
   assert.ok(near(s.director.nextSpawn, s.t + 5));
   assert.equal(load(s).capacityMw, 75);
   assert.ok(s.events.some((e) => e.type === 'delivery' && e.hall === 2 && e.plantB === false));
@@ -301,10 +306,11 @@ test('Plant B comes online with hall 6', () => {
   assert.ok(s.events.some((e) => e.type === 'delivery' && e.hall === 6 && e.plantB));
 });
 
-test('a full meter at 8 halls is Full campus; then the cap starts to rise', () => {
-  const s = quiet({ startHalls: 8 });
-  const cap = alarmCap(s);
+test('hall 8 coming online is Full campus; then the cap starts to rise', () => {
+  const s = quiet({ startHalls: 7 });
   deliverNow(s);
+  if (s.pendingPick) choose(s, 0);
+  const cap = alarmCap(s);
   assert.equal(s.halls, 8);
   assert.ok(s.fullCampusAt !== null);
   assert.ok(s.events.some((e) => e.type === 'fullCampus'));
@@ -312,16 +318,37 @@ test('a full meter at 8 halls is Full campus; then the cap starts to rise', () =
   assert.equal(alarmCap(s), cap + 1);
 });
 
-test('the run cannot be lost before the first Delivery, but can after', () => {
+test('the run cannot be lost before the first Delivery, and the first Delivery always comes', () => {
+  // The owner found that a meter-driven Delivery could stall hall 1 for ever. Now nobody playing
+  // still gets hall 2 on the timer, and the run then ends.
   const s = createGame({ seed: 4 });
-  tick(s, 600); // nobody playing
-  assert.equal(s.over, false);
-  assert.ok(s.meter >= 1);
-  assert.equal(s.halls, 1);
-  const t = createGame({ seed: 4, config: { startHalls: 2 } });
-  t.deliveries = 1; // as if Delivery 1 already happened
-  tick(t, 600);
-  assert.equal(t.over, true);
+  let lowest = Infinity;
+  while (s.halls < 2 && s.t < 600) {
+    step(s, 0.05);
+    lowest = Math.min(lowest, s.meter);
+  }
+  assert.equal(s.halls, 2);
+  assert.ok(s.t <= s.config.build.every + 0.1, `hall 2 at ${s.t.toFixed(0)} s`);
+  assert.ok(lowest >= 1);
+  while (!s.over && s.pendingPick === null && s.t < 1500) step(s, 0.05);
+  assert.equal(s.over, true);
+});
+
+test('construction: a hall every 90 s, 1.5 times faster while green, paused while scripted', () => {
+  const green = quiet();
+  let t = 0;
+  while (green.halls < 2) { step(green, 0.05); t += 0.05; }
+  assert.ok(Math.abs(t - 60) < 0.1, `all green: ${t.toFixed(2)} s`);
+  const red = quiet();
+  raiseAlarm(red, 'breaker', 'msb-1-t-A');
+  raiseAlarm(red, 'breaker', 'msb-1-t-B'); // half the hall dark: red
+  tick(red, 1);
+  assert.equal(load(red).band, 'red');
+  assert.ok(Math.abs(buildProgress(red) - 1 / 90) < 0.002);
+  const tut = quiet();
+  setScripted(tut, true);
+  tick(tut, 30);
+  assert.equal(buildProgress(tut), 0);
 });
 
 // ---- The director (spec 4.7) ----
@@ -393,13 +420,15 @@ test('results and the Copy text include halls, Deliveries, crew and picks', () =
   assert.match(text, /Picks: /);
 });
 
-test('pacing (spec 4.7): a good scripted player gets the first Delivery at about 1:30 to 2:00, and runs end', () => {
+test('pacing (spec 4.6, 4.7): hall 2 within 90 s, hall 8 at about 6 to 9 minutes, runs of 6 to 13 minutes', () => {
   const runs = [1, 2, 3, 4, 5, 6].map((seed) => playRun({ seed, maxSeconds: 1500 }));
-  const first = runs.map((r) => r.deliveries[0].t);
-  const avgFirst = first.reduce((x, y) => x + y, 0) / first.length;
-  assert.ok(avgFirst >= 80 && avgFirst <= 150, `first Delivery at ${avgFirst.toFixed(0)} s`);
-  for (const r of runs) assert.ok(r.finished, 'every run ends');
+  for (const r of runs) {
+    assert.ok(r.deliveries[0].t <= 90.1, `hall 2 at ${r.deliveries[0].t.toFixed(0)} s`);
+    assert.ok(r.finished, 'every run ends');
+    const h8 = r.deliveries.find((d) => d.hall === 8);
+    if (h8) assert.ok(h8.t >= 360 && h8.t <= 560, `hall 8 at ${h8.t.toFixed(0)} s`);
+  }
   const avgLen = runs.reduce((x, r) => x + r.seconds, 0) / runs.length;
-  assert.ok(avgLen >= 360 && avgLen <= 900, `runs last ${avgLen.toFixed(0)} s on average`);
-  assert.ok(runs.some((r) => r.halls === 8), 'some reach hall 8');
+  assert.ok(avgLen >= 360 && avgLen <= 780, `runs last ${avgLen.toFixed(0)} s on average`);
+  assert.ok(runs.every((r) => r.halls === 8), 'a good scripted player reaches hall 8');
 });

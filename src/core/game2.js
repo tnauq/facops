@@ -60,7 +60,8 @@ export function createGame({ seed = 1, config = {} } = {}) {
     overReason: null,
     halls, // halls online
     deliveries: 0, // Deliveries so far in this run
-    fullCampusAt: null, // when the meter first filled with every hall online
+    fullCampusAt: halls >= cfg.maxHalls ? 0 : null, // when the last hall came online
+    build: 0, // seconds of construction toward the next hall (spec 4.6)
     phaseStart: 0, // when the current phase (number of halls) began
     pendingPick: null, // { hall, cards } while the player chooses a crew reward
     scripted: false, // true while the tutorial runs: no director alarms, meter held at tutorialCap
@@ -502,12 +503,19 @@ function addTech(state, trade, hallId) {
   return tech;
 }
 
-// A full meter: the next hall comes online (spec 4.6).
+/** Share of the next hall built, 0 to 1 (1 once every hall is online). */
+export function buildProgress(state) {
+  if (state.halls >= state.config.maxHalls) return 1;
+  return Math.min(1, state.build / state.config.build.every);
+}
+
+// Construction finished: the next hall comes online (spec 4.6). The meter keeps its value: it is the
+// survival buffer, not the progress bar.
 function deliver(state) {
   const cfg = state.config;
   state.halls += 1;
   state.deliveries += 1;
-  state.meter = cfg.meter.start;
+  state.build = 0;
   state.phaseStart = state.t;
   state.director.nextSpawn = state.t + cfg.director.quietAfterDelivery;
   state.director.nextWave = state.t + cfg.director.waveEvery;
@@ -515,6 +523,10 @@ function deliver(state) {
   const plantB = hall === cfg.plantBHall;
   state.stats.deliveries.push({ hall, t: state.t });
   emit(state, 'delivery', { hall, plantB });
+  if (hall >= cfg.maxHalls && state.fullCampusAt === null) {
+    state.fullCampusAt = state.t;
+    emit(state, 'fullCampus', {});
+  }
   const auto = cfg.autoHires[state.deliveries - 1];
   if (auto) addTech(state, auto, hall);
   else state.pendingPick = { hall, cards: pickCards(state) };
@@ -706,12 +718,12 @@ export function step(state, dt) {
   state.stats.bandTime[now.band] += dt;
   state.stats.lowestFraction = Math.min(state.stats.lowestFraction, now.fraction);
 
-  if (state.meter >= m.max - EPS) {
-    if (state.halls < state.config.maxHalls) deliver(state);
-    else if (state.fullCampusAt === null) {
-      state.fullCampusAt = state.t;
-      emit(state, 'fullCampus', {});
-    }
+  // Construction: the next hall comes on a timer, faster while the load is green. It waits while
+  // the tutorial runs, so no hall arrives mid-lesson.
+  if (!state.scripted && state.halls < state.config.maxHalls) {
+    const b = state.config.build;
+    state.build += dt * (now.band === 'green' ? b.greenBoost : 1);
+    if (state.build >= b.every - EPS) deliver(state);
   }
 
   if (state.meter <= EPS) {

@@ -9,11 +9,14 @@
 //   leak     - a CDU leak: power is lost straight away.
 //   choose   - a leak and a breaker at once: losing power now, or about to lose more?
 //   redirect - both techs busy, then a leak: tap it, then a busy tech.
-//   free     - the director takes over: keep the load green to bring hall 2 online.
+//   free     - the director takes over and hall 2's construction starts; it ends the tutorial.
 
 import { raiseAlarm, setScripted } from '../core/index2.js';
 
 const REDIRECT_WAIT = 8; // seconds to wait for both techs to be busy before raising the leak anyway
+// A lesson nobody answers for this long hands over to the normal game, so hall 1 can never stall
+// (the construction timer waits while the lessons run).
+export const LESSON_LIMIT = 45;
 
 /** A new tutorial. `verb` is "Tap" on a touch screen, "Click" with a mouse (spec 9: prompts say which). */
 export function createTutorial(verb = 'Tap') {
@@ -45,6 +48,13 @@ export function lessonAlarms(tut) {
 export function updateTutorial(tut, state, events) {
   if (tut.done) return '';
   const v = tut.verb;
+  const lessons = ['assign', 'hat', 'leak', 'choose', 'busy', 'redirect'];
+  if (lessons.includes(tut.step) && state.t - tut.since > LESSON_LIMIT) {
+    tut.step = 'free';
+    setScripted(state, false);
+    tut.callout = 'Hall 2 is being built. Keep the load green to build it faster and top up your Stability meter.';
+    return tut.callout;
+  }
   switch (tut.step) {
     case 'start':
       setScripted(state, true);
@@ -77,6 +87,7 @@ export function updateTutorial(tut, state, events) {
       // Once both techs are busy (or after a short wait), a leak arrives that needs a redirect.
       if (busy(state) || state.t - tut.since > REDIRECT_WAIT) {
         tut.step = 'redirect';
+        tut.since = state.t;
         tut.leak = raiseAlarm(state, 'leak', 'cdu-1-t')?.id;
         tut.focus = 'cdu-1-t';
         tut.callout = `A leak! ${v} it, then ${v.toLowerCase()} a busy tech: they drop their job, which keeps its progress for a moment.`;
@@ -87,7 +98,7 @@ export function updateTutorial(tut, state, events) {
       if (redirected || !alive(state, tut.leak)) {
         tut.step = 'free';
         setScripted(state, false);
-        tut.callout = 'Keep the load in the green to fill the Stability meter and bring Hall 2 online.';
+        tut.callout = 'Hall 2 is being built. Keep the load green to build it faster and top up your Stability meter.';
       }
       break;
     }

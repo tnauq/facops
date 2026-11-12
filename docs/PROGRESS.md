@@ -35,6 +35,30 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 
 ## Log
 
+### Fix: halls are built on a timer (after M12)
+
+The owner's run stalled on hall 1: hall 2 never came, and the run never ended. In spec 1.2 a full Stability meter brought the next hall, but on hall 1 a single leak took the load to exactly 80%, out of the green, so the meter could hover below full while the "cannot lose before the first Delivery" floor kept it above empty. The owner chose the fix:
+
+- **Halls come on a timer** (spec 1.3, section 4.6): 90 s per hall, 1.5 times faster while the load is green. The Stability meter is now the survival buffer and keeps its value through a Delivery. Full campus is hall 8 coming online. The HUD shows how far the next hall is built ("Hall 1 of 8 · Hall 2 37% built"; "H1/8 · next 37%" on a narrow screen). Hall build time is a new drawer control.
+- **A single leak costs half as much**: the hall drops to 90% (-4 MW on hall 1), which keeps hall 1 green. Both CDUs leaking still shuts the hall.
+- **The tutorial can no longer stall either**: construction waits while the lessons run, so a lesson nobody answers for 45 s now hands over to the normal game. Its last callout now says hall 2 is being built.
+- After Full campus the alarm cap rises every 30 s (was 45 s), so runs end in about 11 to 12 minutes.
+- New tests: a run where nobody plays still gets hall 2 within 90 s and then ends; the timer's speed in green and red and its pause during the tutorial; a learner who ignores the tutorial still gets hall 2. 289 tests in all.
+
+Pacing with the new rules (12 seeds per row):
+
+| Player | Picks | Run length | Hall 2 at | Hall 6 at | Hall 8 at | Halls reached | GWh | Unfinished |
+|---|---|---|---|---|---|---|---|---|
+| careful (react 0.6 s, 1 cmd / 0.5 s) | hire | 11:41 (11:00 to 12:17) | 1:00 (12/12) | 5:03 (12/12) | 7:04 (12/12) | 8.0 | 2.26 | 0 |
+| careful (react 0.6 s, 1 cmd / 0.5 s) | upgrade | 11:19 (10:38 to 11:54) | 1:00 (12/12) | 5:04 (12/12) | 7:05 (12/12) | 8.0 | 2.14 | 0 |
+| good (react 1 s, 1 cmd / 0.8 s) | hire | 11:49 (11:30 to 12:17) | 1:00 (12/12) | 5:04 (12/12) | 7:04 (12/12) | 8.0 | 2.29 | 0 |
+| good (react 1 s, 1 cmd / 0.8 s) | upgrade | 11:30 (10:58 to 12:12) | 1:00 (12/12) | 5:04 (12/12) | 7:06 (12/12) | 8.0 | 2.19 | 0 |
+| slow (react 2 s, 1 cmd / 1.5 s) | hire | 11:51 (10:42 to 12:46) | 1:00 (12/12) | 5:05 (12/12) | 7:06 (12/12) | 8.0 | 2.29 | 0 |
+| slow (react 2 s, 1 cmd / 1.5 s) | upgrade | 11:09 (10:16 to 12:04) | 1:00 (12/12) | 5:06 (12/12) | 7:07 (12/12) | 8.0 | 2.09 | 0 |
+
+Worth knowing: every scripted player now reaches hall 8 at about the same time, because halls come on a timer and the scripted players stay mostly green. Skill shows in energy delivered and in surviving the full campus, which is where the design doc expected it (the CEO, in pass 3, is the intended skill test).
+
+
 ### M12. Tutorial
 
 Built:

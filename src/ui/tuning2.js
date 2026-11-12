@@ -25,6 +25,8 @@ export const TUNING2_FIELDS = [
   { id: 'oneTap', label: 'One-tap dispatch', kind: 'toggle',
     get: (c) => c.oneTap, set: (o, v) => { o.oneTap = v; } },
   // New in pass 2 (spec section 9).
+  { id: 'buildEvery', label: 'Hall build time (s)', kind: 'range', min: 30, max: 180, step: 5,
+    get: (c) => c.build.every, set: (o, v) => { o.build = { ...(o.build ?? {}), every: v }; } },
   { id: 'meterFill', label: 'Meter fill per second', kind: 'range', min: 0.5, max: 3, step: 0.25,
     get: (c) => c.meter.fill, set: (o, v) => { o.meter = { ...(o.meter ?? {}), fill: v }; } },
   { id: 'chillersPerHall', label: 'Chillers needed per hall', kind: 'range', min: 0.5, max: 2, step: 0.25,

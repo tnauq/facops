@@ -9,7 +9,7 @@ import { tuning2 } from '../src/ui/tuning2.js';
 
 const quiet = (config = {}, seed = 1) => createGame({ seed, config: { ...config, director: { enabled: false } } });
 function deliverNow(s) {
-  s.meter = s.config.meter.max - 0.01;
+  s.build = s.config.build.every - 0.01;
   step(s, 0.05);
   return s.events.splice(0);
 }
@@ -93,6 +93,14 @@ test('pass 1 results are unchanged', () => {
 });
 
 // ---- New tuning controls (spec 9) ----
+
+test('hall build time is a drawer control', () => {
+  const base = tuning2.defaultTuning();
+  assert.equal(base.buildEvery, 90);
+  const cfg = createGame({ config: tuning2.tuningToConfig(tuning2.setTuning(base, 'buildEvery', 60)) }).config;
+  assert.equal(cfg.build.every, 60);
+  assert.equal(cfg.build.greenBoost, 1.5, 'the green speed-up is untouched');
+});
 
 test('meter fill, chillers per hall and start halls each change their config key', () => {
   const base = tuning2.defaultTuning();

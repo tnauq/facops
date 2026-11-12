@@ -257,7 +257,7 @@ function draw() {
     drawCallout(ctx, cam.rect, round.callout, ys);
   }
   const model = hudModel2(s, { auto: round.auto });
-  drawHud(ctx, w, hudLayout(w), model, model.note);
+  drawHud(ctx, w, hudLayout(w), model, [model.note, model.noteShort]);
   drawHudFlash(ctx, w, HUD_HEIGHT, flashAlpha(round.feel, s.t));
 }
 
