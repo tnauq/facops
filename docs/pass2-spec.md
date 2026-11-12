@@ -75,7 +75,7 @@ Positions inside a hall use **s**, the distance from the hall's shared wall towa
 
 | Thing | Position | From the drawing |
 |---|---|---|
-| Rack rows | 3 columns at s = 90, 160, 230. Each column is split by the middle aisle into a **top row** and a **bottom row**: **6 rows per hall.** A row is drawn as 3 rack cabinets, at y = 238, 284, 330 (top row) and 450, 496, 542 (bottom row). | Purple lines |
+| Rack rows | 3 columns at s = 90, 160, 230. Each column is split by the middle aisle into a **top row** and a **bottom row**: **6 rows per hall.** A row is drawn as 2 rack cabinets at pass 1's size, centred at y = 252 and 322 (top row) and 458 and 528 (bottom row). | Purple lines |
 | Outer aisle | s = 290, the full height of the hall, continuing out through the doors to both corridors | |
 | Inner aisle | s = 30, y 200 to 580 | |
 | Middle aisle | y = 390, from s = 30 to s = 290 | |

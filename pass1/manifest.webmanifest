@@ -1,0 +1,10 @@
+{
+  "name": "FacOps",
+  "short_name": "FacOps",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#D5DBE3",
+  "theme_color": "#D5DBE3"
+}

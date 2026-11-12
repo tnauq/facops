@@ -22,9 +22,44 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 
 ## Pass 2
 
-The pass 2 spec is drafted in `docs/pass2-spec.md` and waits for the owner's approval. Its milestones are M8 to M13. Nothing is built until it is approved.
+The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M8. Pass 1 snapshot and the new map | `m8` | Done |
+| M9. Rules engine for pass 2 | `m9` | Next |
+| M10. Playable on the new map | `m10` | To do |
+| M11. Deliveries and crew picks | `m11` | To do |
+| M12. Tutorial | `m12` | To do |
+| M13. Feel and phone check for pass 2 | `m13` | To do |
 
 ## Log
+
+### M8. Pass 1 snapshot and the new map
+
+Built:
+
+- Pass 1 is frozen in `pass1/` (copied from tag `m7`) and plays at https://tnauq.github.io/facops/pass1/.
+- The pass 2 map (`src/core/layout2.js`), from the owner's drawing: 8 halls in 4 pairs, Plant A on the right and its mirror Plant B on the left, 6 rack rows, 2 MSB pairs and a CDU pair per hall, 8 chillers and 2 pumps per plant, corridors, aisles and doors. The rules engine still runs on the pass 1 map until M9; this file is only drawn and tested so far.
+- The camera (`src/ui/camera.js`): exactly pass 1's zoom on the same screen, panning in both directions, stopping at the building's edges, and a short glide.
+- Off-map arrows (`src/ui/offmap.js`): every alarm out of view gets an arrow on the map's edge pointing at it, with its fault picture; arrows that would overlap merge with a count. Tapping one glides to its alarm.
+- Tap versus drag (`src/ui/drag.js`): a touch that moves more than 8 px scrolls the map; otherwise it is a tap.
+- The building renderer (`src/render/campus2.js`) with the supplied icons at pass 1's size. Halls not yet online, and Plant B before hall 6, are drawn pale and "under construction". Only what is on screen is drawn.
+- The main page is now a map preview (`src/preview.js`): drag, mouse wheel or arrow keys to scroll; − and + set the halls online (also `#halls=N` in the address); sample alarms to try the arrows; a Pass 1 button.
+- 36 new tests (216 in all): map counts, mirror symmetry both ways, every service point reachable, routes only cross walls at doors, the zoom equal to pass 1's at three sizes, panning and edges, arrow placement and merging, tap versus drag.
+
+Worth knowing:
+
+- A rack row is drawn as 2 cabinets, not 3: at pass 1's size a cabinet is 70 units tall and three would not fit in half a hall. The spec is updated.
+- Pass 1 and the preview share saved settings for now; pass 2 moves to its own storage keys in M10.
+- At pass 1's zoom the view shows about a quarter of the building's width and two thirds of its height on the iPhone.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch: dragging scrolls and stops at the edges, + and − change the halls and the address, tapping an arrow brings its alarm on screen, and the mouse wheel, arrow keys and mouse drag scroll on desktop. `/pass1/` starts and plays. No console errors.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape (reload once). Drag the map end to end and top to bottom: is everything as readable as pass 1, and can you tell the halls apart?
+- Tap + up to 8 halls and watch Plant B come online at 6. Tap an arrow at the edge and check it takes you to the alarm.
+- Tap Pass 1 (or open https://tnauq.github.io/facops/pass1/) and check pass 1 still plays.
 
 ### M7. Feel
 
