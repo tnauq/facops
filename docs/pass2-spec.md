@@ -1,8 +1,8 @@
 # FacOps pass 2 build spec
 
-Draft 0.2, 12 November 2026. **Waiting for the owner's approval.** Nothing in this document is built yet. Once approved it becomes the source of truth for pass 2, exactly as `docs/pass1-spec.md` was for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner.
+Draft 0.3, 12 November 2026. **Waiting for the owner's approval.** Nothing in this document is built yet. Once approved it becomes the source of truth for pass 2, exactly as `docs/pass1-spec.md` was for pass 1. If the code and this spec disagree, the spec wins. If the spec is silent or looks wrong, stop and ask the owner.
 
-Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Everything else follows from the owner's map drawing (12 November) and answers. Draft 0.2 takes in the owner's changes: a 300 MW building, 8 chillers and 2 pumps per plant, and pass 1's zoom with a map that scrolls in every direction.
+Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Everything else follows from the owner's map drawing (12 November) and answers. Drafts 0.2 and 0.3 take in the owner's changes: a 300 MW building, 8 chillers and 2 pumps per plant, pass 1's zoom with a map that scrolls in every direction, and both CDUs of a hall feeding all 6 rows.
 
 ## 0. Where things stand
 
@@ -86,13 +86,13 @@ A rack row's service point is where its column meets the middle aisle: (column x
 
 ### 3.4 Around a hall
 
-Each hall has **4 MSBs** in **2 pairs** and **2 CDUs**:
+Each hall has **4 MSBs** in **2 pairs** and **2 CDUs**. The MSB pairs each feed one half of the hall; the two CDUs are a redundant pair that **together feed all 6 rows**:
 
 | Equipment | Icon centre | Service point | Feeds |
 |---|---|---|---|
 | Top MSB pair, sides A and B | (hall centre ∓ 60, 40) | (same x, 95) on the top corridor | The top 3 rows |
-| Top CDU | (hall centre, 140) | (hall centre, 95) | The top 3 rows |
-| Bottom CDU | (hall centre, 640) | (hall centre, 685) | The bottom 3 rows |
+| Top CDU | (hall centre, 140) | (hall centre, 95) | All 6 rows, shared with the bottom CDU |
+| Bottom CDU | (hall centre, 640) | (hall centre, 685) | All 6 rows, shared with the top CDU |
 | Bottom MSB pair, sides A and B | (hall centre ∓ 60, 740) | (same x, 685) on the bottom corridor | The bottom 3 rows |
 
 ### 3.5 Walking
@@ -140,15 +140,15 @@ The whole building is **300 MW**.
 
 - Capacity online is the sum of online halls. The HUD shows load in MW, for example `68 / 75 MW`.
 - Row output = 6.25 MW x row level x cooling factor.
-- Row level is 0 if the row has a network failure, if its half of the hall is dark, or if its CDU's rows are shut down; 0.6 if its CDU is leaking; otherwise 1. Recovery over 3 s, as in pass 1.
-- Losses on screen are rounded to whole MW: about -6 for a row, -8 for a leak, -11 more when a leak's rows shut down, -19 for half a hall dark, -38 for a whole hall.
+- Row level is 0 if the row has a network failure, if its half of the hall is dark, or if **both** of the hall's CDUs are leaking; 0.8 if **one** of them is leaking (the other CDU carries most of the load); otherwise 1. Recovery over 3 s, as in pass 1.
+- Losses on screen are rounded to whole MW: about -6 for a row, -8 for a first leak, -30 more when the second CDU goes, -19 for half a hall dark, -38 for a whole hall.
 
 ### 4.2 Alarms
 
 | Alarm | On | When it fires | Clock | When the clock runs out | Fix time |
 |---|---|---|---|---|---|
 | Network Failure | A rack row | That row drops to zero (-6.25 MW) | 30 s | Takes down the next row in the same half of the hall, which becomes its own alarm. Repeats every 30 s. | 3 s |
-| CDU Leak | A CDU | Its 3 rows throttle to 60% (-7.5 MW) | 30 s | Those 3 rows shut down (-18.75 MW in all) until fixed | 8 s |
+| CDU Leak | A CDU | The hall's 6 rows throttle to 80% (-7.5 MW) | 30 s | The hall's other CDU starts leaking too, as its own alarm. Both leaking: all 6 rows shut down (-37.5 MW in all) until either is fixed. | 8 s |
 | Breaker Trip | One MSB of a pair | Nothing lost | 45 s | The other MSB of the same pair trips. Both down: that half of the hall is dark (-18.75 MW) until either is reset. | 6 s |
 | Chiller Trip | A chiller | Nothing lost while enough chillers run (4.4) | 60 s | Another running chiller trips | 10 s |
 | Pump Overpressure | A pump | Nothing lost | 20 s | The loop bursts: up to two CDU Leaks on that pump's loop (4.5), and the pump alarm ends | 6 s |
@@ -158,6 +158,10 @@ All the pass 1 rules for every alarm stay: one alarm per piece of equipment, clo
 ### 4.3 Power
 
 Each half of a hall (top or bottom) has its own MSB pair. One MSB of a pair down costs nothing. Both down: that half is dark. A whole hall is dark only if both pairs are down. The power shield shows the worse of the hall's two pairs.
+
+### 4.3a Liquid cooling (CDUs)
+
+The hall's two CDUs are a redundant pair feeding all 6 rows, the same idea as an MSB pair. One leaking costs a little (the rows throttle to 80%) because the other CDU carries most of the load; both leaking shuts every row down. Ignoring a leak lets it spread to the other CDU, the way an ignored breaker trips the other side.
 
 ### 4.4 Cooling
 
@@ -179,7 +183,7 @@ The spares shrink as the campus grows, down to a single spare at 5 halls, which 
 
 ### 4.5 Pumps
 
-Each plant has a top pump and a bottom pump. A top pump's loop is the top CDUs, a bottom pump's loop the bottom CDUs. Until Plant B is online, Plant A's pumps feed every online hall. After that, each plant's pumps feed the four halls in its half. A burst puts leaks only on online CDUs of its loop that have no alarm.
+Each plant has a top pump and a bottom pump. A top pump's loop is the top CDUs, a bottom pump's loop the bottom CDUs. Until Plant B is online, Plant A's pumps feed every online hall. After that, each plant's pumps feed the four halls in its half. A burst puts leaks only on online CDUs of its loop that have no alarm. Because a loop holds only top or only bottom CDUs, a burst never hits both CDUs of one hall.
 
 ### 4.6 Deliveries
 
@@ -203,7 +207,7 @@ Each plant has a top pump and a bottom pump. A top pump's loop is the top CDUs, 
 | Mix (among unlocked types) | Network 35, CDU Leak 25, Breaker 15, Pump 15, Chiller 10 |
 
 - Only online equipment is ever picked.
-- Mercy: the director never trips the second MSB of a pair, and trips a chiller only when at least one spare is running. Several chiller alarms may be open at once while spares remain; that is the redundancy choice.
+- Mercy: the director never trips the second MSB of a pair, never starts a leak on a hall whose other CDU is already leaking, and trips a chiller only when at least one spare is running. Several chiller alarms may be open at once while spares remain; that is the redundancy choice.
 - Escalations ignore the cap.
 
 These are starting values. M9 checks them with scripted players: target a first Delivery at 1:30 to 2:00 and hall 8 at 6 to 9 minutes for a good scripted player.
@@ -336,6 +340,7 @@ Owner's checklist: play five full runs and paste the results.
 |---|---|
 | Pair (of halls) | Two halls sharing a wall, joined by two doors |
 | MSB pair | The two MSBs (A and B) feeding one half of a hall |
+| CDU pair | A hall's top and bottom CDUs, which together feed all 6 rows |
 | Plant A, Plant B | The chiller and pump areas at the right and left ends |
 | Delivery | A full Stability meter: the next hall comes online |
 | Full campus | A full meter with all 8 halls online |
