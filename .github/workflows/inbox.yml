@@ -1,0 +1,182 @@
+# FacOps inbox: drop a .zip into inbox/ (or the repo root) and this unpacks it into the right folders,
+# runs the tests, commits to main and deletes the zip. Runs on its own when a zip is uploaded,
+# or by hand from Actions > Inbox > Run workflow (with an optional tag and a dry-run switch).
+name: Inbox
+
+on:
+  push:
+    branches: [main]
+    paths: ['inbox/**.zip', '*.zip']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to add after a successful unpack (for example m1). Leave empty for none.'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run: only report where files would go'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: inbox
+  cancel-in-progress: false
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Write the inbox script
+        run: |
+          cat > "$RUNNER_TEMP/inbox.mjs" <<'INBOX_SCRIPT'
+          // FacOps inbox: unpacks every .zip in inbox/ (or the repo root) and puts each file where it belongs.
+          // Usage: node inbox.mjs <repoRoot> [--dry-run]
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import os from 'node:os';
+          import { execFileSync } from 'node:child_process';
+
+          const root = path.resolve(process.argv[2] || '.');
+          const dryRun = process.argv.includes('--dry-run');
+          const KNOWN_TOP = new Set(['src', 'tests', 'docs', 'tools', 'assets', '.github']);
+          const JUNK = (p) => p.split('/').some((s) => s === '__MACOSX' || s === '.DS_Store' || s === 'Thumbs.db' || s.startsWith('._'));
+
+          function findZips() {
+            const out = [];
+            for (const dir of ['inbox', '.']) {
+              const abs = path.join(root, dir);
+              if (!fs.existsSync(abs)) continue;
+              for (const f of fs.readdirSync(abs).sort()) if (f.toLowerCase().endsWith('.zip')) out.push(path.join(dir, f).replace(/^\.\//, ''));
+            }
+            return out;
+          }
+
+          function walk(dir, base = dir, acc = []) {
+            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+              const abs = path.join(dir, e.name);
+              const rel = path.relative(base, abs).split(path.sep).join('/');
+              if (JUNK(rel)) continue;
+              if (e.isSymbolicLink()) { acc.push({ rel, skip: 'symlink' }); continue; }
+              if (e.isDirectory()) walk(abs, base, acc);
+              else if (e.isFile()) acc.push({ rel, abs });
+            }
+            return acc;
+          }
+
+          function trackedFiles() {
+            try { return execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean); }
+            catch { return []; }
+          }
+
+          // Where a loose file (no folder in the zip) goes.
+          function route(name, tracked) {
+            const same = tracked.filter((t) => path.posix.basename(t) === name && !t.startsWith('inbox/'));
+            if (same.length === 1) return same[0];                       // replaces the one file with that name
+            if (same.length > 1) return null;                            // ambiguous: leave it for a human
+            if (['README.md', 'CLAUDE.md', 'index.html', '.nojekyll', '.gitignore', 'package.json'].includes(name)) return name;
+            if (/\.test\.m?js$/.test(name)) return `tests/${name}`;
+            if (/\.md$/i.test(name)) return `docs/${name}`;
+            return null;
+          }
+
+          function safeDest(dest) {
+            const norm = path.posix.normalize(dest);
+            if (norm.startsWith('../') || norm === '..' || path.posix.isAbsolute(norm)) return { bad: 'outside the repository' };
+            if (norm === '.git' || norm.startsWith('.git/')) return { bad: 'inside .git' };
+            if (norm.startsWith('.github/workflows/')) return { bad: 'workflow files must be added by hand on GitHub' };
+            if (norm.startsWith('inbox/') && !norm.startsWith('inbox/unsorted/')) return { bad: 'inside inbox/' };
+            return { norm };
+          }
+
+          const zips = findZips();
+          const lines = [];
+          const counts = { added: 0, updated: 0, unchanged: 0, unsorted: 0, skipped: 0 };
+          if (!zips.length) {
+            console.log('Inbox is empty: no .zip files in inbox/ or the repository root.');
+            process.exit(0);
+          }
+          const tracked = trackedFiles();
+
+          for (const zip of zips) {
+            const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'drop-'));
+            execFileSync('unzip', ['-q', '-o', path.join(root, zip), '-d', tmp], { stdio: 'inherit' });
+            let files = walk(tmp);
+            // Strip one wrapper folder (for example "facops/") if every file sits inside it.
+            const tops = new Set(files.map((f) => f.rel.split('/')[0]));
+            const allNested = files.every((f) => f.rel.includes('/'));
+            if (tops.size === 1 && allNested && !KNOWN_TOP.has([...tops][0])) {
+              const strip = [...tops][0] + '/';
+              files = files.map((f) => ({ ...f, rel: f.rel.slice(strip.length) }));
+              lines.push(`### ${zip}  (wrapper folder \`${strip}\` removed)`);
+            } else lines.push(`### ${zip}`);
+
+            for (const f of files) {
+              if (f.skip) { counts.skipped++; lines.push(`- SKIPPED \`${f.rel}\`: ${f.skip}`); continue; }
+              let dest = f.rel.includes('/') ? f.rel : route(f.rel, tracked);
+              let status;
+              if (!dest) { dest = `inbox/unsorted/${f.rel}`; status = 'unsorted'; }
+              const { norm, bad } = safeDest(dest);
+              if (bad) { counts.skipped++; lines.push(`- SKIPPED \`${f.rel}\`: ${bad}`); continue; }
+              const target = path.join(root, norm);
+              const data = fs.readFileSync(f.abs);
+              if (!status) status = !fs.existsSync(target) ? 'added' : fs.readFileSync(target).equals(data) ? 'unchanged' : 'updated';
+              counts[status]++;
+              if (!dryRun) { fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, data); }
+              if (status !== 'unchanged') lines.push(`- ${status.toUpperCase()} \`${norm}\`${f.rel !== norm && status !== 'unsorted' ? `  (from \`${f.rel}\`)` : ''}`);
+            }
+            fs.rmSync(tmp, { recursive: true, force: true });
+            if (!dryRun) fs.rmSync(path.join(root, zip));
+          }
+
+          const summary = `Added ${counts.added}, updated ${counts.updated}, unchanged ${counts.unchanged}, unsorted ${counts.unsorted}, skipped ${counts.skipped}.`;
+          const report = `## Inbox${dryRun ? ' (dry run, nothing changed)' : ''}\n\n${summary}\n\n${lines.join('\n')}\n` +
+            (counts.unsorted ? '\nUnsorted files are in `inbox/unsorted/`. Move them by hand or re-drop them inside their folder.\n' : '');
+          console.log(report);
+          if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
+          if (process.env.GITHUB_OUTPUT) {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `zips=${zips.join(' ')}\nsummary=${summary}\n`);
+          }
+          INBOX_SCRIPT
+
+      - name: Unpack drops
+        id: unpack
+        run: node "$RUNNER_TEMP/inbox.mjs" . ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Run tests
+        if: steps.unpack.outputs.zips != '' && !inputs.dry_run
+        run: |
+          if [ -d tests ]; then node --test; else echo "No tests folder yet"; fi
+
+      - name: Commit, push and tag
+        if: steps.unpack.outputs.zips != '' && !inputs.dry_run
+        env:
+          ZIPS: ${{ steps.unpack.outputs.zips }}
+          SUMMARY: ${{ steps.unpack.outputs.summary }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "Nothing to commit"; exit 0; fi
+          git commit -m "Inbox: unpack $ZIPS" -m "$SUMMARY"
+          git push origin HEAD:main
+          if [ -n "$TAG" ]; then git tag "$TAG" && git push origin "$TAG"; fi
+
+      - name: Ask GitHub Pages to rebuild
+        if: steps.unpack.outputs.zips != '' && !inputs.dry_run
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || echo "Pages rebuild request skipped"
