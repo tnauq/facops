@@ -43,6 +43,17 @@
       border: 1px solid #1F3A5F; background: #FFFFFF; color: #1F3A5F; cursor: pointer;
     }
     .buttons button.primary { background: #1F3A5F; color: #FFFFFF; }
+    /* Tuning drawer: two columns of controls on a wide phone, one on a narrow window. Each row is 44 px tall. */
+    .card.tuning { width: min(680px, 98vw); max-width: none; max-height: 97vh; padding: 6px 14px 8px; }
+    .card.tuning h1 { font-size: 16px; margin: 0; }
+    .card.tuning p.muted { margin: 0 0 2px; font-size: 12px; }
+    .card.tuning .buttons { margin-top: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(275px, 1fr)); column-gap: 16px; text-align: left; }
+    .row { display: grid; grid-template-columns: 1fr 104px 34px; align-items: center; min-height: 44px; font-size: 12px; gap: 6px; }
+    .row input[type=range] { width: 100%; height: 44px; margin: 0; accent-color: #1F3A5F; }
+    .row input[type=checkbox] { width: 22px; height: 22px; margin: 0; justify-self: start; accent-color: #1F3A5F; }
+    .row output { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    label.row { cursor: pointer; }
   </style>
 </head>
 <body>
@@ -52,13 +63,17 @@
       <h1>FacOps</h1>
       <p>Alarms pile up. Send your crew. Keep the load in the green.</p>
       <p class="muted">Best: <span data-field="best"></span></p>
-      <div class="buttons"><button class="primary" data-action="start">Start</button></div>
+      <div class="buttons">
+        <button class="primary" data-action="start">Start</button>
+        <button data-action="tuning">Tuning</button>
+      </div>
     </div>
     <div class="card" data-overlay="paused" hidden>
       <h1>Paused</h1>
       <div class="buttons">
         <button class="primary" data-action="resume">Resume</button>
         <button data-action="restart">Restart</button>
+        <button data-action="tuning">Tuning</button>
       </div>
     </div>
     <div class="card" data-overlay="over" hidden>
@@ -68,7 +83,19 @@
         <div><b data-field="energy"></b><span>delivered</span></div>
       </div>
       <p data-field="bestLine"></p>
-      <div class="buttons"><button class="primary" data-action="again">Play again</button></div>
+      <div class="buttons">
+        <button class="primary" data-action="again">Play again</button>
+        <button data-action="tuning">Tuning</button>
+      </div>
+    </div>
+    <div class="card tuning" data-overlay="tuning" hidden>
+      <h1>Tuning</h1>
+      <p class="muted">Changes apply from the next round.</p>
+      <div class="grid" id="tuning-controls"></div>
+      <div class="buttons">
+        <button data-action="reset">Reset to defaults</button>
+        <button class="primary" data-action="done">Done</button>
+      </div>
     </div>
   </div>
   <script type="module" src="./src/main.js"></script>

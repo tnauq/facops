@@ -4,9 +4,15 @@
 
 export const NOTHING = Object.freeze({ kind: 'none', id: null });
 
-/** Returns { selection, assign } where assign is { techId, alarmId } or null. */
-export function reduceTap(selection, hit) {
+/**
+ * Returns { selection, assign } where assign is { techId, alarmId } or null.
+ * One-tap mode (spec 7.3): tapping an alarm with no tech selected returns { selection: NOTHING,
+ * assign: null, dispatch: alarmId } instead, for the caller to send the nearest free tech (or queue
+ * it). A tech then an alarm still assigns exactly as in two-tap mode: that is the manual override.
+ */
+export function reduceTap(selection, hit, { oneTap = false } = {}) {
   const none = { selection: NOTHING, assign: null };
+  if (oneTap && hit.kind === 'alarm' && selection.kind !== 'tech') return { ...none, dispatch: hit.id };
   const keep = { selection, assign: null };
   const pick = { selection: { kind: hit.kind, id: hit.id }, assign: null };
 

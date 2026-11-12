@@ -9,8 +9,8 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 | M2. Two-tap dispatch on the map | `m2` | Done |
 | M3. HUD and round over | `m3` | Done |
 | M4. Crew bar and alarm rail | `m4` | Done |
-| M5. One-tap switch and tuning drawer | `m5` | Next |
-| M6. Results, pause and phone polish | `m6` | To do |
+| M5. One-tap switch and tuning drawer | `m5` | Done |
+| M6. Results, pause and phone polish | `m6` | Next |
 | M7. Feel | `m7` | To do |
 
 ## Owner setup, once
@@ -21,6 +21,29 @@ The newest entry is at the top of the log. One milestone per session; see `docs/
 4. After a minute, open https://tnauq.github.io/facops/ on the phone, in landscape.
 
 ## Log
+
+### M5. One-tap switch and tuning drawer
+
+Built:
+
+- The tuning drawer (`src/ui/tuning.js`, drawn in `src/render/overlays.js`): the eight controls from spec 9 as native sliders and checkboxes, each with its value beside it, in two columns so it fits the phone without scrolling. Every row is 44 px tall and the whole row is the tap target. Reset to defaults and Done.
+- It opens from a Tuning button on the start, pause and round-over cards, and from the gear button in the HUD during play. Done goes back to the card it came from; from play it goes to the pause card, so you can Resume or Restart with the new settings.
+- Changes are saved at once under `facops.tuning.v1` and apply when the next round starts. Defaults always come from the rules engine's `DEFAULT_CONFIG`. If storage is blocked, the drawer still works for the visit.
+- One-tap mode (spec 7.3): with "One-tap dispatch" on, tapping an alarm (bubble or ticket) sends the nearest free tech. If nobody is free the alarm is queued, shown by a hollow dot on its bubble and ticket, and the next tech to finish takes it. Tapping a tech and then an alarm still sends that tech. The HUD says "One-tap" while a round is in that mode.
+- 15 new tests (164 in all): every control changes its own config key and nothing else, Reset gives back the default rules, saved tuning survives a reload, junk or blocked storage falls back to defaults, the one-tap taps, a queued alarm taken by the next free tech, and opening and closing the drawer.
+
+Worth knowing:
+
+- Tap mode belongs to the round, like every other setting: switch one-tap on, then start a new round (Restart or Play again) to play that way.
+- The pause button still opens the pause card; the gear opens the drawer.
+- Your tuning shows in the results text as a list of what changed from the defaults, ready for the Copy button in M6.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch taps: opening the drawer from each card and from the gear, a slider and the one-tap switch saving at once, the next round using them, four tickets tapped in one-tap mode with three techs (the fourth queued, then taken), Reset, and tuning surviving a reload. No console errors.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape.
+- Play a round in two-tap mode. Then open Tuning, switch on "One-tap dispatch", tap Done and play a round that way.
+- Note which mode you prefer.
 
 ### M4. Crew bar and alarm rail
 
