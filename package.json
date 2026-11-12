@@ -1,0 +1,10 @@
+{
+  "name": "facops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FacOps: a data center dispatch game. Pass 1 prototype.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
