@@ -3,12 +3,12 @@
 //     height, so the shadow closes in where a pipe slopes down to its unit.
 //   - Overhead (drawOverheadPipes, over the crew): insulated blue pipe with a dark edge and a
 //     highlight, darkening as it slopes down; a flange where it meets a unit; a round tap (a short
-//     vertical drop, seen from above) over each CDU. A piece over a walkway fades to see-through
-//     while a tech or the CEO is underneath, and fades back after.
+//     vertical drop, seen from above) over each CDU. Solid: a tech walking under a pipe is hidden
+//     for a moment (the owner tried a see-through fade and preferred it without).
 // Pipes past the online halls, and Plant B's before it opens, are pale like the halls under
 // construction.
 
-import { nearPiece, onlineSpan, pipePieces, pipeTaps } from '../ui/pipes.js';
+import { onlineSpan, pipePieces, pipeTaps } from '../ui/pipes.js';
 
 const PIECES = pipePieces();
 const TAPS = pipeTaps();
@@ -20,12 +20,6 @@ const SHADOW = 'rgba(30, 30, 24, 0.30)';
 const WIDTH = 9; // world units
 const SHADOW_OFFSET = { x: 9, y: 12 }; // world units at full height
 const OFFLINE_ALPHA = 0.3;
-const SEE_THROUGH = 0.28; // a walkway piece's opacity with someone underneath
-const NEAR = 30; // world units: how close counts as underneath
-const FADE_RATE = 0.2; // share of the way to the target opacity per frame
-
-const fade = new Map(); // piece index -> current opacity
-
 const mix = (h) => `rgb(${LOW.map((l, i) => Math.round(l + (HIGH[i] - l) * h)).join(', ')})`;
 
 // Cut pieces at the online span's edge; returns [{ ...piece, pale }].
@@ -123,22 +117,11 @@ function flange(ctx, v, x, y, r) {
   ctx.stroke();
 }
 
-/**
- * The pipes overhead, drawn after the crew and the CEO. people: [{ x, y }] in world units (techs,
- * the CEO, the assistant): a walkway piece near one of them fades to see-through.
- */
-export function drawOverheadPipes(ctx, v, { online = 1, plantB = false, people = [] } = {}) {
+/** The pipes overhead, drawn after the crew and the CEO. */
+export function drawOverheadPipes(ctx, v, { online = 1, plantB = false } = {}) {
   ctx.save();
   for (const p of withSpan(online, plantB)) {
-    let alpha = p.pale ? OFFLINE_ALPHA : 1;
-    if (p.overWalk && !p.pale) {
-      const target = people.some((q) => nearPiece(p, q.x, q.y, NEAR)) ? SEE_THROUGH : 1;
-      const now = fade.get(p.i) ?? 1;
-      const next = now + (target - now) * FADE_RATE;
-      fade.set(p.i, Math.abs(next - target) < 0.01 ? target : next);
-      alpha = fade.get(p.i);
-    }
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = p.pale ? OFFLINE_ALPHA : 1;
     pipePiece(ctx, v, p);
     // Where the piece reaches its unit, the pipe turns down.
     if (p.h1 === 0) flange(ctx, v, p.x1, p.y1, 6.5);

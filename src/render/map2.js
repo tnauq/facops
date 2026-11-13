@@ -90,12 +90,8 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   drawCeoRoute(ctx, v, state);
   drawCrew(ctx, v, crew, selection.techId ?? null);
   drawCeoOnFloor(ctx, v, state, fx.ceo?.assistant ?? null);
-  // The pipes run overhead, over the crew and the CEO; where one crosses a walkway it turns
-  // see-through while someone is underneath.
-  const people = state.techs.map((t) => ({ x: t.x, y: t.y }));
-  if (state.ceo && state.ceo.phase === 'visit') people.push({ x: state.ceo.x, y: state.ceo.y });
-  if (fx.ceo?.assistant) people.push(fx.ceo.assistant);
-  drawOverheadPipes(ctx, v, { online: state.halls, plantB: plantBOnline(state), people });
+  // The pipes run overhead, over the crew and the CEO.
+  drawOverheadPipes(ctx, v, { online: state.halls, plantB: plantBOnline(state) });
   const list = bubbles2(state, selection.alarmId ?? null);
   for (const b of list) {
     const r = BUBBLE_RADIUS * popScale(b.info.age);
