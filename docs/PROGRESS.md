@@ -48,6 +48,18 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 
 ## Log
 
+### After M19: overhead pipes
+
+At the owner's request:
+
+- **The pipes run overhead.** They are drawn above the crew and the CEO, and cast a shadow on the floor, offset by their height.
+- **Drops at the units.** Where a pipe meets a chiller or a pump's discharge, it slopes down over its last 26 units: the shadow closes in to meet it, the pipe darkens, and a flanged end shows it turning straight down. Each CDU is fed by a short vertical drop off its header, drawn as a round tap.
+- **See-through over walkways.** Where a pipe crosses a walkway (the plant lanes, the gaps between hall pairs, the centre line, each hall's outer aisle, and the corridors by the pumps), it fades to see-through while a tech, the CEO or the assistant is underneath, then fades back.
+- The map preview draws the pipes in one go, without the fade.
+- Pipe tests rewritten for the slopes, taps and walkway crossings: 355 tests.
+
+Owner's checklist: do the pipes read as overhead? Can you see a tech walking under one? Do the drops at the chillers, pumps and CDUs read as the pipe coming down?
+
 ### After M19: CDUs and pumps turned to meet their pipes
 
 At the owner's request:

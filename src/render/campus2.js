@@ -6,7 +6,7 @@
 import { DOORS, EQUIPMENT, HALLS, LANES, PLANTS, WORLD } from '../core/layout2.js';
 import { ICON_SIZE, drawChiller, drawCdu, drawLabel, drawMsb, drawPump, drawRack } from './icons.js';
 import { drawJoints, fillConcrete, fillTiles } from './floors.js';
-import { drawPipes } from './pipes.js';
+import { drawPipeShadows, drawPipes } from './pipes.js';
 
 const COLOR = {
   page: '#D5DBE3',
@@ -140,7 +140,9 @@ function captionY(e) {
  * screen: { w, h } of the canvas, for culling. opts.online: halls online (1 to 8);
  * opts.plantB: whether Plant B is online; opts.status(e): icon options for one piece of equipment.
  */
-export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, status = () => ({}) } = {}) {
+export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, status = () => ({}), pipes = 'all' } = {}) {
+  // pipes: 'all' draws the pipes here; 'shadows' only their shadows, when the caller draws the
+  // overhead pipes itself over the crew (src/render/map2.js).
   const v = view;
   const live = (e) => (e.hall ? e.hall <= online : e.plant === 'A' || plantB);
   const labelPx = Math.max(9, Math.min(13, 19 * v.scale));
@@ -185,8 +187,9 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   }
   ctx.globalAlpha = 1;
 
-  // Chilled-water pipes, under the equipment so each CDU, chiller and pump sits on its pipe.
-  drawPipes(ctx, v, { online, plantB });
+  // Chilled-water pipes: their shadows on the floor, and (for previews) the pipes themselves.
+  if (pipes === 'all') drawPipes(ctx, v, { online, plantB });
+  else drawPipeShadows(ctx, v, { online, plantB });
 
   // Titles.
   for (const h of Object.values(HALLS)) {

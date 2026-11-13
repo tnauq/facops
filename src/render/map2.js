@@ -8,6 +8,7 @@ import { drawCrew } from './campus.js';
 import { drawAlarmBubble } from './icons.js';
 import { drawMarker } from './markers.js';
 import { drawShields } from './shields.js';
+import { drawOverheadPipes } from './pipes.js';
 import { drawCeoMarker, drawCeoOnFloor, drawCeoRoute, drawSpeech } from './ceo.js';
 import { drawFloats } from './map.js';
 import { HALLS } from '../core/index2.js';
@@ -82,13 +83,19 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   ctx.beginPath();
   ctx.rect(cam.rect.x, cam.rect.y, cam.rect.w, cam.rect.h);
   ctx.clip();
-  drawBuilding(ctx, v, screen, { online: state.halls, plantB: plantBOnline(state), status: equipmentStatus(state) });
+  drawBuilding(ctx, v, screen, { online: state.halls, plantB: plantBOnline(state), status: equipmentStatus(state), pipes: 'shadows' });
   drawShields(ctx, v, screen, shieldsModel(state), { plantB: plantBOnline(state) });
   // The bob only moves the drawing; tap targets stay where the rules put each tech.
   const crew = fannedCrew(state.techs, v.scale).map((t) => ({ ...t, y: t.y + bobOffset(t, state.t) / v.scale }));
   drawCeoRoute(ctx, v, state);
   drawCrew(ctx, v, crew, selection.techId ?? null);
   drawCeoOnFloor(ctx, v, state, fx.ceo?.assistant ?? null);
+  // The pipes run overhead, over the crew and the CEO; where one crosses a walkway it turns
+  // see-through while someone is underneath.
+  const people = state.techs.map((t) => ({ x: t.x, y: t.y }));
+  if (state.ceo && state.ceo.phase === 'visit') people.push({ x: state.ceo.x, y: state.ceo.y });
+  if (fx.ceo?.assistant) people.push(fx.ceo.assistant);
+  drawOverheadPipes(ctx, v, { online: state.halls, plantB: plantBOnline(state), people });
   const list = bubbles2(state, selection.alarmId ?? null);
   for (const b of list) {
     const r = BUBBLE_RADIUS * popScale(b.info.age);
