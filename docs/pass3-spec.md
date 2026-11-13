@@ -1,6 +1,6 @@
 # FacOps pass 3 build spec
 
-Version 0.3, 13 November 2026 (0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes in section 4.1). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.4, 13 November 2026 (0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes in section 4.1). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M16 are specified in full. The CEO (M17 onwards) is an outline; the owner has answered its open questions (section 6), and it is specified in full once M16 is done.
 
@@ -71,7 +71,7 @@ Each online plant shows the cooling shield beside its title, followed by the spa
 
 ### 2.1 What each alarm costs now
 
-Every ticket shows what that alarm costs right now, for example `−6 MW`, on its second line after the place (`H3 top · −6 MW`). Nothing shown when it costs nothing yet.
+Every ticket shows what that alarm costs right now, for example `−6 MW`, in bold on its first line in place of the alarm's name (the fault picture beside it still says what it is). A ticket that costs nothing yet shows the name as before. *(Changed in M15: the 96 px ticket cannot fit the place and the cost on one line.)*
 
 **Cost now** = the MW that would come back if this alarm alone were fixed this instant, at the current cooling factor, rounded to whole MW:
 
@@ -85,7 +85,7 @@ Every ticket shows what that alarm costs right now, for example `−6 MW`, on it
 | Chiller Trip | The load gained by one more running chiller, when cooling is short; otherwise 0 |
 | Pump Overpressure | 0 |
 
-`alarmCost(state, alarm)` in a new pure module `src/ui/cost.js`, computed with the rules engine's own row logic (row level and the cooling target) rather than copies of it. Tests cover every row of the table, a row that is both network-down and dark, and the cooling shortfall.
+`alarmCost(state, alarm)` in a new pure module `src/ui/cost.js`, worked out from the rules engine's public state and config (`src/core/` stays untouched), and checked in tests against the load the engine itself gives back when the fault is gone. Tests cover every row of the table, a row that is both network-down and dark, and the cooling shortfall.
 
 ### 2.2 Order
 

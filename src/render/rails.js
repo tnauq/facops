@@ -105,3 +105,28 @@ export function drawRail(ctx, rail) {
     text(ctx, chip.text, chip.x + chip.w / 2, chip.y + chip.h / 2, { weight: 600, color: MUTED, align: 'center' });
   }
 }
+
+function chip2(ctx, c) {
+  ctx.beginPath();
+  ctx.roundRect(c.x, c.y + 4, c.w, c.h - 8, (c.h - 8) / 2);
+  ctx.fillStyle = PANEL;
+  ctx.fill();
+  ctx.strokeStyle = EDGE;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  text(ctx, c.text, c.x + c.w / 2, c.y + c.h / 2, { weight: 600, color: INK, align: 'center' });
+}
+
+/**
+ * The pass 3 rail (railTickets2 in src/ui/rail2.js). As drawRail, except that a ticket whose alarm
+ * costs something shows the cost ("−34 MW") in bold on its first line in place of the alarm's name:
+ * the fault picture still says what it is, and the rail reads as a list of what is being lost.
+ * The ▲ and "+N more" chips are drawn inside their 44 px tap targets.
+ */
+export function drawRail2(ctx, rail) {
+  drawRail(ctx, {
+    tickets: rail.tickets.map((t) => ({ ...t, name: t.costText || t.name })),
+    chip: null,
+  });
+  for (const c of [rail.up, rail.down]) if (c) chip2(ctx, c);
+}

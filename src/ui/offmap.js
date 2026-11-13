@@ -7,9 +7,11 @@ const EDGE_INSET = MARKER_RADIUS + 2; // keeps the whole marker inside the map
 export const MERGE_PX = 48; // markers closer than this become one (a marker is 30 px across plus its arrow)
 
 /**
- * points: [{ id, x, y, type }] in world units. cam: a camera (src/ui/camera.js).
- * Returns [{ x, y, angle, ids, type, count, target }] in screen px, where `target` is the world
- * point of the first alarm in the marker (for panning to it) and `angle` points toward it.
+ * points: [{ id, x, y, type }] in world units, optionally with `rank` (triage order, lower is more
+ * urgent) and what the arrow shows for that alarm (`info`, `cost`). cam: a camera (src/ui/camera.js).
+ * Returns [{ x, y, angle, ids, type, count, target, info, cost }] in screen px. A merged marker is led
+ * by its most urgent alarm by rank (pass 3 spec 2.4), or by its nearest when no ranks are given:
+ * `type`, `info`, `cost` and `target` (the world point to pan to) are the lead's, and its id is first.
  */
 export function offMapMarkers(points, cam) {
   const r = cam.rect;
@@ -26,17 +28,21 @@ export function offMapMarkers(points, cam) {
     const dy = sy - cy;
     // Shrink the ray from the centre until it touches the inset edge.
     const t = Math.min(halfW / Math.abs(dx || 1e-9), halfH / Math.abs(dy || 1e-9));
-    raw.push({ x: cx + dx * t, y: cy + dy * t, angle: Math.atan2(dy, dx), ids: [p.id], type: p.type, target: { x: p.x, y: p.y }, dist: Math.hypot(dx, dy) });
+    raw.push({ x: cx + dx * t, y: cy + dy * t, angle: Math.atan2(dy, dx), ids: [p.id], type: p.type, target: { x: p.x, y: p.y }, dist: Math.hypot(dx, dy), rank: p.rank ?? Infinity, info: p.info ?? null, cost: p.cost ?? 0 });
   }
   // Nearest alarms first, so a merged marker leads to the closest one.
   raw.sort((a, b) => a.dist - b.dist);
   const merged = [];
   for (const m of raw) {
     const near = merged.find((q) => Math.hypot(q.x - m.x, q.y - m.y) < MERGE_PX);
-    if (near) near.ids.push(...m.ids);
-    else merged.push({ ...m });
+    if (!near) merged.push({ ...m });
+    else if (m.rank < near.rank) {
+      // A more urgent alarm leads the marker; the arrow stays where the nearest put it.
+      near.ids.unshift(...m.ids);
+      Object.assign(near, { type: m.type, target: m.target, rank: m.rank, info: m.info, cost: m.cost });
+    } else near.ids.push(...m.ids);
   }
-  return merged.map(({ dist, ...m }) => ({ ...m, count: m.ids.length }));
+  return merged.map(({ dist, rank, ...m }) => ({ ...m, count: m.ids.length }));
 }
 
 /** The marker under a tap, or null. */

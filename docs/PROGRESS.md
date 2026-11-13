@@ -40,12 +40,36 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 | Milestone | Tag | Status |
 |---|---|---|
 | M14. Endless-run fix, and shields on screen | `m14` | Done |
-| M15. An alarm rail that triages | `m15` | Next |
-| M16. Campus overview strip | `m16` | |
+| M15. An alarm rail that triages | `m15` | Done |
+| M16. Campus overview strip | `m16` | Next |
 | M17. CEO rules and pacing changes | `m17` | |
 | M18. CEO on screen | `m18` | |
 
 ## Log
+
+### M15. An alarm rail that triages
+
+Built:
+
+- **What each alarm costs now** (`src/ui/cost.js`): the MW that would come back if that alarm alone were fixed. A network failure about −6 MW; a first leak −4; both of a hall's CDUs leaking −34 on each ticket; a lone breaker nothing, both of a pair −19 on each; a chiller nothing while spares run, its share of the shortfall once cooling is short; a pump nothing. Checked in tests against what the rules engine itself gives back when the fault is gone.
+- **Tickets show the cost** in bold on their first line, in place of the alarm's name (the fault picture still says what it is): `−34 MW` over `H8 top`. Free alarms show their name as before.
+- **Triage order:** alarms that cost something first, biggest first; then the rest by clock, then oldest. An alarm that spreads jumps to the top.
+- **The rail scrolls** (`src/ui/rail2.js`). Drag it up and down; it moves a ticket at a time and stops at the ends. `+N more` at the bottom pages down; `▲ N` at the top pages back up. Both are full 44 px tap targets. When an alarm newly starts costing more than anything in view, the rail jumps back to the top.
+- **Off-map arrows** carry the lead alarm's clock as a ring (fix progress in blue while a tech is on site) and its cost (`−34`) on the side away from the arrow. A merged arrow is now led by its most urgent alarm, not the nearest, and tapping it goes there.
+- 15 new tests (318 in all).
+
+Worth knowing:
+
+- While the rail overflows, tickets act when your finger lifts rather than when it lands, so a drag can scroll the rail without sending anyone. With everything in view they act at finger-down as before.
+- The ticket shows the cost instead of the alarm name because the 96 px ticket cannot fit both the place and the cost on one line. Spec 0.4 records the change.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with 15 alarms on a full campus: costly tickets on top, `+N more` paging down, a drag scrolling back without moving the map, ringed arrows with costs. No console errors.
+
+Owner's checklist:
+
+- With several alarms open, can you tell from the rail alone which one is costing most?
+- An alarm that has spread (both CDUs, both breakers) jumps to the top of the rail.
+- Late in a run, drag the rail to see the rest, and tap `+N more`.
+- Do the rings on the edge arrows tell you when to go and look?
 
 ### M14. Endless-run fix, and shields on screen
 

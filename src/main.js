@@ -1,4 +1,6 @@
-// FacOps pass 2, complete through milestone 13: the game on the new scrolling map (pass 2 spec, section 7).
+// FacOps pass 3 (docs/pass3-spec.md): pass 2's game on the scrolling map, plus shields on the map (M14)
+// and an alarm rail that triages (M15: costs on tickets, costly alarms first, a rail that scrolls).
+// Pass 2's notes (pass 2 spec, section 7):
 // The pass 1 screen (HUD, crew bar, alarm rail, overlays, tuning drawer, results with Copy) runs on
 // the pass 2 rules engine (src/core/index2.js). New here:
 //   - The map scrolls at pass 1's zoom: drag (finger or mouse), mouse wheel, arrow keys. A touch that
@@ -17,12 +19,11 @@
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
-import * as api2 from './core/index2.js';
 import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
 import { drawHud, drawHudFlash } from './render/hud.js';
-import { drawCrewBar, drawRail } from './render/rails.js';
+import { drawCrewBar, drawRail2 } from './render/rails.js';
 import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setDelivery, setResults, setTuningControls, showOverlay } from './render/overlays.js';
 import { drawTech } from './render/icons.js';
 import { drawUpgrade } from './render/upgrades.js';
@@ -35,11 +36,12 @@ import { copyLabel, copyText } from './ui/copy.js';
 import { createClock, runFrame } from './ui/loop.js';
 import { hitTest } from './ui/hittest.js';
 import { NOTHING, pruneSelection, reduceTap } from './ui/selection.js';
-import { mapTargets2, railTargets2 } from './ui/targets2.js';
+import { chipAt, mapTargets2, railTargets2 } from './ui/targets2.js';
 import { HUD_HEIGHT, crewColumns, hudLayout, regions } from './ui/regions.js';
 import { createFeel2, feelEvents2, flashAlpha, liveCelebrations, liveFloats } from './ui/feel2.js';
 import { crewCards, techForKey } from './ui/crewbar.js';
-import { railTickets } from './ui/rail.js';
+import { autoTop, pageTo, railTickets2, scrollByDrag } from './ui/rail2.js';
+import { DRAG_PX } from './ui/drag.js';
 import { hudModel2 } from './ui/hud2.js';
 import { reduceFlow } from './ui/flow.js';
 import { BEST2_KEY, bestText, defaultStorage, loadBest, recordBest, saveBest } from './ui/best.js';
@@ -63,6 +65,7 @@ let round = null;
 let cam = null;
 let gliding = null; // { from, to, start, ms }
 let gesture = null;
+let railGesture = null; // a touch on a rail that overflows: { start, startFirst, dragging }
 let markers = [];
 let mode = 'start'; // see src/ui/flow.js
 let best = loadBest(defaultStorage(), BEST2_KEY);
@@ -84,6 +87,8 @@ function newRound() {
     feel: createFeel2(),
     tutorial: null,
     callout: '',
+    railFirst: 0, // the rail's scroll position (pass 3 spec 2.3)
+    railKnown: new Set(), // alarms already costing something, for sending the rail back to the top
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
   const cfg = round.state.config;
@@ -248,7 +253,9 @@ function draw() {
   const techId = sel.kind === 'tech' ? sel.id : null;
   markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t) });
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
-  drawRail(ctx, railTickets(s, regs.rail, alarmId, api2));
+  const rail = railTickets2(s, regs.rail, alarmId, round.railFirst);
+  round.railFirst = rail.first;
+  drawRail2(ctx, rail);
   if (round.callout) {
     // Keep the callout away from the alarms the lesson is about.
     const v = cameraView(cam);
@@ -286,6 +293,11 @@ function frame(now) {
   if (card && mode === 'playing') onDelivery(card);
   if (state.over && mode === 'playing') roundOver();
   round.selection = pruneSelection(round.selection, state);
+  if (!railGesture) {
+    const top = autoTop(state, layout().rail, round.railFirst, round.railKnown);
+    round.railFirst = top.first;
+    round.railKnown = top.known;
+  }
   if (gliding) {
     const k = Math.min(1, (now - gliding.start) / gliding.ms);
     cam = glide(gliding.from, gliding.to, k);
@@ -329,8 +341,17 @@ function onDown(e) {
   if (!canPlay()) return;
   e.preventDefault();
   const p = point(e);
-  // HUD buttons, crew cards and tickets act at finger-down, as in pass 1.
-  const hit = hitTest(p, railTargets2(round.state, layout(), columnsNow()));
+  const regs = layout();
+  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst);
+  // A rail that overflows scrolls with a drag, so its tickets and chips act when the finger lifts
+  // (pass 3 spec 2.3). Otherwise HUD buttons, crew cards and tickets act at finger-down, as in pass 1.
+  const onRail = p.x >= regs.rail.x && p.y >= regs.rail.y && !hitTest(p, { buttons: targets.buttons }).id;
+  if (onRail && targets.scrolls) {
+    railGesture = { start: p, startFirst: round.railFirst, dragging: false };
+    canvas.setPointerCapture?.(e.pointerId);
+    return;
+  }
+  const hit = hitTest(p, targets);
   if (hit.kind === 'button') {
     act(hit.id === 'settings' ? 'tuning' : 'pause');
     return;
@@ -349,13 +370,39 @@ function onDown(e) {
 }
 
 function onMove(e) {
+  if (railGesture) {
+    const p = point(e);
+    const dy = railGesture.start.y - p.y; // finger up moves further down the list
+    if (!railGesture.dragging && Math.abs(dy) > DRAG_PX) railGesture.dragging = true;
+    if (railGesture.dragging) round.railFirst = scrollByDrag(railGesture.startFirst, dy, layout().rail.h, round.state.alarms.length);
+    return;
+  }
   if (!gesture) return;
   const r = moveGesture(gesture, point(e));
   gesture = r.gesture;
   if (r.pan) pan(r.pan.dx, r.pan.dy);
 }
 
+function onRailUp(e) {
+  const g = railGesture;
+  railGesture = null;
+  if (e.type === 'pointercancel' || g.dragging || !canPlay()) return;
+  const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst);
+  const chip = chipAt(targets, g.start);
+  if (chip) {
+    round.railFirst = pageTo(layout().rail.h, round.state.alarms.length, round.railFirst, chip.id === 'rail-down' ? 1 : -1);
+    return;
+  }
+  const hit = hitTest(g.start, { tickets: targets.tickets });
+  applyTap(hit); // a ticket, or the gap between tickets (clears the selection)
+  if (hit.kind !== 'empty') revealFor(hit);
+}
+
 function onUp(e) {
+  if (railGesture) {
+    onRailUp(e);
+    return;
+  }
   if (!gesture) return;
   const tap = endGesture(gesture);
   gesture = null;

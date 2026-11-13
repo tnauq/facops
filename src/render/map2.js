@@ -17,6 +17,7 @@ import { bobOffset, popScale } from '../ui/feel.js';
 import { offMapMarkers } from '../ui/offmap.js';
 import { bubbles2, equipmentStatus } from '../ui/view2.js';
 import { shieldsModel } from '../ui/shields.js';
+import { triageOrder } from '../ui/cost.js';
 
 const INK = '#1F3A5F';
 const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -91,7 +92,9 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   }
   for (const c of fx.celebrations ?? []) drawCelebration(ctx, v, c);
   drawFloats(ctx, v, fx.floats ?? [], cam.rect.y);
-  const markers = offMapMarkers(list, cam);
+  // Off-map arrows lead with the most urgent alarm by the rail's order and show its cost (pass 3 spec 2.4).
+  const rank = new Map(triageOrder(state).map((x, i) => [x.alarm.id, { rank: i, cost: x.cost }]));
+  const markers = offMapMarkers(list.map((b) => ({ ...b, ...rank.get(b.id) })), cam);
   for (const m of markers) drawMarker(ctx, m);
   ctx.restore();
   return markers;

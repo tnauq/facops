@@ -146,3 +146,23 @@ test('a tap within 22 px picks the marker', () => {
   assert.deepEqual(markerAt(ms, { x: 135, y: 100 }).ids, [2]);
   assert.equal(markerAt(ms, { x: 100, y: 130 }), null);
 });
+
+test('a merged arrow is led by its most urgent alarm when ranks are given (pass 3 spec 2.4)', async () => {
+  const { offMapMarkers } = await import('../src/ui/offmap.js');
+  const { createCamera } = await import('../src/ui/camera.js');
+  const { WORLD, START_POINT } = await import('../src/core/index2.js');
+  const c = createCamera({ x: 80, y: 36, w: 652, h: 350 }, 0.656, WORLD, START_POINT);
+  const pts = [
+    { id: 1, x: 3000, y: 390, type: 'breaker', rank: 2, cost: 0 },
+    { id: 2, x: 3100, y: 390, type: 'leak', rank: 0, cost: 34 },
+  ];
+  const [m] = offMapMarkers(pts, c);
+  assert.equal(m.count, 2);
+  assert.equal(m.type, 'leak');
+  assert.equal(m.cost, 34);
+  assert.deepEqual(m.target, { x: 3100, y: 390 });
+  assert.deepEqual(m.ids, [2, 1]);
+  // Without ranks the nearest still leads, as in pass 2.
+  const [n] = offMapMarkers(pts.map(({ rank, ...p }) => p), c);
+  assert.equal(n.type, 'breaker');
+});
