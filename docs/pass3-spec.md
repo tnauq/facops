@@ -1,6 +1,6 @@
 # FacOps pass 3 build spec
 
-Version 0.5, 13 November 2026 (0.5: the CEO specified in full, section 4; 0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes in section 4.1). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.5, 13 November 2026 (0.5: the CEO specified in full, section 4; 0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes, now section 4.4). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M18 are specified in full.
 
@@ -115,8 +115,8 @@ Tickets that cost something come first, biggest cost first; then the rest by clo
 
 One thin bar showing the whole building at once: Plant A, the 8 halls in their pairs, Plant B, drawn to scale left to right.
 
-- Each online hall: its power and liquid shield as two small dots in the shield colours (cracked: amber, broken: red, with an outline so colour is not the only sign).
-- Each plant: the cooling shield dot and the spare count.
+- Each online hall: its power and liquid shields as two small shields (the supplied drawing, whose crack line means colour is not the only sign).
+- Each plant: the cooling shield and the spare count.
 - Offline halls and Plant B before hall 6: pale.
 - Every open alarm: an ink dot at its place; a ringed dot when it costs something.
 - Every tech: a hat-coloured dot.
