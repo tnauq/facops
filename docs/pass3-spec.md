@@ -1,8 +1,8 @@
 # FacOps pass 3 build spec
 
-Version 0.4, 13 November 2026 (0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes in section 4.1). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.5, 13 November 2026 (0.5: the CEO specified in full, section 4; 0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes in section 4.1). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
-Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M16 are specified in full. The CEO (M17 onwards) is an outline; the owner has answered its open questions (section 6), and it is specified in full once M16 is done.
+Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M18 are specified in full.
 
 ## 0. Why pass 3, and in what order
 
@@ -14,7 +14,7 @@ The build review found that pass 2 matches its spec, but the design pillars are 
 
 So pass 3 builds readability first (M14 to M16, screen only apart from one bug fix), then the CEO on top of it. The CEO needs all three: its view cone is only fair if the player can see what is unattended, what it costs, and where it is.
 
-**Owner agreement on rule changes.** On 13 November 2026 the owner agreed to the M14 bug fix (section 1.1), and to the two pacing changes in section 4.1, which are built with the CEO rules in M17. No other rule in `src/core/` changes in M14 to M16.
+**Owner agreement on rule changes.** On 13 November 2026 the owner agreed to the M14 bug fix (section 1.1), and to the two pacing changes in section 4.4, which are built with the CEO rules in M17. The CEO's rules (4.1 to 4.6) are new rules and need the owner's approval of this spec before M17. No other rule in `src/core/` changes in M14 to M16.
 
 ## 1. M14. Endless-run fix, and shields on screen
 
@@ -134,36 +134,115 @@ One thin bar showing the whole building at once: Plant A, the 8 halls in their p
 - Tap a hall on the strip: the view jumps there. Drag along it: the view follows.
 - Does the map still feel big enough on the phone?
 
-## 4. M17 onwards. The CEO walkthrough (outline)
+## 4. M17 and M18. The CEO walkthrough
 
-GDD section 8, fitted to the 8-hall building. The character is simply **The CEO** (owner, 13 November): a fictional tech-founder parody with original lines, no real person's name, face or quotes.
+GDD section 8, fitted to the 8-hall building. The character is simply **The CEO** (owner, 13 November): a fictional tech-founder parody with original lines, no real person's name, face or quotes. The CEO walks with an **assistant** carrying a clipboard, who is only there for the joke.
 
-- The CEO and an assistant walk a marked route. Any alarm that enters the CEO's view must be **attended**: a tech on site and fixing. An unattended alarm in view costs Stability points that grow with each visit; under zero tolerance it ends the run.
-- **Telegraph:** a banner and countdown that name the areas, the route drawn on the floor and on the overview strip, the view cone always visible.
-- Schedule (owner, 13 November: no extra visit at hall 6; zero tolerance from the third walkthrough). Times from the scripted runs: hall 3 at about 2:10, hall 8 at about 7:05.
+### 4.1 Visits
 
-| Visit | When | Route | Warning | Unattended alarm costs |
+| Visit | Starts | Route | Warning | Each unattended alarm seen |
 |---|---|---|---|---|
-| Ribbon-cutting | Hall 3 online | Hall 3 | 20 s | 15 points |
-| Handover | Hall 8 online | All 8 halls, along the corridor | 20 s | 35 points |
-| Walkthrough 1 | 60 to 90 s later | 2 or 3 areas | 20 s | 50 points |
-| Walkthrough 2 | 60 to 90 s later | 2 or 3 areas | 15 s | 70 points |
-| Zero tolerance | Walkthrough 3 and every one after | 2 or 3 areas | 12 s, shrinking to 8 s | Run over |
+| Ribbon-cutting | Hall 3 comes online | Hall 3 | 20 s | −15 Stability |
+| Handover | Hall 8 comes online | Every online hall, 1 to 8 | 20 s | −35 |
+| Walkthrough 1 | 60 to 90 s after the Handover ends | 2 or 3 areas | 20 s | −50 |
+| Walkthrough 2 | 60 to 90 s after the last visit ends | 2 or 3 areas | 15 s | −70 |
+| Zero tolerance | Walkthrough 3 and every one after, 60 to 90 s apart | 2 or 3 areas | 12 s, then 1 s less each visit, down to 8 s | **Run over** |
 
-Zero tolerance then starts at about 10:30 to 11:00, so most runs end around 11 to 12 minutes.
+- Owner, 13 November: no extra visit at hall 6; zero tolerance from the third walkthrough.
+- The gaps between visits are drawn from the seeded generator.
+- **Start with halls** in the drawer: 3 to 7 skips the ribbon-cutting; 8 starts the Handover warning 30 s into the run, so the late game can still be tested quickly.
+- The tutorial never has a visit (it ends at hall 2).
+- A Stability hit can empty the meter; that ends the run like any other empty meter, with the CEO named as the cause.
 
-### 4.1 Pacing changes (owner agreed 13 November)
+### 4.2 Routes
+
+- **Areas** are Plant A, the 8 halls and Plant B, in that order along the building. Only online areas are used.
+- **Walkthrough routes** pick a random online area, then continue along the building to 1 or 2 neighbouring online areas (2 or 3 areas in all, fewer only if the campus has fewer). Neighbours keep the walk short and readable.
+- The CEO appears on the top corridor at the first area's outer door, walks to each area's **inspection point** (a hall's centre, where its middle aisle crosses its middle column; a plant's lane at the middle aisle), **inspects** there, and leaves from the last one (walks back to the corridor and disappears).
+- Walking uses the same lanes and doors as the techs (`route` in `src/core/layout2.js`), at **90** units a second: a stroll, slower than the crew's 150.
+- **Inspecting:** 4 s per area: 2 s facing the top half, 2 s facing the bottom half. The Handover inspects each hall for 2 s (1 s each way) so the tour of 8 halls takes about a minute.
+
+### 4.3 What the CEO sees
+
+- A **view cone**: everything within **260** units, in a **140°** cone in the direction the CEO faces. While walking the CEO faces the way they walk; while inspecting, up then down. From a hall's inspection point the cone reaches the hall's CDU on that side and its three rows on that side, but not the MSBs out in the corridor; walking along a corridor it sweeps the MSBs and CDUs it passes.
+- An alarm is **seen** when its equipment is inside the cone. It counts as **attended** only if a tech is on site and fixing it; a tech still walking there does not count (GDD).
+- Each alarm can cost at most once per visit: the first moment it is seen unattended is a **sighting**. A sighting costs the visit's Stability hit (or ends the run under zero tolerance) and the CEO says something.
+- An alarm that is attended when first seen, and is then dropped while still in view, is a sighting at that moment.
+- **Fairness:** from the warning to the end of a visit the director starts no new alarms in the route's areas. Escalations still happen there (that is the player's doing). Elsewhere the director carries on as normal.
+
+### 4.4 Pacing changes (owner agreed 13 November)
 
 Both fix weaknesses the review's scripted runs showed, and both are tuning-drawer controls so they can be adjusted after play.
 
-- **Pressure keeps building between halls.** Today the director's 5%-every-10-s tightening resets at each Delivery. New: a new phase starts from its table interval but keeps a share of the tightening already earned. `director.carryOver`, 0 (today's behaviour) to 1 (all of it), starting value 0.5; M17's scripted checks set the default so the middle of the run has real triage (crew short-handed some of the time between halls 3 and 8) and hall 8 still arrives for a good player.
-- **Big failures always hurt.** While any half-hall is dark, or a hall is shut by two leaks (counted as both halves), the meter does not fill and drains `meter.darkDrain` points a second for each dark half, on top of any band drain. Starting value 1 (a whole dark hall then drains like red); M17's checks set the default.
+- **Pressure keeps building between halls.** Today the director's 5%-every-10-s tightening resets at each Delivery. New: a new phase starts from its table interval but keeps a share of the tightening already earned. `director.carryOver`, 0 (today's behaviour) to 1 (all of it), starting value 0.5.
+- **Big failures always hurt.** While any half-hall is dark, or a hall is shut by two leaks (counted as both halves), the meter does not fill and drains `meter.darkDrain` points a second for each dark half, on top of any band drain. Starting value 1 (a whole dark hall then drains like red).
 
-Tests: tightening carried at the set share across a Delivery, and none at 0; the meter draining with a dark half-hall while the load is green, at any campus size.
+### 4.5 Scripted checks (M17)
 
-### 4.2 Milestones
+The scripted player learns the CEO: when a visit is announced it sends free techs to unattended alarms in the route's areas first, nearest first, and it keeps techs on them until the CEO has passed. A second, **CEO-blind** player ignores visits. 12 seeds each, tutorial off. M17 sets the defaults of `carryOver` and `darkDrain` (and, if needed, the visit costs and gaps) so that:
 
-Probably two milestones: M17, the rules (visits, routes, view cone, costs, scripted-player checks of run length and of skill making a difference); M18, the screen (CEO and assistant drawn, banner, route, cone, the CEO's lines, and the run-over line when the CEO ends a run).
+| Check | Target |
+|---|---|
+| Good CEO-aware player: run length | 9 to 13 minutes; most runs ended by zero tolerance |
+| Good CEO-aware player reaches hall 8 | 10 of 12 seeds or more |
+| CEO-blind player | Ends at least 90 s earlier on average, and scores at least 15% less |
+| Random player (random alarm, random free tech) | Scores at least 25% less than the good aware player |
+| Between hall 3 and hall 8, good player | More alarms waiting than free techs 10 to 30% of the time (today 0 to 1%) |
+| Very slow player (reacts in 4 s) | Most runs end before zero tolerance |
+
+The results go in `docs/PROGRESS.md` as the M13 and 1.3 tables did. If no setting meets them all, stop and show the owner the closest settings.
+
+### 4.6 Rules surface (M17)
+
+- New state: `state.ceo`, null between visits, otherwise `{ visit, kind, phase: 'warning' | 'walking' | 'inspecting' | 'leaving', areas, path, x, y, facing, until, cost, sightings }`; `state.ceoVisits` (how many have finished).
+- Events: `ceoWarning` (kind, areas, seconds, cost, `zeroTolerance`, `nextIsZeroTolerance`), `ceoArrive`, `ceoSighting` (alarm, cost), `ceoLeave` (sightings), `runOver` gains `cause: 'ceo'` when a sighting or a CEO hit ends the run.
+- Query `ceoSees(state, equipId)` and `ceoCone(state)` for the screen and the scripted player.
+- Results and Copy add: CEO visits survived, sightings, and "Fired by the CEO" when that ended the run.
+- New config (all in `src/core/config2.js`): `ceo.enabled`, `ceo.speed` 90, `ceo.viewRadius` 260, `ceo.viewAngle` 140, `ceo.inspect` 4, `ceo.inspectHandover` 2, `ceo.gap` [60, 90], `ceo.visits` (the table in 4.1), `ceo.ztWarning` 12, `ceo.ztWarningMin` 8; `director.carryOver`; `meter.darkDrain`.
+- New drawer controls: CEO visits (on/off), Tightening carried between halls (%), Drain per dark half-hall.
+- Tests: each visit starts when it should, the route uses only online areas and neighbours, the cone (inside, outside the radius, outside the angle, through the inspect turn), walking techs do not count, one sighting per alarm per visit, a dropped job in view is a sighting, zero tolerance ends the run, the director keeps out of the route, Start with halls 8 still gets a Handover, the two pacing changes.
+
+### 4.7 On screen (M18)
+
+- **The CEO and the assistant**, drawn in a new file `src/render/ceo.js` in the style of the crew but clearly not crew: a dark suit, no vest, and a plain white hardhat (white is no trade's colour); the assistant follows a step behind with a clipboard. Hat colours still mean trade only.
+- **The view cone** on the floor: a translucent ink wedge, never green, yellow or red.
+- **The route** as a dashed ink line on the floor from the warning on, with a small mark at each inspection point; the same line and the CEO's dot on the overview strip. An off-map arrow with a small CEO face points to the CEO when out of view.
+- **The banner**, a strip across the top of the map during the warning and the visit:
+  - Warning: `The CEO is coming · Halls 4, 5 · 0:15` and, on a second line, `Each unattended alarm seen: −50`.
+  - The visit before zero tolerance adds `Next visit: zero tolerance`.
+  - Zero tolerance: `Zero tolerance · Halls 6, 7 · 0:12` and `Any unattended alarm seen ends the run`.
+  - During the visit the countdown is replaced by the areas left.
+- **A sighting:** the CEO's speech bubble with a line (4.8), the alarm's bubble shaken, `−50` floating up from it, and the HUD flash.
+- **The run-over card**, when the CEO ended the run, has the headline **Fired by the CEO** and the CEO's parting line above the usual results.
+- Readability: the banner never covers the overview strip or the rails; at 660 x 300 it uses one line (`CEO · H4, H5 · 0:15 · −50`).
+
+### 4.8 The CEO's lines (original; chosen at random from each list)
+
+| When | Lines |
+|---|---|
+| Arriving | "Walk with me. Fast. I have a rocket at four." · "Show me the future. Quickly." · "I was told this building is fine. Let's find out." |
+| Ribbon-cutting | "Big scissors. Bigger hall. Let's cut something." · "I already announced this hall. Twice." |
+| Handover | "Eight halls. Now make them never break." · "Congratulations. Now it's mine." |
+| Sighting: CDU Leak | "Why is the computer wet?" · "Water is just liquid downtime." |
+| Sighting: Breaker Trip | "Who turned off the money?" · "That box looks sad. Fix its feelings." |
+| Sighting: Network Failure | "That rack has stopped believing in us." · "Have you tried turning it on?" |
+| Sighting: Chiller Trip | "It's warm in here. Warm is a choice." · "Is the snowflake supposed to be off?" |
+| Sighting: Pump Overpressure | "Is that needle supposed to be up there? Rhetorical." · "That gauge is very excited." |
+| Sighting: any | "Nobody is fixing that. Interesting." · "I'm going to post about this." · "Add that to the all-hands." |
+| Leaving, no sightings | "Acceptable. Barely. Keep shipping." · "Great hustle. Do it again, faster." |
+| Leaving, with sightings | "We'll talk about this at the offsite." · "I'm adding a dashboard to your dashboard." |
+| Announcing zero tolerance | "Next visit I want zero problems. Not few. Zero." |
+| Firing you | "You're done. I'll get an AI to run this." · "Clear your desk. Take a cart." |
+
+### 4.9 Owner's checklists
+
+M17 (rules, seen through the existing screen with a plain text banner): watch an `#auto` run to the end; the CEO's visits appear in the HUD note and the results say how the run ended. Does the middle of the run feel busier?
+
+M18: play three full runs. Can you see where the CEO is going and get a hat on every alarm in the way? Does zero tolerance feel like a fair ending? Did anything make you laugh?
+
+### 4.10 Milestones
+
+M17: the rules (4.1 to 4.6), with the scripted checks. M18: the screen (4.7, 4.8).
 
 ## 5. Later
 
@@ -174,9 +253,9 @@ In the order the review recommends, each to be specified when reached: staging a
 1. ~~Visits~~ **Answered 13 November:** no extra visit at hall 6.
 2. ~~When zero tolerance starts~~ **Answered 13 November:** on the third walkthrough after Handover.
 3. ~~Who the CEO is~~ **Answered 13 November:** "The CEO", a fictional tech-founder parody with original lines.
-4. ~~Pacing knobs~~ **Answered 13 November:** yes to both (section 4.1).
+4. ~~Pacing knobs~~ **Answered 13 November:** yes to both (section 4.4).
 
-All answered: M17 can be specified in full when M16 is done.
+All answered.
 
 ## 7. Milestones
 
@@ -187,5 +266,5 @@ One per session, as before. Commit titles start with the milestone (`M14: ...`) 
 | M14 | Endless-run fix; hall shields, cooling shield and spare chillers on the map (section 1) |
 | M15 | Alarm rail that triages; rings on the off-map arrows (section 2) |
 | M16 | Campus overview strip (section 3) |
-| M17 | CEO rules and the pacing changes (section 4) |
-| M18 | CEO on screen |
+| M17 | CEO rules, the pacing changes and the scripted checks (4.1 to 4.6) |
+| M18 | CEO on screen, with the lines (4.7, 4.8) |
