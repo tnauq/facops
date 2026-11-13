@@ -2,7 +2,7 @@
 
 Version 0.3, 13 November 2026 (0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes in section 4.1). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
-Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M16 are specified in full. The CEO (M17 onwards) is an outline with open questions; it is specified in full once the owner answers them (section 6).
+Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M16 are specified in full. The CEO (M17 onwards) is an outline; the owner has answered its open questions (section 6), and it is specified in full once M16 is done.
 
 ## 0. Why pass 3, and in what order
 
