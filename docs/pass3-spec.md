@@ -1,6 +1,6 @@
 # FacOps pass 3 build spec
 
-Version 0.1, 13 November 2026. Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.2, 13 November 2026 (0.2 records the owner's answers on the CEO schedule). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M16 are specified in full. The CEO (M17 onwards) is an outline with open questions; it is specified in full once the owner answers them (section 6).
 
@@ -140,15 +140,17 @@ GDD section 8, fitted to the 8-hall building:
 
 - The CEO and an assistant walk a marked route. Any alarm that enters the CEO's view must be **attended**: a tech on site and fixing. An unattended alarm in view costs Stability points that grow with each visit; under zero tolerance it ends the run.
 - **Telegraph:** a banner and countdown that name the areas, the route drawn on the floor and on the overview strip, the view cone always visible.
-- Draft schedule (times from the scripted runs: hall 3 at about 2:10, hall 6 at about 5:05, hall 8 at about 7:05):
+- Schedule (owner, 13 November: no extra visit at hall 6; zero tolerance from the third walkthrough). Times from the scripted runs: hall 3 at about 2:10, hall 8 at about 7:05.
 
 | Visit | When | Route | Warning | Unattended alarm costs |
 |---|---|---|---|---|
 | Ribbon-cutting | Hall 3 online | Hall 3 | 20 s | 15 points |
-| Plant B opening **[new, recommended]** | Hall 6 online | Plant B and hall 6 | 20 s | 25 points |
 | Handover | Hall 8 online | All 8 halls, along the corridor | 20 s | 35 points |
-| Walkthrough 1 | 60 to 90 s later | 2 or 3 areas | 15 s | 50 points |
-| Zero tolerance | Every walkthrough after that | 2 or 3 areas | 12 s, shrinking to 8 s | Run over |
+| Walkthrough 1 | 60 to 90 s later | 2 or 3 areas | 20 s | 50 points |
+| Walkthrough 2 | 60 to 90 s later | 2 or 3 areas | 15 s | 70 points |
+| Zero tolerance | Walkthrough 3 and every one after | 2 or 3 areas | 12 s, shrinking to 8 s | Run over |
+
+Zero tolerance then starts at about 10:30 to 11:00, so most runs end around 11 to 12 minutes.
 
 Probably two milestones: M17, the rules (visits, routes, view cone, costs, scripted-player checks of run length and of skill making a difference); M18, the screen (CEO and assistant drawn, banner, route, cone, the CEO's lines, and the run-over line when the CEO ends a run).
 
@@ -158,9 +160,9 @@ In the order the review recommends, each to be specified when reached: staging a
 
 ## 6. Open questions for the owner (before M17)
 
-1. **Visits.** Keep the extra Plant B visit at hall 6, to break up the quiet stretch between hall 3 and hall 8?
-2. **When zero tolerance starts.** On the second walkthrough after Handover (runs end around 9 to 10 minutes) or the third (about 11 to 12)?
-3. **Who the CEO is.** A name and a few lines of character, so the banner and the CEO's remarks have a voice.
+1. ~~Visits~~ **Answered 13 November:** no extra visit at hall 6.
+2. ~~When zero tolerance starts~~ **Answered 13 November:** on the third walkthrough after Handover.
+3. **Who the CEO is.** Still open. The owner asked for Elon with real quotes; the CEO will be a fictional tech-founder parody with original lines instead (no real person's name, face or quotes). Name and personality to be settled.
 4. **Pacing knobs** the review raised: should the director's tightening carry over between Deliveries, and should a dark half-hall drain the meter directly however big the campus? These change rules, so they need your say.
 
 ## 7. Milestones
