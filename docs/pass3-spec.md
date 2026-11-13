@@ -252,6 +252,7 @@ The owner asked for a graphical pass after playing the CEO build. This is also t
 
 - **Pipes:** the pumps, chillers and CDUs are joined by insulated chilled-water pipes. Each plant has a riser beside each column of chillers with a branch to every chiller, the outer riser joining its top and bottom pumps; two headers run the length of the building at y = 125 and 655, between the corridors and the halls, and every CDU sits on one. Pipes beyond the online halls, and Plant B's before hall 6, are pale. Drawing only: the rules do not use pipes. Layout in `src/ui/pipes.js` with tests.
 - **Floors:** white raised-floor tiles (32 world units) inside the data halls; smoothed concrete with saw-cut control joints everywhere else, made as a small texture in code; the plants stand on slightly darker pads; walkways are a lighter band with faint edges.
+- **CDUs and pumps** (owner, after M19): each CDU turns so its cold and warm stubs point into its hall and meet the wall; each pump turns (the top ones upside down, Plant B's mirrored) so its discharge sits on its plant's outer riser.
 - **Chillers:** water-cooled centrifugal chillers seen from above, in the same 100 x 72 footprint: two shell-and-tube barrels, water boxes and nozzles, the compressor volute and motor across the top, a control panel and the mechanical badge. Generic: no maker's name, logo or livery. A tripped chiller greys its compressor and motor and gets the red slash.
 - Checked at 844 x 390 and 660 x 300, at about 60 frames per second.
 

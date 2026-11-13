@@ -109,9 +109,20 @@ function drawOne(ctx, v, e, st) {
   if (e.type === 'row') {
     for (const ry of e.racks) drawRack(ctx, x, sy(v, ry), ROW_SIZE * s, st);
   } else if (e.type === 'chiller') drawChiller(ctx, x, y, ICON_SIZE.chiller * s, st);
-  else if (e.type === 'pump') drawPump(ctx, x, y, ICON_SIZE.pump * s, st);
-  else if (e.type === 'cdu') drawCdu(ctx, x, y, ICON_SIZE.cdu * s, st);
+  else if (e.type === 'pump') drawPump(ctx, x, y, ICON_SIZE.pump * s, { ...st, ...pumpTurn(e) });
+  else if (e.type === 'cdu') drawCdu(ctx, x, y, ICON_SIZE.cdu * s, { ...st, ...cduTurn(e) });
   else if (e.type === 'msb') drawMsb(ctx, x, y, ICON_SIZE.msb * s, st);
+}
+
+// M19: each pump's discharge points along its riser (down for the top pumps, up for the bottom
+// ones), on the side of the volute facing the halls' far end, so Plant B's pumps are mirrored.
+const pumpTurn = (e) => ({ flipY: e.half === 't', flipX: e.plant === 'B' });
+
+// M19: each CDU's cold and warm stubs point at its hall and run to the hall's wall.
+function cduTurn(e) {
+  const hall = HALLS[e.hall];
+  const wall = e.half === 't' ? hall.y : hall.y + hall.h;
+  return { facing: e.half === 't' ? 'down' : 'up', reach: (Math.abs(wall - e.y) * 48) / ICON_SIZE.cdu };
 }
 
 // Half sizes in world units, for culling.

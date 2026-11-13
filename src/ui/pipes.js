@@ -8,7 +8,9 @@
 import { EQUIPMENT, HALLS, PLANTS, WORLD } from '../core/index2.js';
 
 export const HEADER_Y = { t: 125, b: 655 };
-const OUTER_RISER = 72; // between the pumps (x = 50) and the outer chillers (x = 100 to 200)
+// In line with the pumps' discharge (x = 50 + 15.5: see PUMP_DISCHARGE_X in src/render/icons.js),
+// between the pumps and the outer chillers (x = 100 to 200).
+const OUTER_RISER = 65.5;
 const INNER_RISER = 445; // between the inner chillers (x = 320 to 420) and hall 1 (x = 480)
 const CHILLER_HALF_W = 50;
 const PUMP_Y = { t: 40, b: 740 };

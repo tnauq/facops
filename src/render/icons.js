@@ -217,12 +217,18 @@ export function drawChiller(ctx, x, y, size, options = {}) {
   ctx.restore();
 }
 
-/** Pump: blue motor, round gray volute, pipe stubs and a pressure gauge. options.pressure is 0..1. */
+/**
+ * Pump: blue motor, round gray volute, pipe stubs and a pressure gauge. options.pressure is 0..1.
+ * The discharge stub leaves the volute upwards at x = +15.5 (size 80). options.flipY turns it to
+ * point down, options.flipX moves it to the left side, so it can line up with its pipe (M19).
+ */
+export const PUMP_DISCHARGE_X = 15.5; // in units of size / 80
 export function drawPump(ctx, x, y, size, options = {}) {
   const pressure = Math.max(0, Math.min(1, options.pressure ?? 0));
   const u = size / 80;
   ctx.save();
   ctx.translate(x, y);
+  ctx.scale(options.flipX ? -1 : 1, options.flipY ? -1 : 1);
   ctx.fillStyle = C.volute;
   ctx.fillRect(10 * u, -32 * u, 11 * u, 18 * u);
   ctx.fillRect(28 * u, -5 * u, 12 * u, 10 * u);
@@ -241,9 +247,15 @@ export function drawPump(ctx, x, y, size, options = {}) {
 /**
  * CDU: a narrow teal cabinet with a droplet and a cold and a warm pipe stub.
  * options.leak: 0 dry, 1 leaking (small puddle), 2 row shut down (large puddle).
+ * options.facing: which way the stubs point, 'right' (default), 'down' or 'up'; options.reach: how
+ * far from the centre the stubs run, in units of size / 48 (default 29), so they can meet a hall's
+ * wall (M19). The cabinet turns with them; the droplet stays upright.
  */
+const CDU_TURN = { right: 0, down: Math.PI / 2, up: -Math.PI / 2 };
 export function drawCdu(ctx, x, y, size, options = {}) {
   const leak = options.leak ?? 0;
+  const turn = CDU_TURN[options.facing ?? 'right'] ?? 0;
+  const reach = Math.max(29, options.reach ?? 29);
   const u = size / 48;
   ctx.save();
   ctx.translate(x, y);
@@ -253,13 +265,19 @@ export function drawCdu(ctx, x, y, size, options = {}) {
     ctx.fillStyle = C.puddle;
     ctx.fill();
   }
+  ctx.save();
+  ctx.rotate(turn);
   ctx.fillStyle = C.coldPipe;
-  ctx.fillRect(18 * u, -18 * u, 11 * u, 5 * u);
+  ctx.fillRect(18 * u, -18 * u, (reach - 18) * u, 5 * u);
   ctx.fillStyle = C.warmPipe;
-  ctx.fillRect(18 * u, 14 * u, 11 * u, 5 * u);
+  ctx.fillRect(18 * u, 14 * u, (reach - 18) * u, 5 * u);
   fillRound(ctx, -18 * u, -28 * u, 36 * u, 56 * u, 5 * u, C.cdu, C.cduLine, 1.2 * u);
   fillRound(ctx, -12 * u, -22 * u, 24 * u, 11 * u, 2 * u, C.cduPanel);
-  drawTradeIcon(ctx, 0, 8 * u, 18 * u, 'ce', C.cduPanel);
+  ctx.restore();
+  // The droplet where it sits on the cabinet, but upright.
+  const dx = -Math.sin(turn) * 8 * u;
+  const dy = Math.cos(turn) * 8 * u;
+  drawTradeIcon(ctx, dx, dy, 18 * u, 'ce', C.cduPanel);
   ctx.restore();
 }
 

@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EQUIPMENT, HALLS, WORLD } from '../src/core/index2.js';
 import { HEADER_Y, onlineSpan, pipeRuns } from '../src/ui/pipes.js';
+import { PUMP_DISCHARGE_X } from '../src/render/icons.js';
 
 const runs = pipeRuns();
 // Does a run pass within `d` world units of (x, y)?
@@ -17,7 +18,11 @@ test('every run is straight and inside the building', () => {
 });
 
 test('every pump and chiller is on a pipe, and every CDU sits on a header', () => {
-  for (const e of EQUIPMENT.filter((x) => x.type === 'pump')) assert.ok(touches(e.x + (e.x < 1960 ? 22 : -22), e.y), e.id);
+  // Each pump's discharge (15.5 to the hall side of its centre, as drawn) is on its riser.
+  for (const e of EQUIPMENT.filter((x) => x.type === 'pump')) {
+    const dx = (e.plant === 'A' ? 1 : -1) * PUMP_DISCHARGE_X;
+    assert.ok(runs.some((r) => r.kind === 'riser' && Math.abs(r.x1 - (e.x + dx)) < 0.01 && e.y >= Math.min(r.y1, r.y2) - 0.01 && e.y <= Math.max(r.y1, r.y2) + 0.01), e.id);
+  }
   for (const e of EQUIPMENT.filter((x) => x.type === 'chiller')) assert.ok(touches(e.x - 50, e.y) || touches(e.x + 50, e.y), e.id);
   for (const e of EQUIPMENT.filter((x) => x.type === 'cdu')) {
     assert.ok(Math.abs(HEADER_Y[e.half] - e.y) <= 22, e.id); // within the CDU's drawing

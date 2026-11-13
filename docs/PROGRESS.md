@@ -48,6 +48,16 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 
 ## Log
 
+### After M19: CDUs and pumps turned to meet their pipes
+
+At the owner's request:
+
+- **CDUs** turn so their blue and red stubs point into their hall and run to its wall: the top row faces down, the bottom row up. The droplet stays upright.
+- **Pumps** turn so the discharge sits on the pipe: the main pipe beside each plant now runs straight out of both pumps' discharge (the top pumps point down, the bottom ones up; Plant B's are mirrored). The riser moved 6 units to line up.
+- A test now checks every pump's discharge is on its riser. 353 tests.
+
+Owner's checklist: at both plants, does each pump's pipe come straight out of its discharge? Do the CDUs' red and blue lines meet their halls?
+
 ### M19. Graphical pass
 
 The owner asked for this after playing the CEO build (pass 3 spec 4a).
