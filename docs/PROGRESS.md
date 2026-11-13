@@ -35,14 +35,14 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 
 ## Pass 3
 
-The owner asked to start on the M13 build review's recommendations on 13 November 2026, and agreed to the M14 rule fix. `docs/pass3-spec.md` (version 0.1) specifies M14 to M16 in full; the CEO (M17 and M18) waits on the owner's answers to its section 6.
+The owner asked to start on the M13 build review's recommendations on 13 November 2026, and agreed to the M14 rule fix. `docs/pass3-spec.md` (version 0.1) specifies M14 to M16 in full; the owner answered the CEO questions (section 6) the same day, so M17 is specified once M16 is done.
 
 | Milestone | Tag | Status |
 |---|---|---|
 | M14. Endless-run fix, and shields on screen | `m14` | Done |
 | M15. An alarm rail that triages | `m15` | Next |
 | M16. Campus overview strip | `m16` | |
-| M17. CEO rules | `m17` | Waiting on the owner (spec section 6) |
+| M17. CEO rules and pacing changes | `m17` | |
 | M18. CEO on screen | `m18` | |
 
 ## Log

@@ -1,6 +1,6 @@
 # FacOps pass 3 build spec
 
-Version 0.2, 13 November 2026 (0.2 records the owner's answers on the CEO schedule). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.3, 13 November 2026 (0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes in section 4.1). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M16 are specified in full. The CEO (M17 onwards) is an outline with open questions; it is specified in full once the owner answers them (section 6).
 
@@ -14,7 +14,7 @@ The build review found that pass 2 matches its spec, but the design pillars are 
 
 So pass 3 builds readability first (M14 to M16, screen only apart from one bug fix), then the CEO on top of it. The CEO needs all three: its view cone is only fair if the player can see what is unattended, what it costs, and where it is.
 
-**Owner agreement on rule changes.** On 13 November 2026 the owner agreed to the M14 bug fix (section 1.1). No other rule in `src/core/` changes in M14 to M16.
+**Owner agreement on rule changes.** On 13 November 2026 the owner agreed to the M14 bug fix (section 1.1), and to the two pacing changes in section 4.1, which are built with the CEO rules in M17. No other rule in `src/core/` changes in M14 to M16.
 
 ## 1. M14. Endless-run fix, and shields on screen
 
@@ -136,7 +136,7 @@ One thin bar showing the whole building at once: Plant A, the 8 halls in their p
 
 ## 4. M17 onwards. The CEO walkthrough (outline)
 
-GDD section 8, fitted to the 8-hall building:
+GDD section 8, fitted to the 8-hall building. The character is simply **The CEO** (owner, 13 November): a fictional tech-founder parody with original lines, no real person's name, face or quotes.
 
 - The CEO and an assistant walk a marked route. Any alarm that enters the CEO's view must be **attended**: a tech on site and fixing. An unattended alarm in view costs Stability points that grow with each visit; under zero tolerance it ends the run.
 - **Telegraph:** a banner and countdown that name the areas, the route drawn on the floor and on the overview strip, the view cone always visible.
@@ -152,6 +152,17 @@ GDD section 8, fitted to the 8-hall building:
 
 Zero tolerance then starts at about 10:30 to 11:00, so most runs end around 11 to 12 minutes.
 
+### 4.1 Pacing changes (owner agreed 13 November)
+
+Both fix weaknesses the review's scripted runs showed, and both are tuning-drawer controls so they can be adjusted after play.
+
+- **Pressure keeps building between halls.** Today the director's 5%-every-10-s tightening resets at each Delivery. New: a new phase starts from its table interval but keeps a share of the tightening already earned. `director.carryOver`, 0 (today's behaviour) to 1 (all of it), starting value 0.5; M17's scripted checks set the default so the middle of the run has real triage (crew short-handed some of the time between halls 3 and 8) and hall 8 still arrives for a good player.
+- **Big failures always hurt.** While any half-hall is dark, or a hall is shut by two leaks (counted as both halves), the meter does not fill and drains `meter.darkDrain` points a second for each dark half, on top of any band drain. Starting value 1 (a whole dark hall then drains like red); M17's checks set the default.
+
+Tests: tightening carried at the set share across a Delivery, and none at 0; the meter draining with a dark half-hall while the load is green, at any campus size.
+
+### 4.2 Milestones
+
 Probably two milestones: M17, the rules (visits, routes, view cone, costs, scripted-player checks of run length and of skill making a difference); M18, the screen (CEO and assistant drawn, banner, route, cone, the CEO's lines, and the run-over line when the CEO ends a run).
 
 ## 5. Later
@@ -162,8 +173,10 @@ In the order the review recommends, each to be specified when reached: staging a
 
 1. ~~Visits~~ **Answered 13 November:** no extra visit at hall 6.
 2. ~~When zero tolerance starts~~ **Answered 13 November:** on the third walkthrough after Handover.
-3. **Who the CEO is.** Still open. The owner asked for Elon with real quotes; the CEO will be a fictional tech-founder parody with original lines instead (no real person's name, face or quotes). Name and personality to be settled.
-4. **Pacing knobs** the review raised: should the director's tightening carry over between Deliveries, and should a dark half-hall drain the meter directly however big the campus? These change rules, so they need your say.
+3. ~~Who the CEO is~~ **Answered 13 November:** "The CEO", a fictional tech-founder parody with original lines.
+4. ~~Pacing knobs~~ **Answered 13 November:** yes to both (section 4.1).
+
+All answered: M17 can be specified in full when M16 is done.
 
 ## 7. Milestones
 
@@ -174,5 +187,5 @@ One per session, as before. Commit titles start with the milestone (`M14: ...`) 
 | M14 | Endless-run fix; hall shields, cooling shield and spare chillers on the map (section 1) |
 | M15 | Alarm rail that triages; rings on the off-map arrows (section 2) |
 | M16 | Campus overview strip (section 3) |
-| M17 | CEO rules (after section 6 is answered) |
+| M17 | CEO rules and the pacing changes (section 4) |
 | M18 | CEO on screen |
