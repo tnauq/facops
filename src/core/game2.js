@@ -12,6 +12,7 @@
 import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, makeConfig2 } from './config2.js';
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
+import { ceoStep, onCeoRoute, queueCeoVisit } from './ceo.js';
 
 const EPS = 1e-9;
 const ROWS = EQUIPMENT.filter((e) => e.type === 'row');
@@ -93,10 +94,19 @@ export function createGame({ seed = 1, config = {} } = {}) {
       secondChillers: 0,
       lowestFraction: 1,
       peakAlarms: 0,
+      ceoSightings: 0,
       deliveries: [], // [{ hall, t }]
       picks: [], // [{ hall, card }]
     },
     events: [],
+    // The CEO (pass 3 spec 4.1): the visit under way, visits waiting to start, the next walkthrough.
+    // The CEO draws from its own seeded generator so the director's sequence is unchanged.
+    ceo: null,
+    ceoQueue: [],
+    ceoNext: cfg.ceo.enabled && halls >= cfg.maxHalls ? { at: cfg.ceo.handoverDelay, kind: 'handover' } : null,
+    ceoWalks: 0, // walkthroughs started
+    ceoVisits: 0, // visits finished
+    ceoRng: createRng((seed * 7919 + 104729) >>> 0),
   };
 }
 
@@ -128,6 +138,16 @@ export function powerShield(state, hallId) {
     if (a || b) worst = 'cracked';
   }
   return worst;
+}
+
+/** Dark half-halls: a half whose MSB pair is down, or both halves of a hall shut by two leaks. */
+export function darkHalves(state) {
+  let n = 0;
+  for (let h = 1; h <= state.halls; h++) {
+    const shut = state.equip[`cdu-${h}-t`].leaking && state.equip[`cdu-${h}-b`].leaking;
+    for (const half of ['t', 'b']) if (shut || isHalfDark(state, h, half)) n += 1;
+  }
+  return n;
 }
 
 /** 'whole' | 'cracked' | 'broken' for a hall's CDU pair. */
@@ -294,7 +314,10 @@ export function raiseAlarm(state, type, equipId) {
 export function eligibleEquipment(state, type) {
   const d = state.config.director;
   if (state.halls < 2 && !d.firstHallTypes.includes(type)) return [];
-  const ok = (e) => isOnline(state, e) && state.equip[e.id].alarmId === null;
+  // Fairness (pass 3 spec 4.3): once the CEO has arrived, no new alarms on anything the CEO could
+  // still see. During the warning alarms still come there: that is what getting ready is for.
+  const shielded = (e) => state.ceo !== null && state.ceo.phase === 'visit' && onCeoRoute(state, e);
+  const ok = (e) => isOnline(state, e) && state.equip[e.id].alarmId === null && !shielded(e);
   switch (type) {
     case 'network':
       return ROWS.filter((e) => ok(e) && !state.equip[e.id].netDown);
@@ -516,7 +539,8 @@ function deliver(state) {
   state.halls += 1;
   state.deliveries += 1;
   state.build = 0;
-  state.phaseStart = state.t;
+  // The new phase keeps a share of the tightening already earned (pass 3 spec 4.4).
+  state.phaseStart = state.t - cfg.director.carryOver * (state.t - state.phaseStart);
   state.director.nextSpawn = state.t + cfg.director.quietAfterDelivery;
   state.director.nextWave = state.t + cfg.director.waveEvery;
   const hall = state.halls;
@@ -530,6 +554,7 @@ function deliver(state) {
   const auto = cfg.autoHires[state.deliveries - 1];
   if (auto) addTech(state, auto, hall);
   else state.pendingPick = { hall, cards: pickCards(state) };
+  queueCeoVisit(state, hall);
 }
 
 /**
@@ -705,9 +730,13 @@ export function step(state, dt) {
     state.band = now.band;
   }
   const m = state.config.meter;
-  if (now.band === 'green') state.meter = Math.min(m.max, state.meter + m.fill * dt);
+  // A dark half-hall (or a hall shut by leaks, both halves) stops the fill and drains the meter
+  // whatever the band, so big failures hurt at any campus size (pass 3 spec 4.4).
+  const dark = darkHalves(state);
+  if (now.band === 'green' && dark === 0) state.meter = Math.min(m.max, state.meter + m.fill * dt);
   else if (now.band === 'yellow') state.meter -= m.yellowDrain * dt;
-  else state.meter -= m.redDrain * dt;
+  else if (now.band === 'red') state.meter -= m.redDrain * dt;
+  state.meter -= m.darkDrain * dark * dt;
   // The run cannot be lost before the first Delivery, while a hall is still to be built (pass 3
   // spec 1.1: with every hall online from the start no Delivery comes, and the run must still end).
   if (state.deliveries === 0 && state.halls < state.config.maxHalls) state.meter = Math.max(m.safeFloor, state.meter);
@@ -727,7 +756,9 @@ export function step(state, dt) {
     if (state.build >= b.every - EPS) deliver(state);
   }
 
-  if (state.meter <= EPS) {
+  ceoStep(state, dt);
+
+  if (!state.over && state.meter <= EPS) {
     state.meter = 0;
     state.over = true;
     state.overReason = 'stability';
@@ -790,6 +821,9 @@ export function results(state) {
     peakAlarms: s.peakAlarms,
     halls: state.halls,
     fullCampus: state.fullCampusAt !== null,
+    ceoVisits: state.ceoVisits,
+    ceoSightings: s.ceoSightings,
+    firedByCeo: state.overReason === 'ceo',
     deliveries: s.deliveries.map((d) => ({ ...d })),
     crew: state.techs.map((t) => t.trade),
     picks: s.picks.map((p) => ({ hall: p.hall, card: cardText(p.card) })),
@@ -808,10 +842,11 @@ export function resultsText(state) {
   const r = results(state);
   const count = (list) => Object.entries(list.reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {})).map(([k, n]) => `${n} ${k}`).join(', ');
   return [
-    'FacOps pass 2 results',
+    'FacOps pass 3 results',
     `Mode: ${r.mode} | Seed: ${r.seed}`,
     `Survived: ${formatClock(r.seconds)} | Halls: ${r.halls} of ${state.config.maxHalls}${r.fullCampus ? ' | Full campus' : ''}`,
     `Delivered: ${r.energyGwh.toFixed(2)} GWh (${pct(r.shareOfPossible)} of possible)`,
+    `CEO: ${r.ceoVisits} visits survived, ${r.ceoSightings} unattended alarms seen${r.firedByCeo ? ' | Fired by the CEO' : ''}`,
     `Deliveries: ${r.deliveries.length > 0 ? r.deliveries.map((d) => `H${d.hall} ${formatClock(d.t)}`).join(', ') : 'none'}`,
     `Crew: ${count(r.crew)} | Picks: ${r.picks.length > 0 ? r.picks.map((p) => `H${p.hall} ${p.card}`).join(', ') : 'none'}`,
     `Time in green / yellow / red: ${pct(r.green)} / ${pct(r.yellow)} / ${pct(r.red)}`,

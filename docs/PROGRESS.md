@@ -42,10 +42,57 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 | M14. Endless-run fix, and shields on screen | `m14` | Done |
 | M15. An alarm rail that triages | `m15` | Done |
 | M16. Campus overview strip | `m16` | Done |
-| M17. CEO rules and pacing changes | `m17` | Next (to be specified in full first) |
+| M17. CEO rules and pacing changes | `m17` | Built; waiting on the owner's choice of defaults (not tagged) |
 | M18. CEO on screen | `m18` | |
 
 ## Log
+
+### M17. CEO rules and pacing changes (built, not yet tagged)
+
+Built:
+
+- **The CEO's visits** (`src/core/ceo.js`), as pass 3 spec 4.1 to 4.3: the ribbon-cutting at hall 3, the Handover tour of every hall at hall 8, then walkthroughs of 2 or 3 neighbouring areas, 45 to 60 s apart. Each has a warning, a route along the crew's lanes and a 140° view cone of 260 units. An unattended alarm seen costs 15, 35, 50, then 70 Stability; from the third walkthrough one sighting ends the run. A tech walking there does not count; one on site and fixing does. Each alarm costs at most once a visit, and pulling a tech off a job in view is a sighting.
+- **Fairness, changed while checking** (spec updated): the "route" is everything the CEO could see from the path, not just the named areas. Once the CEO arrives, no new alarms start on it; during the warning they still can, because getting ready is the game. With no new alarms during the warning either, the CEO almost never saw anything.
+- **The two pacing changes**: a new hall keeps 70% of the alarm tightening already earned; a dark half-hall (or a hall shut by leaks, both halves) drains the meter 1 point a second whatever the band.
+- **Scripted players** (`src/core/bot2.js`): the good player now gets ready for the CEO (route alarms first, pulling a tech off other work if needed); a CEO-blind player and a random player for comparison. `scripts/pacing3.mjs` prints the checks; `scripts/sweep3.mjs` searches settings.
+- **On screen, plain until M18**: the HUD note says `CEO 0:15 · H4, H5 · −50` while warning and `CEO in H4, H5 · −50` while walking; the map shows the route dashed, the cone and a "CEO" disc; the overview strip shows the CEO as a diamond. The round-over card is headed "Fired by the CEO" when the CEO ended the run, and lists visits survived and sightings (also in Copy).
+- Tuning drawer: CEO visits (on/off), Tightening kept between halls (%), Drain per dark half-hall.
+- 16 new tests (341 in all).
+
+**Waiting on the owner.** No setting within the agreed rules meets the spec 4.5 targets. With the rules as agreed (defaults: carry-over 70%, dark drain 1, gaps 45 to 60 s):
+
+| Player | Run length (range) | GWh | Hall 8 reached | Hall 8 at | Ended by zero tolerance / CEO hit / meter | Short-handed, halls 3 to 8 | Sightings |
+|---|---|---|---|---|---|---|---|
+| careful, ready for the CEO | 9:25 (6:34 to 10:59) | 1.59 | 10/12 | 7:28 | 0 / 3 / 9 | 17% | 1.1 |
+| good, ready for the CEO | 9:40 (7:42 to 10:52) | 1.65 | 12/12 | 7:34 | 0 / 1 / 11 | 19% | 1.3 |
+| good, CEO-blind | 9:55 (7:42 to 12:15) | 1.71 | 12/12 | 7:35 | 0 / 5 / 7 | 19% | 2.3 |
+| slow, ready for the CEO | 9:29 (6:26 to 11:36) | 1.58 | 11/12 | 7:39 | 0 / 3 / 9 | 24% | 1.7 |
+| very slow, ready for the CEO | 8:23 (5:52 to 10:11) | 1.25 | 9/12 | 7:46 | 0 / 3 / 9 | 44% | 1.5 |
+| random | 8:28 (6:43 to 10:32) | 1.28 | 6/12 | 7:45 | 0 / 3 / 9 | 29% | 1.3 |
+
+Blind vs ready: -15 s shorter, -4% less energy. Random: 22% less energy.
+
+The middle of the run is now busy (crew short-handed about 19% of the time between halls 3 and 8, from 2%), but the alarm cap still rises every 30 s after full campus (pass 2 spec 4.7), so the meter ends runs at about 9:40 and getting ready for the CEO makes no difference.
+
+The closest to the targets turns off that rise (6 of 7 targets met; the miss is that few runs reach zero tolerance):
+
+| Player | Run length (range) | GWh | Hall 8 reached | Hall 8 at | Ended by zero tolerance / CEO hit / meter | Short-handed, halls 3 to 8 | Sightings |
+|---|---|---|---|---|---|---|---|
+| careful, ready for the CEO | 10:02 (6:34 to 14:13) | 1.76 | 10/12 | 7:28 | 1 / 3 / 8 | 17% | 1.4 |
+| good, ready for the CEO | 11:41 (7:42 to 17:19) | 2.20 | 12/12 | 7:34 | 2 / 3 / 7 | 19% | 1.8 |
+| good, CEO-blind | 10:09 (7:42 to 12:35) | 1.78 | 12/12 | 7:35 | 0 / 9 / 3 | 19% | 2.8 |
+| slow, ready for the CEO | 10:05 (6:26 to 12:39) | 1.75 | 11/12 | 7:39 | 0 / 4 / 8 | 24% | 1.7 |
+| very slow, ready for the CEO | 9:00 (5:52 to 13:06) | 1.41 | 9/12 | 7:46 | 0 / 4 / 8 | 44% | 1.3 |
+| random | 9:12 (6:43 to 14:01) | 1.48 | 6/12 | 7:45 | 1 / 3 / 8 | 29% | 1.8 |
+
+Blind vs ready: 93 s shorter, 19% less energy. Random: 33% less energy.
+
+Here getting ready for the CEO adds about 90 s and 19% more energy; random choices score a third less. Zero tolerance still ends only 2 of 12 good runs: it starts at about 12 minutes, and most runs end on the meter before or around then. Moving zero tolerance to the second walkthrough changed little (2 of 12).
+
+Owner's checklist (once the defaults are chosen):
+
+- Watch an `#auto` run to the end: the CEO's visits appear in the HUD note, the route and cone on the map, and the results say how the run ended.
+- Does the middle of the run feel busier?
 
 ### M16. Campus overview strip
 

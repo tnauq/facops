@@ -92,6 +92,7 @@ export function setResults(panel) {
     list.append(row);
   }
   document.querySelector('[data-overlay="over"] [data-field="bestLine"]').textContent = panel.bestLine;
+  document.querySelector('[data-overlay="over"] h1').textContent = panel.title ?? 'Round over';
   document.getElementById('results-text').hidden = true;
   setCopyLabel('Copy results');
 }

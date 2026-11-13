@@ -37,7 +37,7 @@ export const DEFAULT_CONFIG2 = {
   maxHalls: 8,
   plantBHall: 6, // Plant B comes online with this hall
   band: { green: 0.9, red: 0.8 }, // green at or above 90%, red below 80%
-  meter: { start: 40, max: 100, fill: 1.25, yellowDrain: 0.5, redDrain: 2, safeFloor: 1, tutorialCap: 80 }, // the survival buffer. safeFloor: until Delivery 1; tutorialCap: while the tutorial runs
+  meter: { start: 40, max: 100, fill: 1.25, yellowDrain: 0.5, redDrain: 2, safeFloor: 1, tutorialCap: 80, darkDrain: 1 }, // the survival buffer. safeFloor: until Delivery 1; tutorialCap: while the tutorial runs; darkDrain: per second for each dark half-hall, whatever the band (pass 3 spec 4.4)
   // The next hall is built on a timer that runs faster while the load is green (spec 4.6).
   build: { every: 90, greenBoost: 1.5 }, // seconds per hall at normal speed; speed-up while green
   director: {
@@ -45,7 +45,8 @@ export const DEFAULT_CONFIG2 = {
     firstSpawn: 5, // seconds before the first alarm of a run
     phaseIntervals: [12, 9, 7.5, 6.5, 5.5, 5, 4.5, 4], // seconds between alarms at the start of a phase, by halls online
     tighten: 0.05, // the interval shrinks by this share...
-    tightenEvery: 10, // ...every this many seconds, reset at each Delivery
+    tightenEvery: 10, // ...every this many seconds
+    carryOver: 0.7, // share of the tightening a new phase keeps after a Delivery (pass 3 spec 4.4; 0 = reset as in pass 2)
     floor: 1.5, // shortest interval
     jitter: 0.3, // each interval varies by plus or minus this share
     waveEvery: 45, // seconds between waves (0 turns waves off)
@@ -56,6 +57,25 @@ export const DEFAULT_CONFIG2 = {
     capGrowEvery: 30, // after Full campus the cap rises by 1 every this many seconds
     quietAfterDelivery: 5, // seconds without director alarms after a Delivery
     firstHallTypes: ['breaker', 'chiller', 'leak'], // with one hall online, only these
+  },
+  // The CEO's visits (pass 3 spec 4.1 to 4.3). Costs are Stability points per unattended alarm seen.
+  ceo: {
+    enabled: true,
+    speed: 90, // world units per second: a stroll
+    viewRadius: 260,
+    viewAngle: 140, // degrees, the whole cone
+    inspect: 4, // seconds at each area: half facing the top, half the bottom
+    inspectHandover: 2,
+    gap: [45, 60], // seconds between the end of one visit and the next walkthrough's warning
+    ribbonHall: 3, // the ribbon-cutting comes with this hall
+    ribbon: { warning: 20, cost: 15 },
+    handover: { warning: 20, cost: 35 },
+    handoverDelay: 30, // a run that starts with every hall online gets its Handover this far in
+    walks: [{ warning: 20, cost: 50 }, { warning: 15, cost: 70 }], // walkthroughs 1 and 2; after these, zero tolerance
+    ztWarning: 12, // the first zero-tolerance warning, then 1 s less each visit...
+    ztWarningMin: 8, // ...down to this
+    areasMin: 2,
+    areasMax: 3,
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free

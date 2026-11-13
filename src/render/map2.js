@@ -8,6 +8,7 @@ import { drawCrew } from './campus.js';
 import { drawAlarmBubble } from './icons.js';
 import { drawMarker } from './markers.js';
 import { drawShields } from './shields.js';
+import { drawCeo } from './ceo.js';
 import { drawFloats } from './map.js';
 import { HALLS } from '../core/index2.js';
 import { BUBBLE_RADIUS, BUBBLE_RAISE } from '../ui/bubbles.js';
@@ -84,6 +85,7 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   drawShields(ctx, v, screen, shieldsModel(state), { plantB: plantBOnline(state) });
   // The bob only moves the drawing; tap targets stay where the rules put each tech.
   const crew = fannedCrew(state.techs, v.scale).map((t) => ({ ...t, y: t.y + bobOffset(t, state.t) / v.scale }));
+  drawCeo(ctx, v, state);
   drawCrew(ctx, v, crew, selection.techId ?? null);
   const list = bubbles2(state, selection.alarmId ?? null);
   for (const b of list) {

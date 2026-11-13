@@ -33,6 +33,13 @@ export const TUNING2_FIELDS = [
     get: (c) => c.chillersPerHall, set: (o, v) => { o.chillersPerHall = v; } },
   { id: 'startHalls', label: 'Start with halls', kind: 'range', min: 1, max: 8, step: 1,
     get: (c) => c.startHalls, set: (o, v) => { o.startHalls = v; } },
+  // New in pass 3 (spec 4.6).
+  { id: 'ceoVisits', label: 'CEO visits', kind: 'toggle',
+    get: (c) => c.ceo.enabled, set: (o, v) => { o.ceo = { ...(o.ceo ?? {}), enabled: v }; } },
+  { id: 'carryOver', label: 'Tightening kept between halls (%)', kind: 'range', min: 0, max: 100, step: 10,
+    get: (c) => c.director.carryOver * 100, set: (o, v) => { o.director.carryOver = v / 100; } },
+  { id: 'darkDrain', label: 'Drain per dark half-hall', kind: 'range', min: 0, max: 3, step: 0.25,
+    get: (c) => c.meter.darkDrain, set: (o, v) => { o.meter = { ...(o.meter ?? {}), darkDrain: v }; } },
   { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',
     get: (c) => !c.tutorial, set: (o, v) => { o.tutorial = !v; } },
 ];

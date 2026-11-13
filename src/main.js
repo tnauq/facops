@@ -24,6 +24,7 @@ import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, choose, crea
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
 import { drawStrip } from './render/strip.js';
+import { drawCeoOnStrip } from './render/ceo.js';
 import { drawHud, drawHudFlash } from './render/hud.js';
 import { drawCrewBar, drawRail2 } from './render/rails.js';
 import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setDelivery, setResults, setTuningControls, showOverlay } from './render/overlays.js';
@@ -50,7 +51,7 @@ import { BEST2_KEY, bestText, defaultStorage, loadBest, recordBest, saveBest } f
 import { tuning2 } from './ui/tuning2.js';
 import { centreOn, createCamera, glide, isVisible, panBy, passOneScale } from './ui/camera.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
-import { inStripTarget, regions3, stripModel, worldXAt } from './ui/strip.js';
+import { inStripTarget, regions3, stripModel, stripX, stripY, worldXAt } from './ui/strip.js';
 import { markerAt } from './ui/offmap.js';
 
 const INK = '#1F3A5F';
@@ -258,6 +259,7 @@ function draw() {
   const techId = sel.kind === 'tech' ? sel.id : null;
   markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t) });
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
+  drawCeoOnStrip(ctx, regs.strip, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
   const rail = railTickets2(s, regs.rail, alarmId, round.railFirst);
   round.railFirst = rail.first;
@@ -272,7 +274,7 @@ function draw() {
     drawCallout(ctx, cam.rect, round.callout, ys);
   }
   const model = hudModel2(s, { auto: round.auto });
-  drawHud(ctx, w, hudLayout(w), model, [model.note, model.noteShort]);
+  drawHud(ctx, w, hudLayout(w), model, [model.note, model.noteLong2, model.noteShort].filter(Boolean));
   drawHudFlash(ctx, w, HUD_HEIGHT, flashAlpha(round.feel, s.t));
 }
 

@@ -168,7 +168,7 @@ GDD section 8, fitted to the 8-hall building. The character is simply **The CEO*
 - An alarm is **seen** when its equipment is inside the cone. It counts as **attended** only if a tech is on site and fixing it; a tech still walking there does not count (GDD).
 - Each alarm can cost at most once per visit: the first moment it is seen unattended is a **sighting**. A sighting costs the visit's Stability hit (or ends the run under zero tolerance) and the CEO says something.
 - An alarm that is attended when first seen, and is then dropped while still in view, is a sighting at that moment.
-- **Fairness:** from the warning to the end of a visit the director starts no new alarms in the route's areas. Escalations still happen there (that is the player's doing). Elsewhere the director carries on as normal.
+- **Fairness:** once the CEO has arrived, the director starts no new alarms on anything the CEO could see from the route (within the view radius of any point of it, whichever way the CEO faces). During the warning alarms still come there: that is what getting ready is for. Escalations always happen (that is the player's doing). Elsewhere the director carries on as normal.
 
 ### 4.4 Pacing changes (owner agreed 13 November)
 

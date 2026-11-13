@@ -15,6 +15,7 @@ export {
   chillersNeeded,
   coolingShield,
   createGame,
+  darkHalves,
   dispatch,
   eligibleEquipment,
   fixDuration,
@@ -43,3 +44,4 @@ export {
   walkSpeed,
 } from './game2.js';
 export { greedyMove, pickFor, playRun } from './bot2.js';
+export { areaName, areaOf, ceoCone, ceoSees, ceoSeesPoint, entryPoint, inspectPoint, onCeoRoute, onlineAreas, routePoints } from './ceo.js';

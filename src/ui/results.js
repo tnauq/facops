@@ -30,12 +30,16 @@ function addPass2(r, big, lines) {
   const crew = {};
   for (const t of r.crew) crew[t] = (crew[t] ?? 0) + 1;
   lines.push(['Crew', Object.entries(crew).map(([t, n]) => `${n} ${SHORT[t] ?? t}`).join(', ')]);
+  // Pass 3 (spec 4.6): the CEO's visits.
+  if (r.ceoVisits !== undefined) {
+    lines.splice(1, 0, ['CEO', `${plural(r.ceoVisits, 'visit', 'visits')} survived, ${plural(r.ceoSightings, 'unattended alarm', 'unattended alarms')} seen`]);
+  }
   const ups = r.picks.filter((p) => !p.card.startsWith('hire ')).map((p) => UPGRADE_NAME[p.card] ?? p.card);
   lines.push(['Upgrades', ups.length > 0 ? ups.join(', ') : 'none']);
 }
 
 /**
- * { big, lines, bestLine }.
+ * { big, lines, bestLine, title }.
  * big: the headline numbers, shown large: time survived, energy delivered, share of possible.
  * lines: [label, value] rows for the smaller list underneath.
  */
@@ -56,5 +60,7 @@ export function resultsPanel(r, record, formatClock) {
   ];
   if (r.halls !== undefined) addPass2(r, big, lines);
   const bestLine = record.isNew ? 'New best!' : `Best: ${record.best.energyGwh.toFixed(2)} GWh in ${formatClock(record.best.seconds)}`;
-  return { big, lines, bestLine };
+  // The card's heading: who ended the run.
+  const title = r.firedByCeo ? 'Fired by the CEO' : 'Round over';
+  return { big, lines, bestLine, title };
 }
