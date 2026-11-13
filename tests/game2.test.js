@@ -306,8 +306,8 @@ test('Plant B comes online with hall 6', () => {
   assert.ok(s.events.some((e) => e.type === 'delivery' && e.hall === 6 && e.plantB));
 });
 
-test('hall 8 coming online is Full campus; then the cap starts to rise', () => {
-  const s = quiet({ startHalls: 7 });
+test('hall 8 coming online is Full campus; then the cap rises when switched on', () => {
+  const s = quiet({ startHalls: 7, director: { enabled: false, capGrowEvery: 30 } });
   deliverNow(s);
   if (s.pendingPick) choose(s, 0);
   const cap = alarmCap(s);
@@ -316,6 +316,15 @@ test('hall 8 coming online is Full campus; then the cap starts to rise', () => {
   assert.ok(s.events.some((e) => e.type === 'fullCampus'));
   tick(s, s.config.director.capGrowEvery + 0.1);
   assert.equal(alarmCap(s), cap + 1);
+});
+
+test('by default the cap no longer rises after Full campus (owner, 13 November)', () => {
+  const s = quiet({ startHalls: 7 });
+  deliverNow(s);
+  if (s.pendingPick) choose(s, 0);
+  const cap = alarmCap(s);
+  tick(s, 300);
+  assert.equal(alarmCap(s), cap);
 });
 
 test('the run cannot be lost before the first Delivery, and the first Delivery always comes', () => {

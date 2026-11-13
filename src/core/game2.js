@@ -462,7 +462,7 @@ export function spawnInterval(config, halls, sincePhase) {
 /** Largest number of active alarms at which the director still adds one. */
 export function alarmCap(state) {
   const d = state.config.director;
-  const growth = state.fullCampusAt === null ? 0 : Math.floor((state.t - state.fullCampusAt) / d.capGrowEvery + EPS);
+  const growth = state.fullCampusAt === null || !(d.capGrowEvery > 0) ? 0 : Math.floor((state.t - state.fullCampusAt) / d.capGrowEvery + EPS);
   return state.techs.length + d.capExtra + growth;
 }
 

@@ -42,12 +42,12 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 | M14. Endless-run fix, and shields on screen | `m14` | Done |
 | M15. An alarm rail that triages | `m15` | Done |
 | M16. Campus overview strip | `m16` | Done |
-| M17. CEO rules and pacing changes | `m17` | Built; waiting on the owner's choice of defaults (not tagged) |
-| M18. CEO on screen | `m18` | |
+| M17. CEO rules and pacing changes | `m17` | Done |
+| M18. CEO on screen | `m18` | Next |
 
 ## Log
 
-### M17. CEO rules and pacing changes (built, not yet tagged)
+### M17. CEO rules and pacing changes
 
 Built:
 
@@ -57,24 +57,11 @@ Built:
 - **Scripted players** (`src/core/bot2.js`): the good player now gets ready for the CEO (route alarms first, pulling a tech off other work if needed); a CEO-blind player and a random player for comparison. `scripts/pacing3.mjs` prints the checks; `scripts/sweep3.mjs` searches settings.
 - **On screen, plain until M18**: the HUD note says `CEO 0:15 · H4, H5 · −50` while warning and `CEO in H4, H5 · −50` while walking; the map shows the route dashed, the cone and a "CEO" disc; the overview strip shows the CEO as a diamond. The round-over card is headed "Fired by the CEO" when the CEO ended the run, and lists visits survived and sightings (also in Copy).
 - Tuning drawer: CEO visits (on/off), Tightening kept between halls (%), Drain per dark half-hall.
-- 16 new tests (341 in all).
+- 17 new tests (342 in all).
 
-**Waiting on the owner.** No setting within the agreed rules meets the spec 4.5 targets. With the rules as agreed (defaults: carry-over 70%, dark drain 1, gaps 45 to 60 s):
+**The owner's choice (13 November).** No setting within the agreed rules met the spec 4.5 targets: with the alarm cap still rising every 30 s after full campus (pass 2 spec 4.7), the meter ended runs at about 9:40 and getting ready for the CEO made no difference. The owner chose to **turn that rise off**, so the CEO decides the late game. It is now a drawer control ("Extra alarm after full campus every … s", 0 = off), default off.
 
-| Player | Run length (range) | GWh | Hall 8 reached | Hall 8 at | Ended by zero tolerance / CEO hit / meter | Short-handed, halls 3 to 8 | Sightings |
-|---|---|---|---|---|---|---|---|
-| careful, ready for the CEO | 9:25 (6:34 to 10:59) | 1.59 | 10/12 | 7:28 | 0 / 3 / 9 | 17% | 1.1 |
-| good, ready for the CEO | 9:40 (7:42 to 10:52) | 1.65 | 12/12 | 7:34 | 0 / 1 / 11 | 19% | 1.3 |
-| good, CEO-blind | 9:55 (7:42 to 12:15) | 1.71 | 12/12 | 7:35 | 0 / 5 / 7 | 19% | 2.3 |
-| slow, ready for the CEO | 9:29 (6:26 to 11:36) | 1.58 | 11/12 | 7:39 | 0 / 3 / 9 | 24% | 1.7 |
-| very slow, ready for the CEO | 8:23 (5:52 to 10:11) | 1.25 | 9/12 | 7:46 | 0 / 3 / 9 | 44% | 1.5 |
-| random | 8:28 (6:43 to 10:32) | 1.28 | 6/12 | 7:45 | 0 / 3 / 9 | 29% | 1.3 |
-
-Blind vs ready: -15 s shorter, -4% less energy. Random: 22% less energy.
-
-The middle of the run is now busy (crew short-handed about 19% of the time between halls 3 and 8, from 2%), but the alarm cap still rises every 30 s after full campus (pass 2 spec 4.7), so the meter ends runs at about 9:40 and getting ready for the CEO makes no difference.
-
-The closest to the targets turns off that rise (6 of 7 targets met; the miss is that few runs reach zero tolerance):
+Scripted checks with the final defaults (carry-over 70%, dark drain 1 a second, visits 45 to 60 s apart, no cap rise), 12 seeds, tutorial off:
 
 | Player | Run length (range) | GWh | Hall 8 reached | Hall 8 at | Ended by zero tolerance / CEO hit / meter | Short-handed, halls 3 to 8 | Sightings |
 |---|---|---|---|---|---|---|---|
@@ -87,9 +74,14 @@ The closest to the targets turns off that rise (6 of 7 targets met; the miss is 
 
 Blind vs ready: 93 s shorter, 19% less energy. Random: 33% less energy.
 
-Here getting ready for the CEO adds about 90 s and 19% more energy; random choices score a third less. Zero tolerance still ends only 2 of 12 good runs: it starts at about 12 minutes, and most runs end on the meter before or around then. Moving zero tolerance to the second walkthrough changed little (2 of 12).
+Against the spec 4.5 targets: run length, hall 8, the CEO-blind and random gaps, and the busy middle are met. Zero tolerance ends only 2 of 12 good runs: it starts at about 12 minutes, and most runs end on the meter around then, often after a CEO hit. Moving zero tolerance to the second walkthrough changed little (2 of 12), so it stays on the third as the owner chose.
 
-Owner's checklist (once the defaults are chosen):
+Worth knowing:
+
+- The "careful" scripted player does worse than the "good" one. It reacts faster, so it pulls techs off work for the CEO more often; scripted players are a smoke test, not balance.
+- A run can now last well past 15 minutes for a strong player (longest scripted run 17:19), because nothing but the CEO and the meter ends it.
+
+Owner's checklist:
 
 - Watch an `#auto` run to the end: the CEO's visits appear in the HUD note, the route and cone on the map, and the results say how the run ended.
 - Does the middle of the run feel busier?

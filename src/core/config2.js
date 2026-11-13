@@ -54,7 +54,7 @@ export const DEFAULT_CONFIG2 = {
     waveJitter: 0.15,
     waveSize: 2, // extra alarms per wave
     capExtra: 2, // the director stops at crew size + capExtra active alarms
-    capGrowEvery: 30, // after Full campus the cap rises by 1 every this many seconds
+    capGrowEvery: 0, // after Full campus the cap rises by 1 every this many seconds; 0 = never (owner, 13 Nov: the CEO decides the late game)
     quietAfterDelivery: 5, // seconds without director alarms after a Delivery
     firstHallTypes: ['breaker', 'chiller', 'leak'], // with one hall online, only these
   },
