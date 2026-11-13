@@ -8,7 +8,7 @@ import { drawCrew } from './campus.js';
 import { drawAlarmBubble } from './icons.js';
 import { drawMarker } from './markers.js';
 import { drawShields } from './shields.js';
-import { drawCeo } from './ceo.js';
+import { drawCeoMarker, drawCeoOnFloor, drawCeoRoute, drawSpeech } from './ceo.js';
 import { drawFloats } from './map.js';
 import { HALLS } from '../core/index2.js';
 import { BUBBLE_RADIUS, BUBBLE_RAISE } from '../ui/bubbles.js';
@@ -73,7 +73,8 @@ function drawCelebration(ctx, v, c) {
 
 /**
  * selection: { alarmId, techId }. screen: { w, h } of the canvas.
- * fx: { floats, celebrations } from src/ui/feel2.js (optional).
+ * fx: { floats, celebrations } from src/ui/feel2.js, and ceo: { assistant, say, sayAt, shakes } from
+ * src/ui/ceoView.js (all optional).
  */
 export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   const v = cameraView(cam);
@@ -85,12 +86,15 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   drawShields(ctx, v, screen, shieldsModel(state), { plantB: plantBOnline(state) });
   // The bob only moves the drawing; tap targets stay where the rules put each tech.
   const crew = fannedCrew(state.techs, v.scale).map((t) => ({ ...t, y: t.y + bobOffset(t, state.t) / v.scale }));
-  drawCeo(ctx, v, state);
+  drawCeoRoute(ctx, v, state);
   drawCrew(ctx, v, crew, selection.techId ?? null);
+  drawCeoOnFloor(ctx, v, state, fx.ceo?.assistant ?? null);
   const list = bubbles2(state, selection.alarmId ?? null);
   for (const b of list) {
     const r = BUBBLE_RADIUS * popScale(b.info.age);
-    if (r > 0.5) drawAlarmBubble(ctx, v.ox + b.x * v.scale, v.oy + b.y * v.scale - BUBBLE_RAISE, r, b.info, b.options);
+    // A bubble the CEO just saw shakes for a moment.
+    const shake = fx.ceo?.shakes?.[b.id] ? Math.sin(state.t * 60) * 5 * fx.ceo.shakes[b.id] : 0;
+    if (r > 0.5) drawAlarmBubble(ctx, v.ox + b.x * v.scale + shake, v.oy + b.y * v.scale - BUBBLE_RAISE, r, b.info, b.options);
   }
   for (const c of fx.celebrations ?? []) drawCelebration(ctx, v, c);
   drawFloats(ctx, v, fx.floats ?? [], cam.rect.y);
@@ -98,6 +102,18 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   const rank = new Map(triageOrder(state).map((x, i) => [x.alarm.id, { rank: i, cost: x.cost }]));
   const markers = offMapMarkers(list.map((b) => ({ ...b, ...rank.get(b.id) })), cam);
   for (const m of markers) drawMarker(ctx, m);
+  // The CEO's own edge arrow, also while only announced (it points to where the CEO will appear).
+  if (state.ceo) {
+    const [m] = offMapMarkers([{ id: 'ceo', x: state.ceo.x, y: state.ceo.y, type: 'ceo' }], cam);
+    if (m) {
+      const ceoMarker = { ...m, ids: [], ceo: true };
+      drawCeoMarker(ctx, ceoMarker);
+      markers.push(ceoMarker);
+    }
+  }
+  if (fx.ceo?.say && fx.ceo.sayAt) {
+    drawSpeech(ctx, cam.rect, v.ox + fx.ceo.sayAt.x * v.scale, v.oy + fx.ceo.sayAt.y * v.scale, fx.ceo.say);
+  }
   ctx.restore();
   return markers;
 }

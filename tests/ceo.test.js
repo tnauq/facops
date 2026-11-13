@@ -263,14 +263,14 @@ test('pacing: a dark half-hall drains the meter even while the load is green, at
   assert.ok(Math.abs(shut.meter - (before - 10 * (2 * shut.config.meter.darkDrain + bandDrain))) < 0.3, `${before} -> ${shut.meter}`);
 });
 
-test('the HUD note says when the CEO comes, where, and what a sighting costs', async () => {
+test('the CEO in a few words; the HUD note keeps the halls, since the banner says it (M18)', async () => {
   const { ceoNote, hudModel2 } = await import('../src/ui/hud2.js');
   const s = quiet({ startHalls: 2 });
   assert.equal(ceoNote(s), null);
   deliverNow(s);
   step(s, 0.05);
   assert.deepEqual(ceoNote(s), { long: 'CEO 0:20 · H3 · −15', short: 'CEO 0:20 −15' });
-  assert.match(hudModel2(s).note, /^CEO 0:20 · H3 · −15 · Hall 3 of 8$/);
+  assert.match(hudModel2(s).note, /^Hall 3 of 8/);
   stepUntil(s, (g) => g.ceo && g.ceo.phase === 'visit');
   assert.equal(ceoNote(s).long, 'CEO in H3 · −15');
   s.ceo.zeroTolerance = true;

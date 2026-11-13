@@ -24,7 +24,8 @@ import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, choose, crea
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
 import { drawStrip } from './render/strip.js';
-import { drawCeoOnStrip } from './render/ceo.js';
+import { drawBanner, drawCeoMarker, drawCeoOnStrip } from './render/ceo.js';
+import { LINES, assistantAt, bannerModel, ceoEvents, createCeoView, liveSay, liveShakes, pickLine, trackCeo } from './ui/ceoView.js';
 import { drawHud, drawHudFlash } from './render/hud.js';
 import { drawCrewBar, drawRail2 } from './render/rails.js';
 import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setDelivery, setResults, setTuningControls, showOverlay } from './render/overlays.js';
@@ -94,6 +95,7 @@ function newRound() {
     callout: '',
     railFirst: 0, // the rail's scroll position (pass 3 spec 2.3)
     railKnown: new Set(), // alarms already costing something, for sending the rail back to the top
+    ceoView: createCeoView(), // the CEO's lines, the assistant's trail, shaken bubbles
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
   const cfg = round.state.config;
@@ -166,7 +168,10 @@ function roundOver() {
   best = record.best;
   if (record.isNew) saveBest(best, defaultStorage(), BEST2_KEY);
   mode = reduceFlow(mode, 'over').mode;
-  setResults(resultsPanel(r, record, formatClock));
+  // When the CEO ended the run, the card carries the CEO's parting line (spec 4.7).
+  const panel = resultsPanel(r, record, formatClock);
+  if (r.firedByCeo) panel.quote = `“${pickLine(LINES.fire, round.state.seed)}”`;
+  setResults(panel);
   showOverlay('over');
   markTutorialSeen();
 }
@@ -257,9 +262,14 @@ function draw() {
   const sel = round.selection;
   const alarmId = sel.kind === 'alarm' ? sel.id : null;
   const techId = sel.kind === 'tech' ? sel.id : null;
-  markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t) });
+  const cv = round.ceoView;
+  const ceoFx = { assistant: assistantAt(cv.trail), say: liveSay(cv, s.t), sayAt: cv.lastAt, shakes: liveShakes(cv, s.t) };
+  markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t), ceo: ceoFx });
+  // The CEO's banner across the top of the map (pass 3 spec 4.7): one line when the map is narrow.
+  drawBanner(ctx, cam.rect, bannerModel(s, cam.rect.w < 560));
+  for (const m of markers) if (m.ceo) drawCeoMarker(ctx, m); // never hidden by the banner
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
-  drawCeoOnStrip(ctx, regs.strip, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
+  drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
   const rail = railTickets2(s, regs.rail, alarmId, round.railFirst);
   round.railFirst = rail.first;
@@ -274,7 +284,7 @@ function draw() {
     drawCallout(ctx, cam.rect, round.callout, ys);
   }
   const model = hudModel2(s, { auto: round.auto });
-  drawHud(ctx, w, hudLayout(w), model, [model.note, model.noteLong2, model.noteShort].filter(Boolean));
+  drawHud(ctx, w, hudLayout(w), model, [model.note, model.noteShort]);
   drawHudFlash(ctx, w, HUD_HEIGHT, flashAlpha(round.feel, s.t));
 }
 
@@ -289,6 +299,8 @@ function frame(now) {
   }, paused);
   const events = state.events.splice(0); // drained every frame so the list never grows
   feelEvents2(round.feel, events, state);
+  ceoEvents(round.ceoView, events, state, round.feel);
+  trackCeo(round.ceoView, state);
   if (round.tutorial && mode === 'playing') {
     round.callout = updateTutorial(round.tutorial, state, events);
     if (round.tutorial.focus) {

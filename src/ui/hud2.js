@@ -7,7 +7,7 @@ import { buildProgress, formatClock, load } from '../core/index2.js';
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
 
 /**
- * The CEO's line for the HUD note (pass 3 spec 4.7, as plain text until M18): while warning
+ * The CEO's line in a few words (M17 showed it in the HUD note; since M18 the banner says it): while warning
  * "CEO 0:15 · H4, H5 · −50", while visiting "CEO in H4, H5 · −50"; "zero tolerance" in place of
  * the cost when one sighting ends the run. Returns { long, short } or null between visits.
  */
@@ -27,7 +27,6 @@ export function ceoNote(state) {
 /** { clock, load, band, meter, note, noteShort }. */
 export function hudModel2(state, { auto = false } = {}) {
   const l = load(state);
-  const ceo = ceoNote(state);
   const parts = [`Hall ${state.halls} of ${state.config.maxHalls}`];
   // The next hall is built on a timer (spec 4.6); say how far along it is.
   if (state.halls < state.config.maxHalls) parts.push(`Hall ${state.halls + 1} ${Math.floor(buildProgress(state) * 100)}% built`);
@@ -38,10 +37,8 @@ export function hudModel2(state, { auto = false } = {}) {
     load: `${Math.round(l.deliveredMw)} / ${Math.round(l.capacityMw)} MW`,
     band: l.band,
     meter: Math.max(0, Math.min(100, state.meter)),
-    // While the CEO is announced or visiting, that comes first (and alone on a narrow screen).
-    note: ceo ? `${ceo.long} · ${parts[0]}` : parts.join(' · '),
-    noteLong2: ceo ? ceo.long : null,
+    note: parts.join(' · '),
     // A shorter wording for narrow screens, where the note must fit before the HUD buttons.
-    noteShort: ceo ? ceo.short : [`H${state.halls}/${state.config.maxHalls}`, ...(state.halls < state.config.maxHalls ? [`next ${Math.floor(buildProgress(state) * 100)}%`] : []), ...parts.slice(2)].join(' · '),
+    noteShort: [`H${state.halls}/${state.config.maxHalls}`, ...(state.halls < state.config.maxHalls ? [`next ${Math.floor(buildProgress(state) * 100)}%`] : []), ...parts.slice(2)].join(' · '),
   };
 }

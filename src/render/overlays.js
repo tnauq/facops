@@ -93,6 +93,9 @@ export function setResults(panel) {
   }
   document.querySelector('[data-overlay="over"] [data-field="bestLine"]').textContent = panel.bestLine;
   document.querySelector('[data-overlay="over"] h1').textContent = panel.title ?? 'Round over';
+  const quote = document.querySelector('[data-overlay="over"] [data-field="quote"]');
+  quote.textContent = panel.quote ?? '';
+  quote.hidden = !panel.quote;
   document.getElementById('results-text').hidden = true;
   setCopyLabel('Copy results');
 }

@@ -43,9 +43,37 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 | M15. An alarm rail that triages | `m15` | Done |
 | M16. Campus overview strip | `m16` | Done |
 | M17. CEO rules and pacing changes | `m17` | Done |
-| M18. CEO on screen | `m18` | Next |
+| M18. CEO on screen | `m18` | Done |
 
 ## Log
+
+### M18. CEO on screen
+
+Pass 3's planned milestones are complete.
+
+Built (`src/render/ceo.js`, `src/ui/ceoView.js`):
+
+- **The CEO and the assistant**, drawn from above in the crew's style but plainly not crew: a dark suit with a purple tie and a spotless white hardhat marked "CEO"; the assistant a step behind (following the CEO's own path) in a grey cardigan with a clipboard. No trade colours.
+- **The view cone** as a translucent ink wedge; **the route** dashed, with a ring at each inspection point, from the warning on; the route and the CEO also on the overview strip.
+- **The banner** across the top of the map, as wide as its words: `The CEO is coming · Halls 4, 5 · 0:15` over `Each unattended alarm seen: −50` (plus `Next visit: zero tolerance` on the visit before); while walking, `The CEO is here · Hall 5 left`; under zero tolerance it turns solid ink with `Any unattended alarm seen ends the run`. One line on a narrow map: `CEO · H4, H5 · 0:15 · −50`.
+- **An edge arrow** (an ink disc marked CEO) points to the CEO, or during the warning to where the CEO will appear; tap it to go there. It is drawn over the banner.
+- **The CEO's lines** (spec 4.8) in a speech bubble: on arriving (ribbon-cutting and Handover have their own), on each sighting (by alarm type), and on leaving (pleased, displeased, or announcing zero tolerance).
+- **A sighting:** the line, the alarm's bubble shakes, `−50 Stability` floats up beside it, and the HUD flashes.
+- **Fired by the CEO:** the round-over card's heading, with the CEO's parting line under it.
+- The HUD note is back to the halls, since the banner now says everything about the CEO.
+- 6 new tests (348 in all).
+
+Worth knowing:
+
+- The CEO and the assistant are drawn at a tech's size, so at 660 x 300 they are small; the "CEO" on the hat is readable on the iPhone.
+- Lines are picked from the run's seed and the alarm's number, so a run says the same things if replayed.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch: the ribbon-cutting warning and banner, the edge arrow over the banner, tapping the strip to follow, the CEO and the assistant walking with the cone, a sighting (line, shake, float, flash), and being fired (heading and parting line). No console errors.
+
+Owner's checklist:
+
+- Play three full runs. Can you see where the CEO is going and get a hat on every alarm in the way?
+- Does zero tolerance feel like a fair ending?
+- Did anything make you laugh?
 
 ### M17. CEO rules and pacing changes
 

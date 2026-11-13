@@ -39,6 +39,7 @@
     .card .big b { display: block; font-size: 26px; font-weight: 700; }
     .card .big span { color: #56606E; font-size: 12px; }
     .card .new { font-weight: 700; color: #1F3A5F; }
+    .card .quote { margin: -6px 0 10px; font-style: italic; color: #1F3A5F; }
     .card a { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 8px; color: #1F3A5F; font-weight: 600; }
     .buttons { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
     .buttons button {
@@ -114,6 +115,7 @@
     </div>
     <div class="card results" data-overlay="over" hidden>
       <h1>Round over</h1>
+      <p class="quote" data-field="quote" hidden></p>
       <div class="big" id="results-big"></div>
       <dl class="stats" id="results-lines"></dl>
       <p class="new" data-field="bestLine"></p>
