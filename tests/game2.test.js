@@ -432,3 +432,9 @@ test('pacing (spec 4.6, 4.7): hall 2 within 90 s, hall 8 at about 6 to 9 minutes
   assert.ok(avgLen >= 360 && avgLen <= 780, `runs last ${avgLen.toFixed(0)} s on average`);
   assert.ok(runs.every((r) => r.halls === 8), 'a good scripted player reaches hall 8');
 });
+
+test('a run started with every hall online, that nobody plays, still ends (pass 3 spec 1.1)', () => {
+  const s = createGame({ seed: 4, config: { startHalls: 8 } });
+  while (!s.over && s.t < 1800) step(s, 0.05);
+  assert.equal(s.over, true, `still running at ${s.t.toFixed(0)} s, meter ${s.meter.toFixed(1)}`);
+});

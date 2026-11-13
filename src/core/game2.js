@@ -708,8 +708,9 @@ export function step(state, dt) {
   if (now.band === 'green') state.meter = Math.min(m.max, state.meter + m.fill * dt);
   else if (now.band === 'yellow') state.meter -= m.yellowDrain * dt;
   else state.meter -= m.redDrain * dt;
-  // The run cannot be lost before the first Delivery.
-  if (state.deliveries === 0) state.meter = Math.max(m.safeFloor, state.meter);
+  // The run cannot be lost before the first Delivery, while a hall is still to be built (pass 3
+  // spec 1.1: with every hall online from the start no Delivery comes, and the run must still end).
+  if (state.deliveries === 0 && state.halls < state.config.maxHalls) state.meter = Math.max(m.safeFloor, state.meter);
   if (state.scripted) state.meter = Math.min(m.tutorialCap, state.meter);
 
   const hours = (dt * state.config.timeScale) / 3600;

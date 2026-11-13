@@ -1,17 +1,17 @@
 # FacOps: working rules for the coding agent
 
-You are building pass 2 of FacOps, a small web game (pass 1 is finished and frozen in `pass1/`). The owner does not write code and tests every build in Safari on an iPhone 17e, in landscape. Work so that each session ends with something the owner can open and try.
+You are building pass 3 of FacOps, a small web game (pass 1 is finished and frozen in `pass1/`; pass 2 is finished). The owner does not write code and tests every build in Safari on an iPhone 17e, in landscape. Work so that each session ends with something the owner can open and try.
 
 ## Start of every session
 
-1. Read `docs/pass2-spec.md`. It is the source of truth for what to build. `docs/pass1-spec.md` describes the finished pass 1, whose rules carry over where pass 2 says so.
+1. Read `docs/pass3-spec.md`. It is the source of truth for what to build. `docs/pass2-spec.md` describes the finished pass 2, whose rules and screen carry over where pass 3 says so; `docs/pass1-spec.md` describes pass 1.
 2. Read `docs/PROGRESS.md` to see which milestone is next.
 3. Run `node --test`. If anything fails, fix that before starting new work.
 
 ## Hard rules
 
 - Build exactly one milestone per session, in order. Do not start the next one.
-- Do not change anything in `src/core/`, and do not loosen or delete tests in `tests/`, unless the owner has agreed to a rule change. (The owner agreed to the pass 2 rule changes; see pass 2 spec section 0.) Never edit `pass1/`. If a rule looks wrong, or the spec is silent or contradicts itself, stop and ask the owner in plain words.
+- Do not change anything in `src/core/`, and do not loosen or delete tests in `tests/`, unless the owner has agreed to a rule change. (The owner agreed to the pass 2 rule changes, see pass 2 spec section 0, and to the M14 fix, see pass 3 spec section 0.) Never edit `pass1/`. If a rule looks wrong, or the spec is silent or contradicts itself, stop and ask the owner in plain words.
 - No dependencies, no frameworks, no CDN scripts, no build step, no TypeScript. Plain JavaScript ES modules that run as they are.
 - Every rule number comes from `src/core/config.js`. Never hard-code one anywhere else.
 - No `Math.random()` in `src/core/`. No network requests and no analytics anywhere.

@@ -7,6 +7,7 @@ import { drawBuilding } from './campus2.js';
 import { drawCrew } from './campus.js';
 import { drawAlarmBubble } from './icons.js';
 import { drawMarker } from './markers.js';
+import { drawShields } from './shields.js';
 import { drawFloats } from './map.js';
 import { HALLS } from '../core/index2.js';
 import { BUBBLE_RADIUS, BUBBLE_RAISE } from '../ui/bubbles.js';
@@ -15,6 +16,7 @@ import { fannedCrew } from '../ui/crew.js';
 import { bobOffset, popScale } from '../ui/feel.js';
 import { offMapMarkers } from '../ui/offmap.js';
 import { bubbles2, equipmentStatus } from '../ui/view2.js';
+import { shieldsModel } from '../ui/shields.js';
 
 const INK = '#1F3A5F';
 const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -78,6 +80,7 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   ctx.rect(cam.rect.x, cam.rect.y, cam.rect.w, cam.rect.h);
   ctx.clip();
   drawBuilding(ctx, v, screen, { online: state.halls, plantB: plantBOnline(state), status: equipmentStatus(state) });
+  drawShields(ctx, v, screen, shieldsModel(state), { plantB: plantBOnline(state) });
   // The bob only moves the drawing; tap targets stay where the rules put each tech.
   const crew = fannedCrew(state.techs, v.scale).map((t) => ({ ...t, y: t.y + bobOffset(t, state.t) / v.scale }));
   drawCrew(ctx, v, crew, selection.techId ?? null);

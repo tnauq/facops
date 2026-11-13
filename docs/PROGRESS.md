@@ -33,7 +33,42 @@ The owner approved `docs/pass2-spec.md` (version 1.0) on 12 November 2026.
 | M12. Tutorial | `m12` | Done |
 | M13. Feel and phone check for pass 2 | `m13` | Done |
 
+## Pass 3
+
+The owner asked to start on the M13 build review's recommendations on 13 November 2026, and agreed to the M14 rule fix. `docs/pass3-spec.md` (version 0.1) specifies M14 to M16 in full; the CEO (M17 and M18) waits on the owner's answers to its section 6.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M14. Endless-run fix, and shields on screen | `m14` | Done |
+| M15. An alarm rail that triages | `m15` | Next |
+| M16. Campus overview strip | `m16` | |
+| M17. CEO rules | `m17` | Waiting on the owner (spec section 6) |
+| M18. CEO on screen | `m18` | |
+
 ## Log
+
+### M14. Endless-run fix, and shields on screen
+
+Built:
+
+- **Fix: a run that could never end.** With Tuning > Start with halls 8 the "cannot lose before the first Delivery" floor held the meter up for ever, because no hall was left to deliver. The floor now applies only while a hall is still to be built (owner agreed 13 November; pass 3 spec 1.1). One line in `src/core/game2.js`, and a new test: an unplayed run started with 8 halls ends. Starting with 1 to 7 halls is unchanged.
+- **Hall shields** (`src/ui/shields.js`, drawn by `src/render/shields.js`): every online hall shows a power shield (with a bolt) and a liquid shield (with a droplet) at the top, either side of its title. Whole is green, cracked amber with a crack line, broken red with a crack line, using the supplied shield drawing.
+- **The ring:** a cracked shield has an ink ring running down with the clock of the alarm that will break it (the breaker on the cracked pair with least time left, or the leaking CDU). It stands still while a tech is fixing, like the clock.
+- **Cooling shield and spare chillers** beside each online plant's title: `3 spare`, `0 spare`, or `2 short` when cooling is below what the halls need. Its ring follows the open chiller alarm with least time left. When spares are low only because the campus grew (1 spare at hall 5) the shield is cracked with no ring.
+- 8 new tests (303 in all).
+
+Worth knowing:
+
+- The cooling shield is only on the plants, so from hall 4 onwards you have to look at Plant A to see it. The overview strip (M16) puts it in view all the time.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch: shields clear of the hall titles and inside the walls at both sizes, rings on cracked shields, a broken shield on a dark half-hall, spare counts at halls 2, 5 and 8, Plant B's shield at the far end. No console errors.
+
+Owner's checklist:
+
+- Open https://tnauq.github.io/facops/ in landscape (reload once). Every hall has a bolt shield and a droplet shield at the top; Plant A shows the cooling shield and how many spare chillers are running.
+- Let a breaker trip sit: the power shield cracks and its ring runs down; when the other side trips it breaks. Fix it and it goes back to whole.
+- Watch the spares fall as halls come online, down to 1 at hall 5, and jump when Plant B arrives at hall 6.
+- Tuning > Start with halls 8, then leave it: the run now ends.
+- Can you say what a cracked shield means without being told?
 
 ### M13. Feel and phone check for pass 2
 
