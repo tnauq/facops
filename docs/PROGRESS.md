@@ -44,8 +44,31 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 | M16. Campus overview strip | `m16` | Done |
 | M17. CEO rules and pacing changes | `m17` | Done |
 | M18. CEO on screen | `m18` | Done |
+| M19. Graphical pass | `m19` | Done |
 
 ## Log
+
+### M19. Graphical pass
+
+The owner asked for this after playing the CEO build (pass 3 spec 4a).
+
+Built:
+
+- **Pipes** (`src/ui/pipes.js`, drawn by `src/render/pipes.js`): insulated blue chilled-water pipes join the pumps, the chillers and every CDU. In each plant a riser runs beside each column of chillers with a branch to every chiller, and the outer riser joins the top and bottom pumps. Two headers run the whole building between the corridors and the halls, and each CDU sits on one. Pipes past the halls built so far, and Plant B's before hall 6, are pale.
+- **Floors** (`src/render/floors.js`): white raised-floor tiles in the data halls; smoothed concrete with saw-cut control joints outside them (a small texture made in code, no image files); darker pads under the plants; walkways as a lighter band with faint edges.
+- **Chillers** (`src/render/icons.js`): now water-cooled centrifugal chillers from above, in the same footprint: two barrels with water boxes and nozzles, the compressor and motor across the top, a control panel and the mechanical badge. Generic, with no maker's name or logo. A tripped chiller greys its compressor and motor and keeps the red slash.
+- 5 new tests (353 in all).
+
+Worth knowing:
+
+- The rules are unchanged; pipes are drawing only.
+- About 60 frames per second at 844 x 390 and 660 x 300 in a headless Chrome at three pixels per point; the phone is the real check.
+
+Owner's checklist:
+
+- Do the pipes make the plant read as one system?
+- Do the halls and the concrete look right on the phone?
+- Do the chillers read as chillers, and is a tripped one still obvious?
 
 ### M18. CEO on screen
 

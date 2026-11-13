@@ -167,21 +167,53 @@ export function drawTech(ctx, x, y, size, trade, options = {}) {
   ctx.restore();
 }
 
-/** Chiller: a wide steel box with three fans, a cold pipe and a snowflake badge. */
+/**
+ * Chiller (M19, at the owner's request): a water-cooled centrifugal chiller seen from above, in the
+ * same 100 x 72 footprint as before. Two long shell-and-tube barrels side by side (the condenser on
+ * top, the evaporator below) with water boxes and nozzles at the left end, the compressor (a round
+ * volute) and its motor sitting across the barrels, a control panel at the right end, and the
+ * mechanical badge. A tripped chiller greys its compressor and motor and gets the red slash.
+ */
 export function drawChiller(ctx, x, y, size, options = {}) {
   const running = options.running ?? true;
   const u = size / 100;
   ctx.save();
   ctx.translate(x, y);
-  fillRound(ctx, -50 * u, -36 * u, 100 * u, 72 * u, 8 * u, C.steel, C.steelLine, 1.5 * u);
-  for (const fx of [-27, 0, 27]) {
-    disc(ctx, fx * u, -11 * u, 12 * u, running ? C.fan : C.fanOff);
-    disc(ctx, fx * u, -11 * u, 3.6 * u, C.steel);
-    if (!running) line(ctx, [(fx - 7) * u, -18 * u, (fx + 7) * u, -4 * u], C.tripped, 2.4 * u);
+  // Skid under everything.
+  fillRound(ctx, -50 * u, -36 * u, 100 * u, 72 * u, 5 * u, '#9AA2AE', C.steelLine, 1.2 * u);
+  // The two barrels: a body, a highlight along the top and a shadow along the bottom.
+  const barrel = (by, h, body, light, dark) => {
+    fillRound(ctx, -40 * u, by * u, 76 * u, h * u, (h / 2) * u, body, C.steelLine, 1.2 * u);
+    fillRound(ctx, -36 * u, (by + 3) * u, 68 * u, 4 * u, 2 * u, light);
+    fillRound(ctx, -36 * u, (by + h - 5) * u, 68 * u, 3 * u, 1.5 * u, dark);
+  };
+  barrel(-32, 28, '#C3CAD3', '#E3E7EC', '#A3ACB8'); // condenser
+  barrel(2, 30, '#B5C6D8', '#DDE7F1', '#93A8BF'); // evaporator, a cooler steel
+  // Water boxes and nozzles at the left end.
+  for (const [by, h, nozzle] of [[-31, 26, C.steel], [3, 28, C.coldPipe]]) {
+    fillRound(ctx, -49 * u, by * u, 11 * u, h * u, 3 * u, '#7B8494', '#5C636E', 1 * u);
+    disc(ctx, -44 * u, (by + h * 0.3) * u, 3.2 * u, nozzle, '#3D4654', 0.8 * u);
+    disc(ctx, -44 * u, (by + h * 0.72) * u, 3.2 * u, nozzle, '#3D4654', 0.8 * u);
   }
-  fillRound(ctx, -40 * u, 13 * u, 54 * u, 9 * u, 4.5 * u, running ? C.coldPipe : C.fanOff);
-  disc(ctx, 32 * u, 18 * u, 11 * u, C.badge, C.badgeInk, 1.2 * u);
-  drawTradeIcon(ctx, 32 * u, 18 * u, 15 * u, 'mechanical', C.badgeInk);
+  // Compressor and motor across the barrels.
+  const motor = running ? C.motor : C.fanOff;
+  const motorLine = running ? C.motorLine : C.steelLine;
+  fillRound(ctx, -4 * u, -14 * u, 30 * u, 22 * u, 6 * u, motor, motorLine, 1.2 * u);
+  for (const fx of [4, 11, 18]) line(ctx, [fx * u, -10 * u, fx * u, 4 * u], motorLine, 1.6 * u);
+  disc(ctx, -14 * u, -3 * u, 14 * u, running ? C.volute : C.fanOff, C.voluteLine, 1.5 * u);
+  ctx.beginPath(); // the volute's scroll
+  ctx.arc(-14 * u, -3 * u, 8.5 * u, -0.4, Math.PI * 1.35);
+  ctx.strokeStyle = C.voluteLine;
+  ctx.lineWidth = 1.6 * u;
+  ctx.stroke();
+  disc(ctx, -14 * u, -3 * u, 3.5 * u, C.steel);
+  // Control panel at the right end, with its screen.
+  fillRound(ctx, 37 * u, -26 * u, 11 * u, 30 * u, 2 * u, '#E3E7EC', C.steelLine, 1 * u);
+  fillRound(ctx, 39 * u, -22 * u, 7 * u, 9 * u, 1 * u, running ? '#1F3A5F' : '#5C636E');
+  // The trade badge.
+  disc(ctx, 38 * u, 23 * u, 10 * u, C.badge, C.badgeInk, 1.2 * u);
+  drawTradeIcon(ctx, 38 * u, 23 * u, 14 * u, 'mechanical', C.badgeInk);
+  if (!running) line(ctx, [-26 * u, -16 * u, 22 * u, 10 * u], C.tripped, 3 * u);
   ctx.restore();
 }
 

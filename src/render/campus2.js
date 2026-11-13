@@ -5,14 +5,18 @@
 
 import { DOORS, EQUIPMENT, HALLS, LANES, PLANTS, WORLD } from '../core/layout2.js';
 import { ICON_SIZE, drawChiller, drawCdu, drawLabel, drawMsb, drawPump, drawRack } from './icons.js';
+import { drawJoints, fillConcrete, fillTiles } from './floors.js';
+import { drawPipes } from './pipes.js';
 
 const COLOR = {
   page: '#D5DBE3',
   building: '#E7EBF0',
   hall: '#F3F5F8',
-  plant: '#E2E8DC',
-  lane: '#DCE1E8',
-  aisle: '#E6EAF0',
+  pad: 'rgba(60, 64, 56, 0.07)', // the plants' equipment pads, a shade darker than the concrete
+  padEdge: 'rgba(70, 76, 66, 0.35)',
+  lane: 'rgba(255, 255, 255, 0.22)', // walkways on the concrete: a lighter band...
+  laneEdge: 'rgba(90, 96, 106, 0.22)', // ...between two faint painted edges
+  aisle: 'rgba(31, 58, 95, 0.045)', // aisles on the tiles
   wall: '#5C6573',
   muted: '#56606E',
   plantInk: '#56624B',
@@ -73,6 +77,30 @@ function laneStrip(ctx, v, lane, fill) {
   rect(ctx, v, x, y, Math.abs(lane.x2 - lane.x1) + 2 * LANE_HALF, Math.abs(lane.y2 - lane.y1) + 2 * LANE_HALF, fill);
 }
 
+// A walkway on the concrete: a lighter band with faint painted edges.
+function walkway(ctx, v, lane) {
+  laneStrip(ctx, v, lane, COLOR.lane);
+  const x = Math.min(lane.x1, lane.x2) - LANE_HALF;
+  const y = Math.min(lane.y1, lane.y2) - LANE_HALF;
+  const w = Math.abs(lane.x2 - lane.x1) + 2 * LANE_HALF;
+  const h = Math.abs(lane.y2 - lane.y1) + 2 * LANE_HALF;
+  ctx.strokeStyle = COLOR.laneEdge;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  if (w > h) {
+    ctx.moveTo(sx(v, x), sy(v, y));
+    ctx.lineTo(sx(v, x + w), sy(v, y));
+    ctx.moveTo(sx(v, x), sy(v, y + h));
+    ctx.lineTo(sx(v, x + w), sy(v, y + h));
+  } else {
+    ctx.moveTo(sx(v, x), sy(v, y));
+    ctx.lineTo(sx(v, x), sy(v, y + h));
+    ctx.moveTo(sx(v, x + w), sy(v, y));
+    ctx.lineTo(sx(v, x + w), sy(v, y + h));
+  }
+  ctx.stroke();
+}
+
 /** Healthy status for every icon, or what `status(e)` says (for demos and, later, the game state). */
 function drawOne(ctx, v, e, st) {
   const x = sx(v, e.x);
@@ -109,20 +137,24 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
 
   ctx.fillStyle = COLOR.page;
   ctx.fillRect(0, 0, screen.w, screen.h);
-  rect(ctx, v, 0, 0, WORLD.width, WORLD.height, COLOR.building);
-
-  // Floors: plants, corridors, halls, aisles.
+  // Floors (M19): smoothed concrete with control joints, the plants' pads, walkways, then the
+  // halls' white raised-floor tiles with their aisles.
+  fillConcrete(ctx, v, 0, 0, WORLD.width, WORLD.height);
+  drawJoints(ctx, v, 0, 0, WORLD.width, WORLD.height);
   for (const p of Object.values(PLANTS)) {
     ctx.globalAlpha = p.id === 'A' || plantB ? 1 : OFFLINE_ALPHA;
-    rect(ctx, v, p.x, p.y, p.w, p.h, COLOR.plant);
+    rect(ctx, v, p.x, p.y, p.w, p.h, COLOR.pad);
+    ctx.strokeStyle = COLOR.padEdge;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(sx(v, p.x), sy(v, p.y), p.w * v.scale, p.h * v.scale);
   }
   ctx.globalAlpha = 1;
   // Corridors, plant lanes and the outer aisles' runs out to the corridors.
-  for (const lane of LANES) if (!/^h\d|^door/.test(lane.id) || lane.id.endsWith('-outer')) laneStrip(ctx, v, lane, COLOR.lane);
+  for (const lane of LANES) if (!/^h\d|^door/.test(lane.id) || lane.id.endsWith('-outer')) walkway(ctx, v, lane);
   for (const h of Object.values(HALLS)) {
     if (!onScreen(v, screen, h.cx, h.y + h.h / 2, h.w / 2 + 10, h.h / 2 + 10)) continue;
     ctx.globalAlpha = h.id <= online ? 1 : OFFLINE_ALPHA;
-    rect(ctx, v, h.x, h.y, h.w, h.h, COLOR.hall);
+    fillTiles(ctx, v, h.x, h.y, h.w, h.h);
     for (const lane of LANES) if (lane.id.startsWith(`h${h.id}-`)) laneStrip(ctx, v, clipToHall(lane, h), COLOR.aisle);
   }
   ctx.globalAlpha = 1;
@@ -141,6 +173,9 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
     wall(ctx, v, h.x + h.w, h.y, h.x + h.w, h.y + h.h, doors, 6);
   }
   ctx.globalAlpha = 1;
+
+  // Chilled-water pipes, under the equipment so each CDU, chiller and pump sits on its pipe.
+  drawPipes(ctx, v, { online, plantB });
 
   // Titles.
   for (const h of Object.values(HALLS)) {

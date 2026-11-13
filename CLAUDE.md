@@ -16,7 +16,7 @@ You are building pass 3 of FacOps, a small web game (pass 1 is finished and froz
 - Every rule number comes from `src/core/config.js`. Never hard-code one anywhere else.
 - No `Math.random()` in `src/core/`. No network requests and no analytics anywhere.
 - `localStorage` only inside `try`/`catch`; the game must work when storage is unavailable.
-- Use the supplied drawing code in `src/render/icons.js` and `src/render/campus.js`. Do not redraw the crew or the equipment in a different style. Hat colors mean trade only: never tint an alarm green, yellow or red.
+- Use the supplied drawing code in `src/render/icons.js` and `src/render/campus.js`. Do not redraw the crew or the equipment in a different style. (The owner had the chiller redrawn in M19; that drawing is now the supplied one.) Hat colors mean trade only: never tint an alarm green, yellow or red.
 - Every tap target is at least 44 x 44 CSS pixels. Nothing may depend on hover.
 
 ## How to structure new code

@@ -1,6 +1,6 @@
 # FacOps pass 3 build spec
 
-Version 0.6, 13 November 2026 (0.6: M17's checks set the defaults and the owner turned off the late alarm-cap rise, 4.4 and 4.5; 0.5: the CEO specified in full, section 4; 0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes, now section 4.4). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.7, 13 November 2026 (0.7: M19, the graphical pass the owner asked for, section 4a; 0.6: M17's checks set the defaults and the owner turned off the late alarm-cap rise, 4.4 and 4.5; 0.5: the CEO specified in full, section 4; 0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes, now section 4.4). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M18 are specified in full.
 
@@ -246,6 +246,17 @@ M18: play three full runs. Can you see where the CEO is going and get a hat on e
 
 M17: the rules (4.1 to 4.6), with the scripted checks. M18: the screen (4.7, 4.8).
 
+## 4a. M19. Graphical pass (owner, 13 November)
+
+The owner asked for a graphical pass after playing the CEO build. This is also the owner's agreement to redraw the chiller (the supplied drawing in `src/render/icons.js`); the rest of the supplied drawings stay.
+
+- **Pipes:** the pumps, chillers and CDUs are joined by insulated chilled-water pipes. Each plant has a riser beside each column of chillers with a branch to every chiller, the outer riser joining its top and bottom pumps; two headers run the length of the building at y = 125 and 655, between the corridors and the halls, and every CDU sits on one. Pipes beyond the online halls, and Plant B's before hall 6, are pale. Drawing only: the rules do not use pipes. Layout in `src/ui/pipes.js` with tests.
+- **Floors:** white raised-floor tiles (32 world units) inside the data halls; smoothed concrete with saw-cut control joints everywhere else, made as a small texture in code; the plants stand on slightly darker pads; walkways are a lighter band with faint edges.
+- **Chillers:** water-cooled centrifugal chillers seen from above, in the same 100 x 72 footprint: two shell-and-tube barrels, water boxes and nozzles, the compressor volute and motor across the top, a control panel and the mechanical badge. Generic: no maker's name, logo or livery. A tripped chiller greys its compressor and motor and gets the red slash.
+- Checked at 844 x 390 and 660 x 300, at about 60 frames per second.
+
+Owner's checklist: do the pipes make the plant read as one system? Do the halls and the concrete look right on the phone? Do the chillers read as chillers, and is a tripped one still obvious?
+
 ## 5. Later
 
 In the order the review recommends, each to be specified when reached: staging and tech locations on the crew cards; puddles; the rest of the tutorial (the second side, Network and Pump introductions, the off-map arrows, cooling); sound; a run-over screen worth a screenshot; a Settings card (one-tap, sound, reduce flashing, text size, replay tutorial, glossary); small polish (Home Screen icon, full-screen button, delivery truck, step pips).
@@ -270,3 +281,4 @@ One per session, as before. Commit titles start with the milestone (`M14: ...`) 
 | M16 | Campus overview strip (section 3) |
 | M17 | CEO rules, the pacing changes and the scripted checks (4.1 to 4.6) |
 | M18 | CEO on screen, with the lines (4.7, 4.8) |
+| M19 | Graphical pass: pipes, floors, centrifugal chillers (4a) |
