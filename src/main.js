@@ -1,5 +1,6 @@
 // FacOps pass 3 (docs/pass3-spec.md): pass 2's game on the scrolling map, plus shields on the map (M14)
-// and an alarm rail that triages (M15: costs on tickets, costly alarms first, a rail that scrolls).
+// and an alarm rail that triages (M15: costs on tickets, costly alarms first, a rail that scrolls),
+// and the campus overview strip under the map (M16: the whole building at a glance; tap or drag to go there).
 // Pass 2's notes (pass 2 spec, section 7):
 // The pass 1 screen (HUD, crew bar, alarm rail, overlays, tuning drawer, results with Copy) runs on
 // the pass 2 rules engine (src/core/index2.js). New here:
@@ -22,6 +23,7 @@
 import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
+import { drawStrip } from './render/strip.js';
 import { drawHud, drawHudFlash } from './render/hud.js';
 import { drawCrewBar, drawRail2 } from './render/rails.js';
 import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setDelivery, setResults, setTuningControls, showOverlay } from './render/overlays.js';
@@ -48,6 +50,7 @@ import { BEST2_KEY, bestText, defaultStorage, loadBest, recordBest, saveBest } f
 import { tuning2 } from './ui/tuning2.js';
 import { centreOn, createCamera, glide, isVisible, panBy, passOneScale } from './ui/camera.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
+import { inStripTarget, regions3, stripModel, worldXAt } from './ui/strip.js';
 import { markerAt } from './ui/offmap.js';
 
 const INK = '#1F3A5F';
@@ -65,6 +68,7 @@ let round = null;
 let cam = null;
 let gliding = null; // { from, to, start, ms }
 let gesture = null;
+let stripGesture = false; // a finger on the overview strip: the view follows it
 let railGesture = null; // a touch on a rail that overflows: { start, startFirst, dragging }
 let markers = [];
 let mode = 'start'; // see src/ui/flow.js
@@ -175,7 +179,8 @@ function copyResults() {
 // ---- Layout and camera ----
 
 const columnsNow = () => crewColumns(size.h, round.state.techs.length);
-const layout = () => regions(size.w, size.h, { crewColumns: columnsNow() });
+// Pass 3: the overview strip takes 30 px off the bottom of the map region (spec 3.2).
+const layout = () => regions3(size.w, size.h, { crewColumns: columnsNow() });
 
 // The zoom is pass 1's on this screen (one crew column); a second crew column only narrows the view.
 function syncCamera() {
@@ -252,6 +257,7 @@ function draw() {
   const alarmId = sel.kind === 'alarm' ? sel.id : null;
   const techId = sel.kind === 'tech' ? sel.id : null;
   markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t) });
+  drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
   const rail = railTickets2(s, regs.rail, alarmId, round.railFirst);
   round.railFirst = rail.first;
@@ -361,6 +367,13 @@ function onDown(e) {
     revealFor(hit);
     return;
   }
+  if (inStripTarget(regs.strip, p)) {
+    // The strip wins over the bottom of the map: tap or drag on it to move the view (spec 3.2).
+    stripGesture = true;
+    canvas.setPointerCapture?.(e.pointerId);
+    lookAtStrip(p);
+    return;
+  }
   if (inMap(p)) {
     gesture = startGesture(p);
     canvas.setPointerCapture?.(e.pointerId);
@@ -369,7 +382,18 @@ function onDown(e) {
   }
 }
 
+// Centre the view on the building point under p on the strip, keeping the view's height.
+function lookAtStrip(p) {
+  const midY = cam.y + cam.rect.h / cam.scale / 2;
+  gliding = null;
+  cam = centreOn(cam, worldXAt(layout().strip, p.x), midY);
+}
+
 function onMove(e) {
+  if (stripGesture) {
+    lookAtStrip(point(e));
+    return;
+  }
   if (railGesture) {
     const p = point(e);
     const dy = railGesture.start.y - p.y; // finger up moves further down the list
@@ -399,6 +423,10 @@ function onRailUp(e) {
 }
 
 function onUp(e) {
+  if (stripGesture) {
+    stripGesture = false;
+    return;
+  }
   if (railGesture) {
     onRailUp(e);
     return;

@@ -41,11 +41,33 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 |---|---|---|
 | M14. Endless-run fix, and shields on screen | `m14` | Done |
 | M15. An alarm rail that triages | `m15` | Done |
-| M16. Campus overview strip | `m16` | Next |
-| M17. CEO rules and pacing changes | `m17` | |
+| M16. Campus overview strip | `m16` | Done |
+| M17. CEO rules and pacing changes | `m17` | Next (to be specified in full first) |
 | M18. CEO on screen | `m18` | |
 
 ## Log
+
+### M16. Campus overview strip
+
+Built:
+
+- **The overview strip** (`src/ui/strip.js`, drawn by `src/render/strip.js`) along the bottom of the map: Plant A, the 8 halls and Plant B, true to width, squashed top to bottom.
+- Each online hall shows its power and liquid shields (power left, liquid right, as on the map); each online plant the cooling shield and the spare-chiller count. Offline halls and Plant B before hall 6 are pale.
+- Every alarm is an ink dot where it is (ringed when it is costing power); every tech a dot in its hat colour; a frame shows what the map shows now.
+- **Tap or drag on the strip** to move the view there; the frame follows your finger. The strip's tap area reaches 16 px up into the map, so it is 44 px tall; in that band the strip wins over the map.
+- The map region is 30 px shorter to make room. The zoom is unchanged (still pass 1's), so everything on the map is the same size as before.
+- 7 new tests (325 in all).
+
+Worth knowing:
+
+- From hall 4 onwards the cooling shield is now always in view, on the strip's plant boxes.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300 with touch and mouse: a tap on hall 6 (in the band above the strip) centres the view on hall 6, a drag to hall 2 follows the finger, the selection is untouched, shields and dots show as on the map. No console errors.
+
+Owner's checklist:
+
+- Can you tell at a glance which halls are in trouble?
+- Tap a hall on the strip: the view jumps there. Drag along it: the view follows.
+- Does the map still feel big enough on the phone?
 
 ### M15. An alarm rail that triages
 
