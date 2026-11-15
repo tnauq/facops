@@ -1,6 +1,6 @@
 # FacOps pass 4 build spec: build and manage
 
-Version 0.4, 15 November 2026. 0.4: the yard outside the building (section 7: M28 built; M29 and M30 proposed for the owner's approval). 0.3: the owner's compute-first economy after M24 (sections 2.5, 2.8, 4.2): cash burns, money is the lifeline, backups are a mid-game buy. 0.2 (14 November) was **approved by the owner**, with the answers to section 5 folded in; 0.1 was the draft. Written after the owner played M21: the pressure still turns "very crazy around 6 minutes", the rail's switch from tickets to tiles causes misclicks, and the owner wants to move from a pure dispatch game towards a Prison Architect-style management game **on the existing layout, with tap-to-build in predetermined spots**.
+Version 0.5, 15 November 2026. 0.5: electricians only for the yard's power faults (7.3a, M31). 0.4: the yard outside the building (section 7: M28 built; M29 and M30 proposed for the owner's approval). 0.3: the owner's compute-first economy after M24 (sections 2.5, 2.8, 4.2): cash burns, money is the lifeline, backups are a mid-game buy. 0.2 (14 November) was **approved by the owner**, with the answers to section 5 folded in; 0.1 was the draft. Written after the owner played M21: the pressure still turns "very crazy around 6 minutes", the rail's switch from tickets to tiles causes misclicks, and the owner wants to move from a pure dispatch game towards a Prison Architect-style management game **on the existing layout, with tap-to-build in predetermined spots**.
 
 When approved, this becomes the source of truth for pass 4, as `docs/pass3-spec.md` was for pass 3. Pass 3's rules and screen carry over except where this spec says otherwise. Numbers marked *starting value* are for M24's scripted checks to settle. Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them.
 
@@ -255,6 +255,17 @@ Three new alarm types, each with its own picture on the bubble and ticket, so ei
 
 M30's checks (12 seeds): compute first with backups from hall 6 earns $80,180 in 13:40; from hall 4 $61,653; never a backup $64,949 (19% less than from hall 6); backups early $10,147; never hiring $42,824. **Mid-game backups now pay**: the yard's failures are what they protect against.
 
+### 7.3a M31. Electricians only (owner, 15 November, after M30; built)
+
+"Electric issues in the transformer or RMU must be handled by an electrician."
+
+- A **transformer short** and an **RMU fault** can only be worked on by an Electrical tech, both steps of a short included. Every other alarm can still be fixed by anyone, faster with the matching hat; a dry cooler fan failure is mechanical work, but not high-voltage, so it stays open to all.
+- **Auto-dispatch**, one-tap dispatch and the scripted players only send electricians to them. With no electrician free, the alarm waits and the others go to other jobs.
+- **On screen:** with one of these alarms selected, the other techs' crew cards fade. Tapping one is refused: the alarm stays selected, so the next tap on an electrician sends them, and "Electricians only" rises from the alarm. A refused send never pulls a tech off their job.
+- The introductions for both say so.
+
+M31's checks (12 seeds): backups from hall 6 earn $83,423; never a backup $74,717 (10% less); backups from hall 4 $81,134; early $10,147; never hiring $34,583. The builder already hires the trade it has fewest of, so the rule changes little for scripted players; for a player, it makes a second electrician worth hiring.
+
 ### 7.4 Milestones
 
 | Milestone | Build | Size |
@@ -262,6 +273,7 @@ M30's checks (12 seeds): compute first with backups from hall 6 earns $80,180 in
 | M28 | The yard on the map, black pipes (7.1) | Medium (built) |
 | M29 | Building the yard: spots, prices, the power chain, dry coolers, the start, card and tutorial text (7.2) | Large (built) |
 | M30 | Yard failures: transformer short (disconnect at the RMU, then repair), RMU fault, dry cooler fan failure, with pictures; the way out to the yard; scripted checks (7.3) | Large (built) |
+| M31 | Electricians only for shorts and RMU faults (7.3a) | Small (built) |
 
 ## 5. Open questions for the owner
 

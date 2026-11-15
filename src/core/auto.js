@@ -12,7 +12,7 @@
 import { EQUIPMENT_BY_ID } from './layout2.js';
 import { onCeoRoute } from './ceo.js';
 import { triageOrder } from './cost.js';
-import { assign, fixDuration, walkDistance, walkSpeed } from './game2.js';
+import { assign, canFix, fixDuration, walkDistance, walkSpeed } from './game2.js';
 import { buildingOn } from './sites.js';
 
 const finishTime = (state, tech, alarm) => walkDistance(state, tech, alarm) / walkSpeed(state) + fixDuration(state, alarm.type, tech.trade);
@@ -21,6 +21,7 @@ function soonestTech(state, techs, alarm) {
   let best = null;
   let bestTime = Infinity;
   for (const tech of techs) {
+    if (!canFix(alarm.type, tech.trade)) continue; // electricians only for the yard's power faults
     const t = finishTime(state, tech, alarm);
     if (t < bestTime - 1e-9) {
       best = tech;

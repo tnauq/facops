@@ -25,6 +25,7 @@ export {
   dispatch,
   economyTime,
   eligibleEquipment,
+  canFix,
   fixDuration,
   formatClock,
   getAlarm,

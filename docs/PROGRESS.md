@@ -63,8 +63,31 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | M28. The yard on the map; black pipes | `m28` | Done |
 | M29. Building the yard | `m29` | Done |
 | M30. Yard failures | `m30` | Done |
+| M31. Electricians only | `m31` | Done |
 
 ## Log
+
+### M31. Electricians only
+
+Pass 4 spec 7.3a (owner, 15 Nov, after M30).
+
+Built:
+
+- **Rule** (`canFix` in `src/core/game2.js`, `tradeOnly` in `src/core/config2.js`): a transformer short and an RMU fault can only be worked on by an Electrical tech. `assign` refuses anyone else and leaves them on their job. Fan failures and every indoor alarm are unchanged.
+- **Auto-dispatch, one-tap dispatch and the scripted players** only send electricians; with none free, the alarm waits and the other techs take other jobs.
+- **Screen:** with a short or RMU fault selected, the other techs' crew cards fade. Tapping one keeps the alarm selected and floats "Electricians only" from the alarm (`src/ui/refusal.js`). The two introductions say so.
+- 6 new tests (438 in all).
+
+Worth knowing:
+
+- With one electrician busy elsewhere, a short just waits. A second electrician is now worth hiring once the yard starts failing (from 3 halls).
+- The "Electricians only" label rises from the alarm itself, so if the alarm is off screen you will only see the faded cards.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the mechanic's card fades, a tap on it is refused, and the short stays selected and unassigned. No console errors.
+
+Owner's checklist:
+
+- Select a short, then tap the mechanic: is it clear why nothing happened?
+- Does it feel worth hiring a second electrician once the yard starts failing?
 
 ### M30. Yard failures
 

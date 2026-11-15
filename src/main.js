@@ -50,6 +50,7 @@ import { mapTargets2, railTargets2 } from './ui/targets2.js';
 import { HUD_HEIGHT, crewColumns, hudLayout, regions } from './ui/regions.js';
 import { createFeel2, feelEvents2, flashAlpha, liveCelebrations, liveFloats } from './ui/feel2.js';
 import { crewCards, techForKey } from './ui/crewbar.js';
+import { refusedTap } from './ui/refusal.js';
 import { autoTop, railTapCounts, railTickets2, scrollByDrag } from './ui/rail2.js';
 import { DRAG_PX } from './ui/drag.js';
 import { hudModel2 } from './ui/hud2.js';
@@ -327,7 +328,7 @@ function draw() {
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   const hireCard = buildingOn(s);
-  drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow(), hire: hireCard }).map((c) => (c.kind === 'hire' ? { ...c, ...hireCardText(s) } : c)));
+  drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow(), hire: hireCard, alarmType: alarmId !== null ? s.alarms.find((a) => a.id === alarmId)?.type : null }).map((c) => (c.kind === 'hire' ? { ...c, ...hireCardText(s) } : c)));
   const rail = railTickets2(s, regs.rail, alarmId, round.railFirst, round.railCompact);
   round.railFirst = rail.first;
   if (rail.compact !== round.railCompact) round.railSwitchedAt = performance.now();
@@ -412,7 +413,15 @@ function applyTap(hit) {
   // The mode belongs to the round: one-tap is switched on in the drawer and applies from the next round.
   const result = reduceTap(round.selection, hit, { oneTap: round.state.config.oneTap });
   round.selection = result.selection;
-  if (result.assign) assign(round.state, result.assign.techId, result.assign.alarmId);
+  if (result.assign) {
+    const sent = assign(round.state, result.assign.techId, result.assign.alarmId);
+    // Electricians only for a short or an RMU fault: keep the alarm selected and say why.
+    const refused = refusedTap(round.state, result.assign, sent);
+    if (refused) {
+      round.selection = refused.selection;
+      if (refused.float) round.feel.floats.push(refused.float);
+    }
+  }
   if (result.dispatch !== undefined) dispatch(round.state, result.dispatch);
 }
 

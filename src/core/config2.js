@@ -14,8 +14,9 @@ export const ALARMS2 = {
   // The yard's failures (pass 4 spec 7.3, M30), building mode only. A short is fixed in two places:
   // disconnected at its RMU (disconnectTime), then repaired at the transformer (fixTime). An RMU
   // fault has no clock: it is already the worst. Weights against the five above, which sum to 100.
-  short: { id: 'short', label: 'Transformer Short', equipment: 'xfmr', trade: 'electrical', fixTime: 8, disconnectTime: 3, clock: 45, steps: 2, weight: 8 },
-  rmu: { id: 'rmu', label: 'RMU Fault', equipment: 'rmu', trade: 'electrical', fixTime: 10, clock: Infinity, steps: 3, weight: 3 },
+  // tradeOnly (owner, after M30): high-voltage work in the yard is for electricians only.
+  short: { id: 'short', label: 'Transformer Short', equipment: 'xfmr', trade: 'electrical', tradeOnly: true, fixTime: 8, disconnectTime: 3, clock: 45, steps: 2, weight: 8 },
+  rmu: { id: 'rmu', label: 'RMU Fault', equipment: 'rmu', trade: 'electrical', tradeOnly: true, fixTime: 10, clock: Infinity, steps: 3, weight: 3 },
   fan: { id: 'fan', label: 'Dry Cooler Fan Failure', equipment: 'dry', trade: 'mechanical', fixTime: 6, clock: 60, steps: 2, weight: 7 },
 };
 

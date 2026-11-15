@@ -10,8 +10,8 @@ export const INTRO_TEXT = {
   network: 'A rack row lost its network. Racks are the computers: down racks deliver nothing.',
   pump: "A pump's pressure is climbing. Fix it before the pipe bursts and floods two halls' coolant units.",
   // The yard (M30).
-  short: 'A transformer shorted. A tech disconnects it at its RMU first, then repairs it. Left alone, the RMU goes.',
-  rmu: 'An RMU failed: both sides of that half are dark, backups or not. This is the one to run for.',
+  short: 'A transformer shorted. An electrician disconnects it at the RMU, then repairs it. Left alone, the RMU goes.',
+  rmu: 'An RMU failed: both sides of that half are dark. Electricians only: this is the one to run for.',
   fan: "A dry cooler's fan stopped: with no spare, its plant's chillers stop too. Left alone, the next one goes.",
 };
 

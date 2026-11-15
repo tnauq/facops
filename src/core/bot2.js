@@ -6,7 +6,7 @@ import { EQUIPMENT_BY_ID } from './layout2.js';
 import { onCeoRoute } from './ceo.js';
 import { buildMove } from './builder.js';
 import { createRng } from './rng.js';
-import { assign, choose, createGame, fixDuration, getAlarm, results, spareChillers, step, walkSpeed, walkDistance } from './game2.js';
+import { assign, canFix, choose, createGame, fixDuration, getAlarm, results, spareChillers, step, walkSpeed, walkDistance } from './game2.js';
 
 const otherHalf = (half) => (half === 't' ? 'b' : 't');
 const otherSide = (side) => (side === 'A' ? 'B' : 'A');
@@ -51,6 +51,7 @@ function soonestTech(state, techs, alarm) {
   let best = null;
   let bestCost = Infinity;
   for (const tech of techs) {
+    if (!canFix(alarm.type, tech.trade)) continue;
     const cost = finishTime(state, tech, alarm);
     if (cost < bestCost - 1e-9) {
       best = tech;
@@ -58,6 +59,12 @@ function soonestTech(state, techs, alarm) {
     }
   }
   return best;
+}
+
+// Send the tech who would finish soonest; false when none of them may do this job.
+function sendSoonest(state, techs, alarm) {
+  const tech = soonestTech(state, techs, alarm);
+  return tech ? assign(state, tech.id, alarm.id).ok : false;
 }
 
 // Getting ready for the CEO (pass 3 spec 4.5): while a visit is announced or under way, alarms on
@@ -70,13 +77,13 @@ function ceoMove(state) {
   if (waiting.length === 0) return false;
   const alarm = waiting.sort((a, b) => urgency(state, a) - urgency(state, b) || a.id - b.id)[0];
   const idle = state.techs.filter((t) => t.state === 'idle');
-  if (idle.length > 0) return assign(state, soonestTech(state, idle, alarm).id, alarm.id).ok;
+  if (idle.length > 0) return sendSoonest(state, idle, alarm);
   const movable = state.techs.filter((t) => {
     const job = t.alarmId !== null ? getAlarm(state, t.alarmId) : null;
     return job && !onRoute(job);
   });
   if (movable.length === 0) return false;
-  return assign(state, soonestTech(state, movable, alarm).id, alarm.id).ok;
+  return sendSoonest(state, movable, alarm);
 }
 
 /**
@@ -91,9 +98,9 @@ export function greedyMove(state, { reaction = 1, ceo = true } = {}) {
   const waiting = state.alarms
     .filter((a) => a.techId === null && state.t - a.born >= reaction)
     .sort((a, b) => urgency(state, a) - urgency(state, b) || a.born - b.born || a.id - b.id);
-  if (waiting.length === 0) return false;
-  const alarm = waiting[0];
-  return assign(state, soonestTech(state, idle, alarm).id, alarm.id).ok;
+  // The most urgent one that a free tech may do (a short waits for an electrician).
+  const alarm = waiting.find((a) => idle.some((t) => canFix(a.type, t.trade)));
+  return alarm ? sendSoonest(state, idle, alarm) : false;
 }
 
 /** A player who picks a random waiting alarm and a random free tech (for the scripted checks). */

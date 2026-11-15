@@ -91,6 +91,8 @@ export function drawCrewBar(ctx, cards) {
       drawHireCard(ctx, c);
       continue;
     }
+    ctx.save();
+    if (c.unable) ctx.globalAlpha = 0.35; // cannot take the selected alarm (electricians only)
     panel(ctx, c, c.selected);
     const cx = c.x + c.w / 2;
     if (c.h >= 70) {
@@ -108,6 +110,7 @@ export function drawCrewBar(ctx, cards) {
       text(ctx, c.status, c.x + 33, mid + 7, { color: MUTED });
     }
     if (c.progress !== null) bar(ctx, c.x + 8, c.y + c.h - 5, c.w - 16, 3, c.progress, WORK);
+    ctx.restore();
   }
 }
 

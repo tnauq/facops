@@ -3,6 +3,7 @@
 // second column for a big crew (pass 2 spec 7.2). Pure; works with either rules engine.
 
 import { getAlarm } from '../core/index.js';
+import { ALARMS2 } from '../core/config2.js';
 
 export const CARD_WIDTH = 68;
 export const CARD_MAX_HEIGHT = 88;
@@ -15,7 +16,14 @@ const STATE_WORD = { idle: 'Idle', walking: 'Walking', fixing: 'Fixing' };
  * One entry per tech: its card rectangle { id, x, y, w, h } (also its tap target) and what the card
  * shows: trade, short name, state word, fix progress (0 to 1, or null when not fixing), selected.
  */
-export function crewCards(state, rect, selectedTechId = null, { columns = 1, hire = false } = {}) {
+// With an alarm selected that only one trade may fix (a short or an RMU fault: electricians only),
+// the other techs' cards are marked `unable` and drawn faded, so the player sees who can go.
+export const unableFor = (alarmType, trade) => {
+  const def = alarmType ? ALARMS2[alarmType] : null;
+  return Boolean(def && def.tradeOnly && def.trade !== trade);
+};
+
+export function crewCards(state, rect, selectedTechId = null, { columns = 1, hire = false, alarmType = null } = {}) {
   // hire (pass 4 M26): one more card at the end, the Hire card, id 'hire'.
   const n = state.techs.length + (hire ? 1 : 0);
   const perColumn = Math.ceil(n / columns);
@@ -42,6 +50,7 @@ export function crewCards(state, rect, selectedTechId = null, { columns = 1, hir
       status: STATE_WORD[tech.state],
       progress: alarm ? alarm.progress : null,
       selected: tech.id === selectedTechId,
+      unable: unableFor(alarmType, tech.trade),
     };
   });
   if (hire) cards.push({ id: 'hire', kind: 'hire', ...at(state.techs.length), w: CARD_WIDTH, h, selected: false });

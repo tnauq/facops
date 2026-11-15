@@ -280,6 +280,16 @@ export function fixDuration(state, alarmType, trade) {
 }
 
 /**
+ * Whether a tech of this trade may work on this alarm type at all (owner, after M30): a transformer
+ * short or an RMU fault is high-voltage work, for electricians only. Every other alarm can be fixed
+ * by anyone, faster with the matching hat.
+ */
+export function canFix(alarmType, trade) {
+  const def = ALARMS[alarmType];
+  return !def.tradeOnly || def.trade === trade;
+}
+
+/**
  * Seconds this tech needs for the alarm's current step (M30): a transformer short is disconnected at
  * its RMU first (disconnectTime), then repaired at the transformer (fixTime).
  */
@@ -354,7 +364,7 @@ export function nearestIdleTech(state, alarmId) {
   let best = null;
   let bestDist = Infinity;
   for (const tech of state.techs) {
-    if (tech.state !== 'idle') continue;
+    if (tech.state !== 'idle' || !canFix(alarm.type, tech.trade)) continue;
     const d = walkDistance(state, tech, alarm);
     if (d < bestDist - EPS) {
       best = tech;
@@ -909,6 +919,7 @@ export function assign(state, techId, alarmId) {
   if (!tech) return { ok: false, reason: 'no such tech' };
   if (!alarm) return { ok: false, reason: 'no such alarm' };
   if (tech.alarmId === alarm.id) return { ok: true, unchanged: true };
+  if (!canFix(alarm.type, tech.trade)) return { ok: false, reason: 'trade', trade: ALARMS[alarm.type].trade };
   if (tech.alarmId !== null) {
     const old = getAlarm(state, tech.alarmId);
     if (old) {
