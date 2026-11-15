@@ -306,7 +306,7 @@ With the captions gone, the game names each device the first time it matters. Ca
 | First Network Failure of the run | `A rack row lost its network. Racks are the computers: down racks deliver nothing.` |
 | First Pump Overpressure of the run | `A pump's pressure is climbing. Fix it before the pipe bursts and floods two halls' coolant units.` |
 
-- The first two rows' wording replaces the old callouts; the rest of the tutorial is unchanged.
+- The first three rows' wording replaces the old callouts; the rest of the tutorial is unchanged.
 - The Network and Pump callouts show for 6 s, only in a run that began with the tutorial (the drawer's Skip tutorial switch off), and never over a CEO banner's warning: they wait until it ends.
 
 ### 4b.5 Owner's checklists
@@ -317,7 +317,7 @@ M21: does the map read better without the shields and captions? Can you still te
 
 ## 5. Later
 
-In the order the review recommends, each to be specified when reached: staging and tech locations on the crew cards; puddles; the rest of the tutorial (the second side, Network and Pump introductions, the off-map arrows, cooling); sound; a run-over screen worth a screenshot; a Settings card (one-tap, sound, reduce flashing, text size, replay tutorial, glossary); small polish (Home Screen icon, full-screen button, delivery truck, step pips).
+In the order the review recommends, each to be specified when reached: staging and tech locations on the crew cards; puddles; the rest of the tutorial (the second side, the off-map arrows, cooling; Network and Pump are introduced since M21); sound; a run-over screen worth a screenshot; a Settings card (one-tap, sound, reduce flashing, text size, replay tutorial, glossary); small polish (Home Screen icon, full-screen button, delivery truck, step pips).
 
 ## 6. Open questions for the owner (before M17)
 
