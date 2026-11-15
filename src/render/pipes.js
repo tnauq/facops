@@ -1,7 +1,7 @@
 // Draws the chilled-water pipes (M19) from src/ui/pipes.js. The pipes run overhead:
 //   - On the floor (drawPipeShadows, under the equipment): each pipe's shadow, offset by its
 //     height, so the shadow closes in where a pipe slopes down to its unit.
-//   - Overhead (drawOverheadPipes, over the crew): insulated blue pipe with a dark edge and a
+//   - Overhead (drawOverheadPipes, over the crew): insulated black pipe (blue until M28) with a dark edge and a
 //     highlight, darkening as it slopes down; a flange where it meets a unit; a round tap (a short
 //     vertical drop, seen from above) over each CDU. Solid: a tech walking under a pipe is hidden
 //     for a moment (the owner tried a see-through fade and preferred it without).
@@ -12,10 +12,11 @@ import { onlineSpan, pipePieces, pipeTaps } from '../ui/pipes.js';
 
 const PIECES = pipePieces();
 const TAPS = pipeTaps();
-const EDGE = '#2A5E9C';
-const HIGH = [74, 134, 200]; // body colour overhead...
-const LOW = [47, 95, 150]; // ...and where it meets its unit
-const SHINE = 'rgba(255, 255, 255, 0.45)';
+// Black insulated pipe (owner, 15 Nov: every pipe on the map black).
+const EDGE = '#060607';
+const HIGH = [52, 54, 58]; // body colour overhead...
+const LOW = [26, 27, 30]; // ...and where it meets its unit
+const SHINE = 'rgba(255, 255, 255, 0.28)';
 const SHADOW = 'rgba(30, 30, 24, 0.30)';
 const WIDTH = 9; // world units
 const SHADOW_OFFSET = { x: 9, y: 12 }; // world units at full height

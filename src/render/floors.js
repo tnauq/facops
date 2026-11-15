@@ -214,8 +214,9 @@ export function drawTyreTracks(ctx, v, world) {
       ctx.stroke();
     }
   };
-  track(-62, 8, 0.4);
-  track(world.height + 34, 9, 2.1);
+  // Beyond the power lines (M28): the yard nearer the walls holds the transformers and RMUs.
+  track(-272, 6, 0.4);
+  track(world.height + 248, 7, 2.1);
   ctx.restore();
 }
 

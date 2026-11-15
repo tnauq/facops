@@ -3,10 +3,11 @@
 // pass 1's size. Halls not yet online and Plant B before hall 6 are drawn pale, "under construction".
 // Only what is on screen is drawn, so the long building costs no more than one screen of it.
 
-import { DOORS, EQUIPMENT, HALLS, LANES, PLANTS, WORLD } from '../core/layout2.js';
+import { DOORS, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, LANES, PLANTS, WORLD } from '../core/layout2.js';
 import { ICON_SIZE, drawChiller, drawCdu, drawLabel, drawMsb, drawPump, drawRack } from './icons.js';
 import { drawApron, drawJoints, drawTyreTracks, fillConcrete, fillDirt, fillTiles } from './floors.js';
 import { drawPipeShadows, drawPipes } from './pipes.js';
+import { drawYard } from './outdoor.js';
 
 const COLOR = {
   building: '#E7EBF0',
@@ -184,6 +185,10 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
     wall(ctx, v, h.x + h.w, h.y, h.x + h.w, h.y + h.h, doors, 6);
   }
   ctx.globalAlpha = 1;
+
+  // The yard outside (M28): transformers, RMUs, power lines, dry coolers. Pale where the switchboard
+  // a transformer serves is not built yet (or its hall not online, in the classic game).
+  drawYard(ctx, v, screen, { built: (id) => (spot && spot(EQUIPMENT_BY_ID[id]) ? false : live(EQUIPMENT_BY_ID[id])) });
 
   // Chilled-water pipes: their shadows on the floor, and (for previews) the pipes themselves.
   const span = pipeSpan ?? { online, plantB };

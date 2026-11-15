@@ -2,11 +2,16 @@
 // The zoom is pass 1's: the scale pass 1's fitView gave its 1000 x 500 world in the map region,
 // so equipment, bubbles and techs are exactly as big as in the prototype. The camera only pans.
 
+import { YARD } from '../core/outdoor.js';
+
 // Pass 1's world, kept here only as the reference for the zoom level.
 export const PASS1_WORLD = { width: 1000, height: 500 };
 
-/** How far the view can look past each wall, in world units: the ground around the building. */
-export const SITE_MARGIN = 90;
+/**
+ * How far the view can look past the walls, in world units: the yard round the building, with its
+ * transformers, RMUs and power lines past the long sides and the dry coolers past the ends (M28).
+ */
+export const SITE_MARGIN = { x: YARD.x, y: YARD.y };
 
 /** The building's size with the margin the camera may show around it. */
 export const siteOf = (world) => ({ ...world, margin: SITE_MARGIN });
@@ -38,8 +43,11 @@ function clampAxis(pos, visible, size, margin = 0) {
 /** The camera moved back inside the building's edges. Returns a new camera. */
 export function clampCamera(cam) {
   const v = visibleSize(cam);
+  // margin: a number for every side, or { x, y } (past the ends, past the long sides).
   const m = cam.world.margin ?? 0;
-  return { ...cam, x: clampAxis(cam.x, v.w, cam.world.width, m), y: clampAxis(cam.y, v.h, cam.world.height, m) };
+  const mx = typeof m === 'number' ? m : m.x;
+  const my = typeof m === 'number' ? m : m.y;
+  return { ...cam, x: clampAxis(cam.x, v.w, cam.world.width, mx), y: clampAxis(cam.y, v.h, cam.world.height, my) };
 }
 
 /** Drag by (dx, dy) screen pixels: the map follows the finger, so the camera moves the other way. */

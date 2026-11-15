@@ -60,8 +60,29 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | M25. Building on screen | `m25` | Done |
 | M26. Hiring and upgrades for money | `m26` | Done |
 | M27. New tutorial and balance | `m27` | Done (balance waits for the owner's runs) |
+| M28. The yard on the map; black pipes | `m28` | Done |
+| M29. Building the yard | `m29` | Proposed (spec 7.2) |
+| M30. Yard failures | `m30` | Proposed (spec 7.3) |
 
 ## Log
+
+### M28. The yard outside the building, and black pipes
+
+Pass 4 spec 7.1 (owner, 15 Nov). Drawing and layout only; the yard joins the rules in M29 and M30 (proposed in spec 7.2 and 7.3).
+
+Built:
+
+- **The yard** (`src/core/outdoor.js` for where things stand, `src/render/outdoor.js` for the drawing): a transformer straight outside the wall from every switchboard, with a bus duct through the wall; an RMU for every pair, cabled to its A and B transformers; a north and a south power line on poles, from out of view on the left and off to the right, with a drop to every RMU; a dry cooler block of 8 fan units outside each plant, piped to the plant's north and south pumps.
+- **A wider yard** for the camera: 330 units past the ends, 280 past the long sides.
+- **All pipes black**, including the coolant units' stubs and the chillers' nozzles.
+- Pale yard equipment for switchboards not built yet (building mode) or halls not online (classic).
+- 4 new tests (422 in all).
+
+Owner's checklist:
+
+- Pan round the outside: do the transformers, RMUs and power lines read as one system feeding the switchboards?
+- Do the dry coolers read as dry coolers, and the black pipes as pipes?
+- Read spec 7.2 and 7.3 (M29 and M30) and say yes, or what to change.
 
 ### M27. The building tutorial
 

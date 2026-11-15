@@ -172,7 +172,7 @@ test('with a site margin the view can look that far past each wall, and no furth
   const cam = createCamera({ x: 80, y: 36, w: 656, h: 350 }, 0.5, siteOf(WORLD));
   const v = visibleSize(cam);
   const farLeft = panBy(cam, 1e6, 1e6);
-  assert.deepEqual([farLeft.x, farLeft.y], [-SITE_MARGIN, -SITE_MARGIN]);
+  assert.deepEqual([farLeft.x, farLeft.y], [-SITE_MARGIN.x, -SITE_MARGIN.y]);
   const farRight = panBy(cam, -1e6, -1e6);
-  assert.deepEqual([farRight.x, farRight.y], [WORLD.width - v.w + SITE_MARGIN, WORLD.height - v.h + SITE_MARGIN]);
+  assert.deepEqual([farRight.x, farRight.y], [WORLD.width - v.w + SITE_MARGIN.x, WORLD.height - v.h + SITE_MARGIN.y]);
 });

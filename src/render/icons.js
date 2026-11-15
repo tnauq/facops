@@ -18,8 +18,8 @@ const C = {
   steelLine: '#7B8494',
   fan: '#4B5563',
   fanOff: '#8E96A3',
-  coldPipe: '#3B7DD8',
-  warmPipe: '#D9483B',
+  warmPipe: '#D9483B', // also the pump gauge's needle
+  pipe: '#1C1D20', // every pipe on the map is black (owner, 15 Nov): the CDU stubs and chiller nozzles
   badge: '#E6F1FB',
   badgeInk: '#185FA5',
   motor: '#3B6FB5',
@@ -190,7 +190,7 @@ export function drawChiller(ctx, x, y, size, options = {}) {
   barrel(-32, 28, '#C3CAD3', '#E3E7EC', '#A3ACB8'); // condenser
   barrel(2, 30, '#B5C6D8', '#DDE7F1', '#93A8BF'); // evaporator, a cooler steel
   // Water boxes and nozzles at the left end.
-  for (const [by, h, nozzle] of [[-31, 26, C.steel], [3, 28, C.coldPipe]]) {
+  for (const [by, h, nozzle] of [[-31, 26, C.steel], [3, 28, C.pipe]]) {
     fillRound(ctx, -49 * u, by * u, 11 * u, h * u, 3 * u, '#7B8494', '#5C636E', 1 * u);
     disc(ctx, -44 * u, (by + h * 0.3) * u, 3.2 * u, nozzle, '#3D4654', 0.8 * u);
     disc(ctx, -44 * u, (by + h * 0.72) * u, 3.2 * u, nozzle, '#3D4654', 0.8 * u);
@@ -267,9 +267,8 @@ export function drawCdu(ctx, x, y, size, options = {}) {
   }
   ctx.save();
   ctx.rotate(turn);
-  ctx.fillStyle = C.coldPipe;
+  ctx.fillStyle = C.pipe;
   ctx.fillRect(18 * u, -18 * u, (reach - 18) * u, 5 * u);
-  ctx.fillStyle = C.warmPipe;
   ctx.fillRect(18 * u, 14 * u, (reach - 18) * u, 5 * u);
   fillRound(ctx, -18 * u, -28 * u, 36 * u, 56 * u, 5 * u, C.cdu, C.cduLine, 1.2 * u);
   fillRound(ctx, -12 * u, -22 * u, 24 * u, 11 * u, 2 * u, C.cduPanel);

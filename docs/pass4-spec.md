@@ -1,6 +1,6 @@
 # FacOps pass 4 build spec: build and manage
 
-Version 0.3, 15 November 2026. 0.3: the owner's compute-first economy after M24 (sections 2.5, 2.8, 4.2): cash burns, money is the lifeline, backups are a mid-game buy. 0.2 (14 November) was **approved by the owner**, with the answers to section 5 folded in; 0.1 was the draft. Written after the owner played M21: the pressure still turns "very crazy around 6 minutes", the rail's switch from tickets to tiles causes misclicks, and the owner wants to move from a pure dispatch game towards a Prison Architect-style management game **on the existing layout, with tap-to-build in predetermined spots**.
+Version 0.4, 15 November 2026. 0.4: the yard outside the building (section 7: M28 built; M29 and M30 proposed for the owner's approval). 0.3: the owner's compute-first economy after M24 (sections 2.5, 2.8, 4.2): cash burns, money is the lifeline, backups are a mid-game buy. 0.2 (14 November) was **approved by the owner**, with the answers to section 5 folded in; 0.1 was the draft. Written after the owner played M21: the pressure still turns "very crazy around 6 minutes", the rail's switch from tickets to tiles causes misclicks, and the owner wants to move from a pure dispatch game towards a Prison Architect-style management game **on the existing layout, with tap-to-build in predetermined spots**.
 
 When approved, this becomes the source of truth for pass 4, as `docs/pass3-spec.md` was for pass 3. Pass 3's rules and screen carry over except where this spec says otherwise. Numbers marked *starting value* are for M24's scripted checks to settle. Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them.
 
@@ -210,6 +210,50 @@ A scripted **builder** player: builds in a fixed sensible order (one hall's mini
 Compute first is clearly right: backups early earn 87% less. Mid-game backups and none at all come out about even for scripted players, who never panic; your play decides whether backups need to be worth more. Hiring matters (never hiring earns 58% less). Two seeds in twelve go broke at about 3:15, after spending everything just before the ribbon-cutting fine.
 
 (M24's first economy, with the Stability meter and no burn, made backups mandatory: a builder without them collapsed by 3:30. The owner found that too harsh.)
+
+## 7. The yard outside the building (owner, 15 November)
+
+"Each MSB should have a corresponding transformer on the outside of the building with a direct connection, and the transformers feeding MSB A and MSB B will be fed off the same RMU. The RMU will be hooked up to a power line which comes from out of view, from left to right. There will also be a dry cooler block outside each CUP, east and west, with pipes connected to the south and north pumps. Also make all the pipes black." The owner chose to make the yard **part of the game**, with **a power line on each side**.
+
+### 7.1 M28. The yard on the map (built)
+
+- **Layout** (`src/core/outdoor.js`, layout only in M28): a transformer straight outside the wall from every switchboard (32), joined to it by a bus duct; an RMU between and beyond each pair's two transformers (16), cabled to both; a power line along the north and one along the south, on poles, running in from out of view on the left and off to the right, with a drop to every RMU; a dry cooler block of 8 units outside each plant (west of Plant A, east of Plant B), with a black pipe from each of the plant's north and south pumps.
+- **The yard is wider:** the camera can look 330 units past the ends and 280 past the long sides. The tyre tracks moved out beyond the power lines.
+- **Every pipe is black:** the overhead chilled-water pipes, the dry cooler pipes, the coolant units' stubs and the chillers' nozzles. (The pump gauge's needle stays red: it is a needle.)
+- In building mode a transformer is pale until its switchboard is built, and an RMU until either of its pair is; in the classic game, until its hall is online.
+
+### 7.2 M29. Building the yard (proposed: rules and screen)
+
+[Recommended] throughout; numbers are starting values for the scripted checks.
+
+- **New spots:** each transformer, each RMU and each dry cooler unit becomes a buildable spot with the build card; the power lines are always there. Prices: transformer $100, RMU $150, dry cooler $150, all with upkeep like other infrastructure. A switchboard drops to $150, so a half's power chain (RMU, transformer, switchboard) costs $400.
+- **The power chain:** a switchboard works only while its transformer is built and working, and that transformer's RMU is built and working. The hall-online rule becomes: a switchboard **with its transformer and RMU**, a coolant unit, and a chiller anywhere.
+- **Heat out:** each working dry cooler unit lets two of its plant's chillers run; chillers beyond that do not run.
+- **The start:** the bare minimum grows to match: Hall 1's top RMU and A transformer, and one dry cooler at Plant A. Starting cash $800.
+- **The build card** names the chain ("Feeds Hall 1's top switchboards", "Needs its RMU to work"), and the tutorial's second lesson becomes "The bottom half needs its own RMU, transformer and switchboard first".
+
+### 7.3 M30. Yard failures (proposed: rules and screen)
+
+Three new alarm types, each with its own picture on the bubble and ticket, so eight in all:
+
+| Alarm | Fastest trade | When it fires | If ignored | Fix |
+|---|---|---|---|---|
+| Transformer trip | Electrical | Its switchboard loses power at once (the pair's other side carries it, if built) | After 45 s the pair's other transformer overloads and trips | 8 s |
+| RMU fault | Electrical | Both of the pair's transformers lose power: **the half goes dark, backups or not** | Nothing more: it is already the worst | 10 s |
+| Dry cooler fan failure | Mechanical | That unit stops: its two chillers may stop if there is no spare | After 60 s the next unit at that plant fails | 6 s |
+
+- The RMU is the shared single point of failure: rare (a low weight in the director's mix), but always costly, so it is the alarm to run for.
+- Breaker trips stay as they are; transformer trips are the yard's version, so the backup B side protects against both.
+- The CEO only cares about outages, as now, so an RMU fault on the route is always a sighting until a tech is on it.
+- Scripted checks re-run with the new alarms and prices.
+
+### 7.4 Milestones
+
+| Milestone | Build | Size |
+|---|---|---|
+| M28 | The yard on the map, black pipes (7.1) | Medium (built) |
+| M29 | Building the yard: spots, prices, the power chain, dry coolers, the start, card and tutorial text (7.2) | Large |
+| M30 | Yard failures: transformer trip, RMU fault, dry cooler fan failure, with pictures; scripted checks (7.3) | Large |
 
 ## 5. Open questions for the owner
 
