@@ -20,7 +20,7 @@
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
-import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
+import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
 import { drawStrip } from './render/strip.js';
@@ -28,13 +28,14 @@ import { drawBanner, drawCeoMarker, drawCeoOnStrip } from './render/ceo.js';
 import { LINES, assistantAt, bannerModel, ceoEvents, createCeoView, liveSay, liveShakes, pickLine, trackCeo } from './ui/ceoView.js';
 import { drawHud, drawHudFlash } from './render/hud.js';
 import { drawCrewBar, drawRail2 } from './render/rails.js';
-import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setDelivery, setResults, setTuningControls, showOverlay } from './render/overlays.js';
+import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setDelivery, setResults, setShop, setTuningControls, showOverlay } from './render/overlays.js';
 import { drawTech } from './render/icons.js';
 import { drawUpgrade } from './render/upgrades.js';
 import { deliveryCard } from './ui/delivery.js';
 import { createTutorial, lessonAlarms, updateTutorial } from './ui/tutorial.js';
 import { createIntros, updateIntros } from './ui/intros.js';
 import { cardLayout, spotAt, spotInfo } from './ui/spots.js';
+import { hireCardText, shopModel } from './ui/shop.js';
 import { drawBuildCard } from './render/spots.js';
 import { buildMove } from './core/builder.js';
 import { drawCallout } from './render/callout.js';
@@ -162,6 +163,19 @@ function act(action) {
     changeTuning(tuning2.defaultTuning());
     return;
   }
+  // The hire and upgrade card (pass 4 M26): buying keeps it open, showing the new cash.
+  if (action.startsWith('hire-') || action.startsWith('upgrade-')) {
+    if (mode !== 'shop') return;
+    if (action.startsWith('hire-')) hire(round.state, action.slice(5));
+    else buyUpgrade(round.state, action.slice(8));
+    setShop(shopModel(round.state), drawChoice);
+    draw();
+    return;
+  }
+  if (action === 'shop') {
+    if (mode !== 'playing') return;
+    setShop(shopModel(round.state), drawChoice);
+  }
   if (action === 'copy') {
     copyResults();
     return;
@@ -216,7 +230,9 @@ function copyResults() {
 
 // ---- Layout and camera ----
 
-const columnsNow = () => crewColumns(size.h, round.state.techs.length);
+// The crew bar holds the techs and, in building mode, the Hire card (pass 4 M26).
+const crewCount = () => round.state.techs.length + (buildingOn(round.state) ? 1 : 0);
+const columnsNow = () => crewColumns(size.h, crewCount());
 // Pass 3: the overview strip takes 30 px off the bottom of the map region (spec 3.2).
 const layout = () => regions3(size.w, size.h, { crewColumns: columnsNow() });
 
@@ -304,7 +320,8 @@ function draw() {
   if (open) drawBuildCard(ctx, open.layout, open.info);
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
-  drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
+  const hireCard = buildingOn(s);
+  drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow(), hire: hireCard }).map((c) => (c.kind === 'hire' ? { ...c, ...hireCardText(s) } : c)));
   const rail = railTickets2(s, regs.rail, alarmId, round.railFirst, round.railCompact);
   round.railFirst = rail.first;
   if (rail.compact !== round.railCompact) round.railSwitchedAt = performance.now();
@@ -422,6 +439,10 @@ function onDown(e) {
   const hit = hitTest(p, targets);
   if (hit.kind === 'button') {
     pressButton(hit.id);
+    return;
+  }
+  if (hit.kind === 'tech' && hit.id === 'hire') {
+    act('shop');
     return;
   }
   if (onRail && !railTapCounts(round.railSwitchedAt, performance.now())) return; // the rail just changed under the finger

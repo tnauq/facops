@@ -157,3 +157,35 @@ export function setDelivery(card, drawPicture) {
   });
   document.getElementById('delivery-continue').hidden = card.cards.length > 0;
 }
+
+/**
+ * Fill the hire and upgrade card (pass 4 M26) from shopModel (src/ui/shop.js). Each choice is a
+ * button with data-action "hire-<trade>" or "upgrade-<id>", disabled when it cannot be bought.
+ */
+export function setShop(model, drawPicture) {
+  const root = document.querySelector('[data-overlay="shop"]');
+  root.querySelector('[data-field="title"]').textContent = model.title;
+  root.querySelector('[data-field="cash"]').textContent = model.cashText;
+  const box = document.getElementById('shop-choices');
+  box.textContent = '';
+  for (const item of model.items) {
+    const button = document.createElement('button');
+    button.dataset.action = item.action;
+    button.disabled = !item.enabled;
+    const canvas = document.createElement('canvas');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(30 * dpr);
+    canvas.height = Math.round(30 * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawPicture(ctx, 30, item);
+    const title = document.createElement('strong');
+    title.textContent = item.title;
+    const detail = document.createElement('span');
+    detail.textContent = item.detail;
+    const price = document.createElement('em');
+    price.textContent = item.priceText;
+    button.append(canvas, title, detail, price);
+    box.append(button);
+  }
+}

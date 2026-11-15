@@ -58,10 +58,32 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | M23. Techs pick their own jobs | `m23` | Done |
 | M24. Rules for building | `m24` | Done |
 | M25. Building on screen | `m25` | Done |
-| M26. Hiring and upgrades for money | `m26` | |
+| M26. Hiring and upgrades for money | `m26` | Done |
 | M27. New tutorial and balance | `m27` | |
 
 ## Log
+
+### M26. Hiring and upgrades for money
+
+Pass 4 spec 3.3. Screen only: the rules (`hire`, `buyUpgrade`) came with M24.
+
+Built:
+
+- **The Hire card** at the end of the crew bar in building mode: a "+" with "Hire $400". The crew bar makes room for it (two columns when the crew is big).
+- **The Hire and upgrade card** (`src/ui/shop.js`, `setShop` in `src/render/overlays.js`): the four trades at $400, each saying how many are on the crew, and Carts, Better tools and Radios at $500 with their level ("Done" at the limit). Greyed when the cash is short. The game waits while it is open; buying keeps it open with the new cash; Close goes back. The cash line shows the wages per tech.
+- 4 new tests (410 in all).
+
+Worth knowing:
+
+- The game pauses while the card is open, even in real-time mode, so you can shop without being punished for reading.
+- Each tech adds $0.50 a second to the burn.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the Hire card, the card fitting both screens, hiring a Network tech, the game waiting, Close. No console errors.
+
+Owner's checklist:
+
+- When the crew is swamped, is the Hire card easy to find?
+- Is $400 a hire (plus wages) about right against $150 a rack?
+- Do the upgrades feel worth $500?
 
 ### After M25: plain hall names
 

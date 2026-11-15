@@ -15,22 +15,26 @@ const STATE_WORD = { idle: 'Idle', walking: 'Walking', fixing: 'Fixing' };
  * One entry per tech: its card rectangle { id, x, y, w, h } (also its tap target) and what the card
  * shows: trade, short name, state word, fix progress (0 to 1, or null when not fixing), selected.
  */
-export function crewCards(state, rect, selectedTechId = null, { columns = 1 } = {}) {
-  const n = state.techs.length;
+export function crewCards(state, rect, selectedTechId = null, { columns = 1, hire = false } = {}) {
+  // hire (pass 4 M26): one more card at the end, the Hire card, id 'hire'.
+  const n = state.techs.length + (hire ? 1 : 0);
   const perColumn = Math.ceil(n / columns);
   const h = Math.min(CARD_MAX_HEIGHT, (rect.h - GAP * (perColumn + 1)) / perColumn);
   // Two columns fill row by row, so crew order reads left to right, top to bottom.
   const used = columns * CARD_WIDTH + (columns - 1) * GAP;
   const x0 = rect.x + (rect.w - used) / 2;
-  return state.techs.map((tech, i) => {
+  const at = (i) => {
     const col = columns === 1 ? 0 : i % columns;
     const row = columns === 1 ? i : Math.floor(i / columns);
-    const x = x0 + col * (CARD_WIDTH + GAP);
+    return { x: x0 + col * (CARD_WIDTH + GAP), y: rect.y + GAP + row * (h + GAP) };
+  };
+  const cards = state.techs.map((tech, i) => {
+    const { x, y } = at(i);
     const alarm = tech.state === 'fixing' && tech.alarmId !== null ? getAlarm(state, tech.alarmId) : null;
     return {
       id: tech.id,
       x,
-      y: rect.y + GAP + row * (h + GAP),
+      y,
       w: CARD_WIDTH,
       h,
       trade: tech.trade,
@@ -40,6 +44,8 @@ export function crewCards(state, rect, selectedTechId = null, { columns = 1 } = 
       selected: tech.id === selectedTechId,
     };
   });
+  if (hire) cards.push({ id: 'hire', kind: 'hire', ...at(state.techs.length), w: CARD_WIDTH, h, selected: false });
+  return cards;
 }
 
 /** Keys 1 to 3 act as taps on the crew cards (spec 7.4). Returns a tap hit, or null for other keys. */

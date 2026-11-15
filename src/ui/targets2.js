@@ -1,7 +1,7 @@
 // Tap targets for the pass 2 game: HUD buttons, crew cards, tickets, then what is on the scrolling
 // map. Pure. Bubbles and techs are only targets while they are inside the map region.
 
-import { EQUIPMENT_BY_ID } from '../core/index2.js';
+import { EQUIPMENT_BY_ID, buildingOn } from '../core/index2.js';
 import { cameraView } from './camera.js';
 import { BUBBLE_RAISE } from './bubbles.js';
 import { fannedCrew } from './crew.js';
@@ -49,7 +49,7 @@ export function railTargets2(state, regs, crewColumns, railFirst = 0, railCompac
   const tickets = rail.tickets.map(rectOf);
   return {
     buttons: hudButtonTargets(regs.hud.w, { speedButtons: !state.config.realtime }).map((b) => trimAbove(b, tickets)),
-    cards: crewCards(state, regs.crew, null, { columns: crewColumns }).map(rectOf),
+    cards: crewCards(state, regs.crew, null, { columns: crewColumns, hire: buildingOn(state) }).map(rectOf),
     tickets,
     scrolls: rail.more !== null || rail.first > 0,
   };

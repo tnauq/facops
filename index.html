@@ -84,6 +84,18 @@
       display: flex; flex-direction: column; align-items: center; gap: 4px;
     }
     .choices canvas { width: 44px; height: 44px; }
+    /* Pass 4 hire and upgrade card (M26): four hires, then three upgrades, in a compact grid. */
+    .card.shop { padding: 6px 14px 8px; }
+    .card.shop h1 { font-size: 17px; }
+    .card.shop p { margin: 1px 0 2px; font-size: 12px; }
+    .card.shop .choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px; }
+    .card.shop .choices button { max-width: none; padding: 4px; gap: 1px; }
+    .card.shop .choices canvas { width: 26px; height: 26px; }
+    .card.shop .choices strong { font-size: 12px; }
+    .card.shop .choices span { font-size: 11px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card.shop .choices em { font-style: normal; font-weight: 700; font-size: 12px; }
+    .card.shop .choices button:disabled { opacity: 0.45; cursor: default; }
+    .card.shop .buttons { margin-top: 4px; }
     .choices strong { font-size: 14px; }
     .choices span { color: #56606E; font-size: 12px; }
     /* Spec 6.7: shown whenever the page is taller than it is wide, over everything else. */
@@ -133,6 +145,12 @@
       <p class="muted" data-field="prompt"></p>
       <div class="choices" id="delivery-choices"></div>
       <div class="buttons" id="delivery-continue"><button class="primary" data-action="continue">Continue</button></div>
+    </div>
+    <div class="card delivery shop" data-overlay="shop" hidden>
+      <h1 data-field="title">Hire and upgrade</h1>
+      <p class="muted" data-field="cash"></p>
+      <div class="choices" id="shop-choices"></div>
+      <div class="buttons"><button class="primary" data-action="continue">Close</button></div>
     </div>
     <div class="card tuning" data-overlay="tuning" hidden>
       <h1>Tuning</h1>

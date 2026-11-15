@@ -47,9 +47,50 @@ function text(ctx, s, x, y, { weight = 400, color = INK, align = 'left' } = {}) 
   ctx.fillText(s, x, y);
 }
 
+// The Hire card at the end of the crew bar (pass 4 M26): a "+" in a dashed circle, "Hire" and the price.
+function drawHireCard(ctx, c) {
+  ctx.beginPath();
+  ctx.roundRect(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, 8);
+  ctx.fillStyle = '#F6F8FA';
+  ctx.fill();
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const tall = c.h >= 70;
+  const cx = tall ? c.x + c.w / 2 : c.x + 17;
+  const cy = tall ? c.y + c.h / 2 - 12 : c.y + c.h / 2;
+  const r = tall ? 13 : Math.min(12, c.h / 2 - 6);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = INK;
+  ctx.fill();
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.5, cy);
+  ctx.lineTo(cx + r * 0.5, cy);
+  ctx.moveTo(cx, cy - r * 0.5);
+  ctx.lineTo(cx, cy + r * 0.5);
+  ctx.stroke();
+  if (tall) {
+    text(ctx, c.title, cx, c.y + c.h - 25, { weight: 600, align: 'center' });
+    text(ctx, c.price, cx, c.y + c.h - 13, { color: MUTED, align: 'center' });
+  } else {
+    text(ctx, c.title, c.x + 33, c.y + c.h / 2 - 7, { weight: 600 });
+    text(ctx, c.price, c.x + 33, c.y + c.h / 2 + 7, { color: MUTED });
+  }
+}
+
 /** cards: crewCards(...). Tech on top, then trade name, state, and a thin bar while fixing. */
 export function drawCrewBar(ctx, cards) {
   for (const c of cards) {
+    if (c.kind === 'hire') {
+      drawHireCard(ctx, c);
+      continue;
+    }
     panel(ctx, c, c.selected);
     const cx = c.x + c.w / 2;
     if (c.h >= 70) {

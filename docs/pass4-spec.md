@@ -132,7 +132,7 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 ### 3.3 HUD and crew bar
 
 - The HUD shows **Cash** in place of the Stability meter: the cash, then what it is doing a second (income minus burn, red when falling), and "In the red · 0:12" while the red countdown runs. The note says "3 halls online".
-- The crew bar ends with a **Hire** card (`+ Hire $400`), which opens the hire and upgrade choices as an overlay, like the Delivery card did.
+- The crew bar ends with a **Hire** card (`+ Hire $400`), which opens the **Hire and upgrade** card as an overlay, like the Delivery card did: the four trades ($400 each, with how many are on the crew) and the three upgrades ($500, with their level, "Done" at the limit), greyed when the cash is short. The game waits while it is open; buying keeps it open with the new cash; Close goes back to the game. It shows the wages per tech.
 - Crew cards keep Idle / Walking / Fixing; an auto-dispatched tech is shown the same as a player-sent one.
 
 ### 3.4 Speed controls  [owner: an option]
@@ -171,7 +171,7 @@ One per session. Commit titles start with the milestone so the action tags them.
 | M23 | Auto-dispatch with player override, and its drawer switch (2.6, rules only; the crew still arrives as in pass 3) | Medium |
 | M24 | Rules for building: spots, prices, money, the online rule, what works, redundancy without backups, director by rows built, CEO triggers, hiring and upgrades for money (the commands; their screen is M26); scripted builder player and checks (2.1 to 2.8). Behind `building.enabled`, off until M25 can show it | Large |
 | M25 | Building on screen: empty spots, the build card, cash in the HUD, build rings, the no-backup shield (3.1 to 3.3). Building mode on by default (drawer switch); `#auto` builds compute first | Large |
-| M26 | Hire card and upgrades for money; Deliveries removed | Medium |
+| M26 | Hire card and upgrades for money (the rules came in M24; Deliveries were already gone in building mode) | Medium |
 | M27 | The new tutorial, and a balance pass from the owner's runs (3.6) | Medium |
 
 M22 and M23 help the current game right away and are worth having whatever comes after. M24 to M27 are the pivot proper: about four to six sessions.

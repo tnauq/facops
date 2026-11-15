@@ -2,7 +2,7 @@
 // the tuning drawer, or (pass 2) the Delivery card. Pure reducer. The rules only run while the
 // mode is 'playing'.
 
-export const MODES = ['start', 'playing', 'paused', 'over', 'tuning', 'delivery'];
+export const MODES = ['start', 'playing', 'paused', 'over', 'tuning', 'delivery', 'shop'];
 
 // The tuning drawer opens from the start, pause and round-over cards, and from the HUD's settings
 // button during play. Done goes back to the card it came from; from play it goes to the pause card
@@ -17,7 +17,10 @@ const TABLE = {
     togglePause: { mode: 'paused', newRound: false },
     over: { mode: 'over', newRound: false },
     delivery: { mode: 'delivery', newRound: false }, // pass 2: a hall came online
+    shop: { mode: 'shop', newRound: false }, // pass 4: the hire and upgrade card
   },
+  // The hire and upgrade card closes with Close; the run carries on.
+  shop: { continue: { mode: 'playing', newRound: false }, togglePause: { mode: 'playing', newRound: false } },
   // The Delivery card closes with Continue or by taking a card; the run carries on.
   delivery: { continue: { mode: 'playing', newRound: false } },
   paused: {
