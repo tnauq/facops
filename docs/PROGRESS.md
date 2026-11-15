@@ -79,7 +79,7 @@ Built:
 - **Prices and burn** settled by the scripted checks: transformer $75, RMU $100, dry cooler $150, switchboard $150; upkeep $0.15 a second; the burn doubles every 150 s.
 - **The tutorial** teaches the chain: the bottom half needs its RMU, transformer and switchboard first.
 - The scripted builders build each half's chain and the dry coolers their chillers need.
-- 4 new tests (428 in all); the building tests updated for the chain and the new start.
+- 2 new tests (424 in all); the building, spot and tutorial tests updated for the chain and the new start.
 
 Worth knowing:
 
