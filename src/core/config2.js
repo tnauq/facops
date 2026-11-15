@@ -53,6 +53,7 @@ export const DEFAULT_CONFIG2 = {
     waveFromHalls: 3, // waves start with this many halls online
     waveJitter: 0.15,
     waveSize: 2, // extra alarms per wave
+    chillersPerHall: 1, // replaces chillersPerHall: one chiller per hall's worth of racks (owner's compute-first economy)
     capExtra: 2, // the director stops at crew size + capExtra active alarms
     capGrowEvery: 0, // after Full campus the cap rises by 1 every this many seconds; 0 = never (owner, 13 Nov: the CEO decides the late game)
     quietAfterDelivery: 5, // seconds without director alarms after a Delivery
@@ -82,20 +83,29 @@ export const DEFAULT_CONFIG2 = {
   building: {
     enabled: false,
     buildTime: 8, // seconds for a contractor to build a device
-    startCash: 400,
-    income: 3, // dollars a second from one rack row at full output (M24's checks; the draft had 5)
+    startCash: 600,
+    income: 4, // dollars a second from one rack row at full output
     prices: { row: 150, msb: 200, cdu: 250, chiller: 300, pump: 200, hire: 400, upgrade: 500 },
     // The bare minimum for one hall (owner): Plant A's top pump and one chiller; in Hall 1 the top
     // half's A switchboard, the top coolant unit and two rack rows.
     start: ['pump-A-t', 'chiller-A-0', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1'],
     tighten: 0.015, // the director tightens this much every tightenEvery seconds, with no reset (M24's checks)
     firstSpawn: 20, // seconds before the first alarm: time to look round and buy a first backup
+    chillersPerHall: 1, // replaces chillersPerHall: one chiller per hall's worth of racks (owner's compute-first economy)
     capExtra: 2, // the director stops at this many alarms plus one per hall's worth of racks online, whatever the crew
     smallStretch: 3, // under a hall's worth of racks, the gap between alarms grows by 6 / rows, up to this
     handoverMw: 200, // the Handover comes once rows in online halls reach this many MW...
     handoverAt: 600, // ...or at this many seconds, whichever is first
     safeUntil: 120, // the meter cannot empty before this
     darkDrain: 0.25, // replaces meter.darkDrain: lost income is already the main cost of a dark half (M24's checks)
+    // Money is the lifeline (owner, 15 Nov): cash burns every second and the run ends when it runs out.
+    // burn = base doubling every `doubling` seconds + upkeep x infrastructure built + wages x techs.
+    // Infrastructure (switchboards, coolant units, chillers, pumps) costs upkeep and earns nothing, so
+    // backups are a mid-game purchase. Starting values for the scripted checks to settle.
+    burn: { base: 3, doubling: 140, upkeep: 0.25, wages: 0.5 },
+    debtGrace: 15, // seconds in the red before the run ends: time to recover from a fine or a bad spell
+    stability: false, // false: no Stability meter in building mode; outages cost income instead
+    ceoFine: 50, // dollars per Stability point a CEO sighting would have cost (15 points: $750)
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free

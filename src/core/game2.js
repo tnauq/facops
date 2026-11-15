@@ -120,11 +120,13 @@ export function createGame({ seed = 1, config = {} } = {}) {
     cash: building ? cfg.building.startCash : 0,
     hallsUp: null, // hall id -> online (building mode; see sites.js)
     handoverQueued: false,
+    redSince: null, // when the cash went below zero (building mode)
     ribbonQueued: false,
   };
   if (building) {
     state.stats.earned = 0;
     state.stats.spent = 0;
+    state.stats.burned = 0;
     state.stats.built = 0;
     state.stats.hallsOnline = [];
     for (const h of refreshSites(state)) state.stats.hallsOnline.push({ hall: h, t: 0 });
@@ -214,7 +216,8 @@ export const onlineRows = (state) => ROWS.filter((r) => isOnline(state, r));
 
 /** Chillers needed: 1.25 per hall's worth of rows online (spec 4.4; pass 4 spec 2.3). */
 export function chillersNeeded(state) {
-  return Math.ceil((onlineRows(state).length * state.config.chillersPerHall) / ROWS_PER_HALL - EPS);
+  const perHall = buildingOn(state) ? state.config.building.chillersPerHall : state.config.chillersPerHall;
+  return Math.ceil((onlineRows(state).length * perHall) / ROWS_PER_HALL - EPS);
 }
 
 /** Chillers running: built, not tripped, at a plant with a pump (pass 4 spec 2.3). */
@@ -732,6 +735,45 @@ function earn(state, deliveredMw, dt) {
   state.stats.earned += dollars;
 }
 
+/** Dollars a second the business burns now (pass 4 spec 2.5, owner 15 Nov). */
+export function burnRate(state) {
+  const b = state.config.building.burn;
+  const infra = EQUIPMENT.filter((e) => e.type !== 'row' && isBuilt(state, e.id)).length;
+  // The base doubles every `doubling` seconds: gentle while the campus is small, then the pressure
+  // to keep adding compute, and in the end more than a full campus earns, so every run ends.
+  return b.base * Math.pow(2, state.t / b.doubling) + b.upkeep * infra + b.wages * state.techs.length;
+}
+
+/** Income now, in dollars a second, from the racks delivering. */
+export const incomeRate = (state) => (load(state).deliveredMw / state.config.rowMw) * state.config.building.income;
+
+// Money out. In the red, a countdown runs: still in the red when it ends, the run is over.
+function burn(state, dt) {
+  const dollars = burnRate(state) * dt;
+  state.cash -= dollars;
+  state.stats.burned += dollars;
+  if (state.cash >= 0) {
+    if (state.redSince !== null) emit(state, 'outOfRed', {});
+    state.redSince = null;
+    return;
+  }
+  if (state.redSince === null) {
+    state.redSince = state.t;
+    emit(state, 'inRed', { seconds: state.config.building.debtGrace });
+  }
+  if (state.t - state.redSince >= state.config.building.debtGrace - EPS && !state.over) {
+    state.over = true;
+    state.overReason = 'bankrupt';
+    emit(state, 'over', { reason: 'bankrupt' });
+  }
+}
+
+/** Seconds left before going broke ends the run, or null while out of the red. */
+export const redSecondsLeft = (state) => (state.redSince === null || state.redSince === undefined ? null : Math.max(0, state.config.building.debtGrace - (state.t - state.redSince)));
+
+/** Is the Stability meter in play? Always in the classic game; optional in building mode. */
+export const stabilityOn = (state) => !buildingOn(state) || state.config.building.stability;
+
 // Finished devices, halls coming online, and the CEO's first two visits (pass 4 spec 2.1, 2.8).
 function buildingStep(state) {
   const cfg = state.config;
@@ -927,27 +969,33 @@ export function step(state, dt) {
     state.band = now.band;
   }
   const m = state.config.meter;
-  // A dark half-hall (or a hall shut by leaks, both halves) stops the fill and drains the meter
-  // whatever the band, so big failures hurt at any campus size (pass 3 spec 4.4).
-  const dark = darkHalves(state);
-  if (now.band === 'green' && dark === 0) state.meter = Math.min(m.max, state.meter + m.fill * dt);
-  else if (now.band === 'yellow') state.meter -= m.yellowDrain * dt;
-  else if (now.band === 'red') state.meter -= m.redDrain * dt;
-  state.meter -= (buildingOn(state) ? state.config.building.darkDrain : m.darkDrain) * dark * dt;
-  // The run cannot be lost before the first Delivery, while a hall is still to be built (pass 3
-  // spec 1.1: with every hall online from the start no Delivery comes, and the run must still end).
-  if (buildingOn(state)) {
-    // Building mode: the meter cannot empty in the first two minutes (pass 4 spec 2.8).
-    if (state.t < state.config.building.safeUntil) state.meter = Math.max(m.safeFloor, state.meter);
-  } else if (state.deliveries === 0 && state.halls < state.config.maxHalls) state.meter = Math.max(m.safeFloor, state.meter);
-  if (state.scripted) state.meter = Math.min(m.tutorialCap, state.meter);
+  if (!stabilityOn(state)) state.meter = m.max; // building mode without Stability: money is the lifeline
+  else {
+    // A dark half-hall (or a hall shut by leaks, both halves) stops the fill and drains the meter
+    // whatever the band, so big failures hurt at any campus size (pass 3 spec 4.4).
+    const dark = darkHalves(state);
+    if (now.band === 'green' && dark === 0) state.meter = Math.min(m.max, state.meter + m.fill * dt);
+    else if (now.band === 'yellow') state.meter -= m.yellowDrain * dt;
+    else if (now.band === 'red') state.meter -= m.redDrain * dt;
+    state.meter -= (buildingOn(state) ? state.config.building.darkDrain : m.darkDrain) * dark * dt;
+    // The run cannot be lost before the first Delivery, while a hall is still to be built (pass 3
+    // spec 1.1: with every hall online from the start no Delivery comes, and the run must still end).
+    if (buildingOn(state)) {
+      // Building mode: the meter cannot empty in the first two minutes (pass 4 spec 2.8).
+      if (state.t < state.config.building.safeUntil) state.meter = Math.max(m.safeFloor, state.meter);
+    } else if (state.deliveries === 0 && state.halls < state.config.maxHalls) state.meter = Math.max(m.safeFloor, state.meter);
+    if (state.scripted) state.meter = Math.min(m.tutorialCap, state.meter);
+  }
 
   const hours = (dt * state.config.timeScale) / 3600;
   state.stats.energyMwh += now.deliveredMw * hours;
   state.stats.possibleMwh += now.capacityMw * hours;
   state.stats.bandTime[now.band] += dt;
   state.stats.lowestFraction = Math.min(state.stats.lowestFraction, now.fraction);
-  if (buildingOn(state)) earn(state, now.deliveredMw, dt);
+  if (buildingOn(state)) {
+    earn(state, now.deliveredMw, dt);
+    if (!state.scripted) burn(state, dt);
+  }
 
   // Construction: the next hall comes on a timer, faster while the load is green. It waits while
   // the tutorial runs, so no hall arrives mid-lesson.
@@ -959,7 +1007,7 @@ export function step(state, dt) {
 
   ceoStep(state, dt);
 
-  if (!state.over && state.meter <= EPS) {
+  if (!state.over && stabilityOn(state) && state.meter <= EPS) {
     state.meter = 0;
     state.over = true;
     state.overReason = 'stability';
@@ -1033,6 +1081,8 @@ export function results(state) {
     building: buildingOn(state),
     earned: buildingOn(state) ? state.stats.earned : 0,
     spent: buildingOn(state) ? state.stats.spent : 0,
+    burned: buildingOn(state) ? state.stats.burned : 0,
+    bankrupt: state.overReason === 'bankrupt',
     built: buildingOn(state) ? state.stats.built : 0,
   };
 }
@@ -1059,7 +1109,7 @@ export function resultsText(state) {
     `Alarms: ${r.raised} raised, ${r.cleared} cleared, average ${r.averageClear.toFixed(1)} s to clear, longest ${Math.round(r.longestAlarm)} s, peak ${r.peakAlarms} at once`,
     `Escalations: ${r.halfDark} half-halls dark, ${r.leakSpreads} leaks spread, ${r.spreads} network spreads, ${r.bursts} pump bursts, ${r.secondChillers} second chillers`,
     `Redirects: ${r.redirects} | Matching-hat fixes: ${pct(r.matchedShare)} | Lowest load: ${pct(r.lowestFraction)}`,
-    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent | Devices built: ${r.built}`] : []),
+    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.bankrupt ? ' | Went broke' : ''} | Devices built: ${r.built}`] : []),
     `Tuning: ${r.tuning.length > 0 ? r.tuning.join(', ') : 'defaults'}`,
   ].join('\n');
 }

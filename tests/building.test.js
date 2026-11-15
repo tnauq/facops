@@ -8,16 +8,18 @@ import {
 } from '../src/core/index2.js';
 import { alarmCost } from '../src/core/cost.js';
 
-// Building mode with no director alarms and no techs heading off by themselves, unless a test says.
+// Building mode with no director alarms, no techs heading off by themselves and no burn, unless a
+// test says: these tests are about the rules of building, not the economy.
+const NO_BURN = { base: 0, doubling: 140, upkeep: 0, wages: 0 };
 const game = (config = {}) => createGame({
   seed: 1,
-  config: { tutorial: false, autoDispatch: { enabled: false }, ...config, building: { enabled: true, ...(config.building ?? {}) }, director: { enabled: false, ...(config.director ?? {}) } },
+  config: { tutorial: false, autoDispatch: { enabled: false }, ...config, building: { enabled: true, burn: NO_BURN, ...(config.building ?? {}) }, director: { enabled: false, ...(config.director ?? {}) } },
 });
-test('a run starts with the bare minimum for one hall, and $400', () => {
+test('a run starts with the bare minimum for one hall, and $600', () => {
   const s = game();
   for (const id of ['pump-A-t', 'chiller-A-0', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1']) assert.equal(isBuilt(s, id), true, id);
   for (const id of ['pump-A-b', 'chiller-A-1', 'msb-1-t-B', 'msb-1-b-A', 'cdu-1-b', 'row-1-t-2', 'row-2-t-0']) assert.equal(isBuilt(s, id), false, id);
-  assert.equal(s.cash, 400);
+  assert.equal(s.cash, 600);
   assert.equal(hallOnline(s, 1), true);
   assert.equal(hallOnline(s, 2), false);
   assert.equal(s.halls, 1);
@@ -29,7 +31,7 @@ test('building takes the money at once, and the contractor finishes 8 s later', 
   const s = game();
   const r = build(s, 'row-1-t-2');
   assert.equal(r.ok, true);
-  assert.equal(s.cash, 400 - 150);
+  assert.equal(s.cash, 600 - 150);
   assert.equal(spotState(s, 'row-1-t-2'), 'building');
   assert.equal(cannotBuild(s, 'row-1-t-2'), 'building');
   advance(s, 7.9);
@@ -48,11 +50,11 @@ test('no building without the money, and nothing in the classic game', () => {
   assert.equal(build(classic, 'row-1-t-2').reason, 'off');
 });
 
-test('rows earn money while they deliver: $3 a second each at full output', () => {
+test('rows earn money while they deliver: $4 a second each at full output', () => {
   const s = game();
   advance(s, 10);
-  assert.ok(Math.abs(s.cash - (400 + 2 * 3 * 10)) < 1, `${s.cash}`);
-  assert.ok(Math.abs(results(s).earned - 60) < 1);
+  assert.ok(Math.abs(s.cash - (600 + 2 * 4 * 10)) < 1, `${s.cash}`);
+  assert.ok(Math.abs(results(s).earned - 80) < 1);
 });
 
 test('a hall comes online with a switchboard, a coolant unit, and a chiller anywhere', () => {
@@ -127,13 +129,13 @@ test('a leak with no second coolant unit throttles, then shuts the hall when its
   assert.equal(coolantState(s, 1), 'ok');
 });
 
-test('chillers: needed by rows online; they run only at a plant with a pump', () => {
+test('chillers: one per hall\'s worth of racks online; they run only at a plant with a pump', () => {
   const s = game({ building: { startCash: 10000 } });
   assert.equal(chillersNeeded(s), 1); // 2 rows
   assert.equal(runningChillers(s), 1);
-  for (const id of ['row-1-t-2', 'row-1-b-0', 'row-1-b-1', 'row-1-b-2', 'msb-1-b-A']) build(s, id);
+  for (const id of ['row-1-t-2', 'row-1-b-0', 'row-1-b-1', 'row-1-b-2', 'msb-1-b-A', 'msb-2-t-A', 'cdu-2-t', 'row-2-t-0']) build(s, id);
   advance(s, 8.1);
-  assert.equal(chillersNeeded(s), 2); // 6 rows: 1.25 rounded up
+  assert.equal(chillersNeeded(s), 2); // 7 rows
   build(s, 'chiller-B-0');
   advance(s, 8.1);
   assert.equal(runningChillers(s), 1, 'Plant B has no pump yet');
@@ -180,8 +182,8 @@ test('the Handover comes at 200 MW of rows online, or at 10:00', () => {
   assert.equal(s.handoverQueued, true);
 });
 
-test('the meter cannot empty in the first two minutes', () => {
-  const s = game({ meter: { start: 1 } });
+test('with the Stability meter switched on, it cannot empty in the first two minutes', () => {
+  const s = game({ meter: { start: 1 }, building: { stability: true } });
   raiseAlarm(s, 'breaker', 'msb-1-t-A'); // the only half with rows goes dark
   advance(s, 100);
   assert.equal(s.over, false);
@@ -226,15 +228,78 @@ test('the classic game is untouched: crew + 2 cap, hall table by halls online', 
   assert.equal(isBuilt(s, 'row-8-b-2'), true);
 });
 
-test('a scripted builder who buys backups outlasts and out-earns one who never does', async () => {
+test('compute first wins: a builder who buys backups early earns far less than one who builds racks first', async () => {
   const { playRun } = await import('../src/core/index2.js');
   const config = { tutorial: false, building: { enabled: true } };
   const run = (builder, seed) => playRun({ seed, config, policy: 'none', builder, maxSeconds: 1500 });
   for (const seed of [1, 2]) {
-    const careful = run('builder', seed);
-    const greedy = run('greedy', seed);
-    assert.ok(careful.seconds > greedy.seconds, `seed ${seed}`);
-    assert.ok(careful.earned > greedy.earned, `seed ${seed}`);
-    assert.equal(careful.finished, true, 'every building run ends');
+    const first = run('builder', seed);
+    const early = run('careful', seed);
+    assert.ok(first.earned > 3 * early.earned, `seed ${seed}: ${first.earned} vs ${early.earned}`);
+    assert.equal(first.finished, true, 'every building run ends');
   }
+});
+
+test('the burn doubles over time, and grows with infrastructure and crew', async () => {
+  const { burnRate } = await import('../src/core/index2.js');
+  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, building: { enabled: true }, director: { enabled: false } } });
+  const b = s.config.building.burn;
+  // At the start: base, plus upkeep on the pump, chiller, switchboard and coolant unit, plus 2 techs' wages.
+  assert.ok(Math.abs(burnRate(s) - (b.base + 4 * b.upkeep + 2 * b.wages)) < 1e-9);
+  s.t = b.doubling;
+  assert.ok(Math.abs(burnRate(s) - (2 * b.base + 4 * b.upkeep + 2 * b.wages)) < 1e-9);
+  s.t = 0;
+  s.cash = 5000;
+  build(s, 'msb-1-t-B');
+  advance(s, 8.1);
+  assert.ok(burnRate(s) > b.base * Math.pow(2, s.t / b.doubling) + 4 * b.upkeep + 2 * b.wages, 'a backup costs upkeep');
+});
+
+test('in the red, a countdown runs: back out of it in time and the run goes on, stay in it and it ends', async () => {
+  const { redSecondsLeft } = await import('../src/core/index2.js');
+  const s = game({ building: { burn: { base: 10, doubling: 1e9, upkeep: 0, wages: 0 } } });
+  s.cash = 1;
+  advance(s, 1); // income $8/s, burn $10/s: into the red
+  assert.ok(s.cash < 0);
+  assert.ok(redSecondsLeft(s) > 14);
+  s.cash += 1000; // a windfall: out of the red
+  advance(s, 0.1);
+  assert.equal(redSecondsLeft(s), null);
+  s.cash = -1;
+  advance(s, 14.5);
+  assert.equal(s.over, false);
+  advance(s, 1);
+  assert.equal(s.over, true);
+  assert.equal(results(s).bankrupt, true);
+});
+
+test('no Stability meter in building mode: the meter never ends a run', () => {
+  const s = game({ meter: { start: 1 } });
+  raiseAlarm(s, 'breaker', 'msb-1-t-A'); // the only half with racks goes dark
+  advance(s, 300);
+  assert.equal(s.over, false);
+});
+
+test('the CEO only cares about outages: a tripped switchboard with its backup carrying the load is not a sighting', async () => {
+  const { ceoSees } = await import('../src/core/index2.js');
+  const s = game({ building: { startCash: 10000 }, ceo: { enabled: true } });
+  // Halls 2 and 3 come online; Hall 3, the third, gets the ribbon-cutting. Its top half has both
+  // switchboards and a rack row.
+  for (const id of ['msb-2-t-A', 'cdu-2-t']) build(s, id);
+  advance(s, 8.2);
+  for (const id of ['msb-3-t-A', 'msb-3-t-B', 'cdu-3-t', 'row-3-t-1']) build(s, id);
+  advance(s, 8.2);
+  assert.deepEqual(s.ceo.areas, ['h3']);
+  const free = raiseAlarm(s, 'breaker', 'msb-3-t-A'); // B carries the load: costs nothing
+  const costly = raiseAlarm(s, 'network', 'row-3-t-1'); // a rack row down: costs power
+  const seen = new Set();
+  const sighted = [];
+  while (s.ceo && s.t < 200) {
+    step(s, 0.05);
+    for (const a of [free, costly]) if (ceoSees(s, a.equipId)) seen.add(a.id);
+    for (const e of s.events.splice(0)) if (e.type === 'ceoSighting') sighted.push(e.alarmId);
+  }
+  assert.ok(seen.has(free.id), 'the CEO did look at the tripped switchboard');
+  assert.deepEqual(sighted, [costly.id]);
+  assert.equal(s.stats.ceoFines, s.config.ceo.ribbon.cost * s.config.building.ceoFine);
 });

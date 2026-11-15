@@ -63,6 +63,22 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 
 ## Log
 
+### After M24: compute first, money as the lifeline
+
+At the owner's request (pass 4 spec 0.3, sections 2.5 and 2.8): mandatory backups were too harsh; there should be pressure to get compute online, a burn on your cash, and backups as a mid-game buy.
+
+Built (rules, still behind `building.enabled` until M25):
+
+- **The burn:** $3 a second doubling every 140 s, plus $0.25 a second upkeep per piece of infrastructure and $0.50 a second per tech. Racks earn $4 a second (was $3); start with $600.
+- **In the red:** a 15 s countdown; still in the red when it ends, the run is over ("Went broke").
+- **No Stability meter** in building mode; a dark half just stops earning.
+- **The CEO only fines outages:** only an unattended alarm costing power is a sighting; a fine is $50 per point.
+- One chiller per hall's worth of racks in building mode (was 1.25).
+- The scripted builders now build compute first, with backups from hall 4 (or 6, or never, or early, for comparison), keep 3 s of burn in hand, and count racks still under construction against the cooling.
+- Tests: 398 (the building tests turn the burn off unless they are about the economy).
+
+Scripted results in pass 4 spec 4.2: compute first with mid-game backups or none come out about even, backups early earn 87% less, never hiring 58% less; runs about 11 to 12 minutes, ended by zero tolerance or going broke.
+
 ### M24. Rules for building
 
 Pass 4 spec 2.1 to 2.8. The rules only; the screen to build arrives in M25. Building mode is behind `building.enabled`, **off by default**, so the game you play is unchanged until M25.

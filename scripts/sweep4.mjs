@@ -8,7 +8,7 @@ const mean = (xs) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 for (const extra of configs) {
   const config = { tutorial: false, ...extra, building: { enabled: true, ...(extra.building ?? {}) } };
   const line = [];
-  for (const plan of ['builder', 'greedy', 'nohire']) {
+  for (const plan of (process.argv[4] ?? 'builder,careful,greedy,nohire').split(',')) {
     const runs = [];
     for (let seed = 1; seed <= seeds; seed++) {
       let mw150 = null;
@@ -17,10 +17,10 @@ for (const extra of configs) {
         if (mw150 === null && onlineRows(s).length * s.config.rowMw >= 150) mw150 = s.t;
         if (s.t <= 180) early = s.stats.earned;
       } });
-      runs.push({ len: r.seconds, earned: r.earned, mw150, early });
+      runs.push({ len: r.seconds, earned: r.earned, mw150, early, broke: r.bankrupt });
     }
     const hit = runs.filter((r) => r.mw150 !== null);
-    line.push(`${plan}: ${clock(mean(runs.map((r) => r.len)))}, $${Math.round(mean(runs.map((r) => r.earned)) / 1000)}k, 3-min $${Math.round(mean(runs.map((r) => r.early)))}, 150MW ${hit.length ? clock(mean(hit.map((r) => r.mw150))) : '-'} (${hit.length}/${seeds})`);
+    line.push(`${plan}: ${clock(mean(runs.map((r) => r.len)))}, $${Math.round(mean(runs.map((r) => r.earned)) / 1000)}k, 3-min $${Math.round(mean(runs.map((r) => r.early)))}, 150MW ${hit.length ? clock(mean(hit.map((r) => r.mw150))) : '-'} (${hit.length}/${seeds}), broke ${runs.filter((r) => r.broke).length}`);
   }
   console.log(JSON.stringify(extra));
   console.log('  ' + line.join('\n  '));

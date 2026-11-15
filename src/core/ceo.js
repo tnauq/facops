@@ -9,6 +9,7 @@
 
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, MID_Y, PLANTS, S_OUTER, hallX, route } from './layout2.js';
 import { buildingOn, isBuilt, onlineHallIds } from './sites.js';
+import { alarmCost } from './cost.js';
 
 const EPS = 1e-9;
 const UP = -Math.PI / 2; // y grows downwards
@@ -272,6 +273,9 @@ function endRun(state) {
 function judge(state, c) {
   for (const alarm of state.alarms) {
     if (c.counted[alarm.id] || attended(state, alarm) || !ceoSees(state, alarm.equipId)) continue;
+    // Building mode (owner, 15 Nov): the CEO only cares about outages. An alarm costing no power,
+    // such as a tripped switchboard whose backup carries the load, is not a sighting.
+    if (buildingOn(state) && alarmCost(state, alarm) === 0) continue;
     c.counted[alarm.id] = true;
     c.sightings += 1;
     state.stats.ceoSightings += 1;
@@ -279,6 +283,13 @@ function judge(state, c) {
     if (c.zeroTolerance) {
       endRun(state);
       return;
+    }
+    // Building mode without Stability (pass 4, owner 15 Nov): a sighting is a fine instead.
+    if (buildingOn(state) && !state.config.building.stability) {
+      // The fine can put the cash in the red; the red countdown then decides (game2.js burn).
+      state.cash -= c.cost * state.config.building.ceoFine;
+      state.stats.ceoFines = (state.stats.ceoFines ?? 0) + c.cost * state.config.building.ceoFine;
+      continue;
     }
     state.meter -= c.cost;
     if (state.meter <= EPS) {

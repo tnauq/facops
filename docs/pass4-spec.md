@@ -1,6 +1,6 @@
 # FacOps pass 4 build spec: build and manage
 
-Version 0.2, 14 November 2026: **approved by the owner**, with the answers to section 5 folded in (0.1 was the draft). Written after the owner played M21: the pressure still turns "very crazy around 6 minutes", the rail's switch from tickets to tiles causes misclicks, and the owner wants to move from a pure dispatch game towards a Prison Architect-style management game **on the existing layout, with tap-to-build in predetermined spots**.
+Version 0.3, 15 November 2026. 0.3: the owner's compute-first economy after M24 (sections 2.5, 2.8, 4.2): cash burns, money is the lifeline, backups are a mid-game buy. 0.2 (14 November) was **approved by the owner**, with the answers to section 5 folded in; 0.1 was the draft. Written after the owner played M21: the pressure still turns "very crazy around 6 minutes", the rail's switch from tickets to tiles causes misclicks, and the owner wants to move from a pure dispatch game towards a Prison Architect-style management game **on the existing layout, with tap-to-build in predetermined spots**.
 
 When approved, this becomes the source of truth for pass 4, as `docs/pass3-spec.md` was for pass 3. Pass 3's rules and screen carry over except where this spec says otherwise. Numbers marked *starting value* are for M24's scripted checks to settle. Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them.
 
@@ -15,6 +15,7 @@ When approved, this becomes the source of truth for pass 4, as `docs/pass3-spec.
 | Pumps? | Buildable, and a plant's chillers need one (as drafted) |
 | How does a run start? | Hall 1 already has the bare minimum: one pump, one chiller, one switchboard, one coolant unit and a few rack rows |
 | CEO triggers? | As drafted (2.8) |
+| After M24 (15 Nov) | "Mandatory backups is too harsh. There should be a lot of pressure to get compute online: a burn rate on your cash, and more compute online is how you stay afloat. Backups should be a mid-game or endgame thing, after the compute is up and running." (2.5, 2.8) |
 
 ## 1. What changes, in one paragraph
 
@@ -32,7 +33,7 @@ The design pillars change one word: **Redundancy is the drama, and now it is you
 - **Build time:** 8 s (*starting value*), shown as a ring on the spot. A contractor builds it; no tech is needed.
 - No selling or demolishing in pass 4.
 - Halls can be built in any order. Plant B's spots are open from the start.
-- **The run starts with the bare minimum for one hall** (owner): Plant A's top pump and one chiller, and in Hall 1 the top half's A switchboard, the top coolant unit and 2 rack rows in the top half. Everything else is empty. Starting cash: **$400** (*starting value*), enough for the next rack row and a backup soon after.
+- **The run starts with the bare minimum for one hall** (owner): Plant A's top pump and one chiller, and in Hall 1 the top half's A switchboard, the top coolant unit and 2 rack rows in the top half. Everything else is empty. Starting cash: **$600**.
 
 ### 2.2 Prices (*starting values*)
 
@@ -60,7 +61,7 @@ A rack row delivers its 6.25 MW (times the cooling factor, as now) only when **a
 
 A **hall is online** when it has at least 1 built switchboard and 1 built coolant unit, and at least 1 chiller is built anywhere (owner's rule). Online halls show their title; offline halls stay pale. A row built in a hall that is not online yet earns nothing until it is.
 
-**Chillers needed** = rows built × 1.25 / 6, rounded up (the same ratio as pass 2's 1.25 per full hall). Too few running and the cooling factor falls as now. A plant's chillers only run while that plant has at least 1 built pump (owner).
+**Chillers needed** = one per hall's worth of racks online (rows ÷ 6, rounded up; pass 2's 1.25 made the fifth rack wait for a $300 chiller). Too few running and the cooling factor falls as now. A plant's chillers only run while that plant has at least 1 built pump (owner).
 
 ### 2.4 Redundancy is the player's choice
 
@@ -74,11 +75,15 @@ The alarms keep their pass 3 behaviour; what changes is that the backup may not 
 
 The shields on the strip keep their meaning: a hall with no B switchboards shows a **broken-outline** power shield ("no backup") instead of whole, so the risk is visible before anything fails.
 
-### 2.5 Money in and out
+### 2.5 Money in and out (owner, 15 November: compute first)
 
-- **Income:** $3 a second per row at full output, scaled by its actual output (set by M24's checks; the draft had $5). Shown in the HUD as `$1,240 · +$85/s`.
-- Nothing else costs money over time in pass 4 (no wages, no power bill).
-- **Score** becomes money earned over the run (shown alongside GWh, which stays in the results).
+- **Income:** $4 a second per rack row at full output, scaled by its actual output. A rack pays for itself in under 40 s.
+- **The burn:** cash burns every second: a base of $3 a second that **doubles every 140 s**, plus $0.25 a second upkeep for every piece of infrastructure built (switchboards, coolant units, chillers, pumps) and $0.50 a second wages for every tech. The base is gentle while the campus is small, then the pressure to keep adding compute; in the end it outgrows what a full campus earns, so every run ends.
+- **Backups are a mid-game buy:** a backup earns nothing and costs upkeep, so early on racks come first. Later the burn is high, outages hurt, and the CEO's visits only fine outages (2.8), so backups pay.
+- **In the red:** below $0 a 15 s countdown runs. Back above $0 in time and the run goes on; still in the red when it ends, the run is over ("Went broke").
+- **No Stability meter** in building mode: money is the lifeline. (A drawer switch can bring the meter back for comparison.)
+- Shown in the HUD as `$1,240 · +$85/s` (income minus burn), and the red countdown when it runs.
+- **Score** is money earned over the run (GWh stays in the results).
 
 ### 2.6 Techs pick their own jobs  [owner's answer]
 
@@ -101,10 +106,12 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 
 ### 2.8 Stability and the end of a run
 
-- The load band is delivered MW against the MW of the rows in online halls, as now; the Stability meter fills and drains as now.
-- A run ends when the meter empties, or the CEO fires you under zero tolerance.
+- The load band is delivered MW against the MW of the rows in online halls, as now, shown in the HUD; there is no Stability meter (2.5).
+- A run ends when the cash stays in the red for 15 s, or the CEO fires you under zero tolerance.
+- **The CEO only cares about outages** (15 Nov): only an unattended alarm that is costing power counts as a sighting. A tripped switchboard whose backup carries the load, or a chiller trip with spares running, is not. This is what makes backups worth buying before the late visits.
+- **A sighting is a fine** instead of a Stability hit: $50 per point the visit would have cost (ribbon-cutting $750, Handover $1,750, walkthroughs $2,500 and $3,500); zero tolerance still ends the run.
 - **CEO visits [Recommended]:** the ribbon-cutting comes when the 3rd hall comes online; the Handover when the campus reaches 200 MW of rows in online halls, or at 10:00, whichever is first; walkthroughs then follow as now, and zero tolerance from the third. (See open question 2.)
-- The first-Delivery safety floor becomes: the meter cannot empty in the first 2 minutes.
+
 
 ## 3. Screen
 
@@ -178,19 +185,23 @@ A scripted **builder** player: builds in a fixed sensible order (one hall's mini
 | Greedy builder (no backups) | Earns more early, ends sooner; scores at least 15% less |
 | Very slow player (4 s reactions, auto-dispatch on) | More alarms waiting than free techs under 25% of the time before minute 8 |
 
-### 4.2 M24's results
+### 4.2 Scripted checks after the compute-first economy (15 November)
 
-12 seeds, tutorial off, auto-dispatch on, with the defaults above:
+12 seeds, tutorial off, auto-dispatch on. The builders keep 3 s of burn in hand.
 
-| Scripted player | Run length (range) | Earned | 150 MW at | Halls | Crew | Ended by zero tolerance / CEO hit / meter | Short-handed before 8:00 |
+| Scripted builder | Run length (range) | Earned | 150 MW at | Halls | Crew | Ended by zero tolerance / CEO fine / broke | Short-handed before 8:00 |
 |---|---|---|---|---|---|---|---|
-| Builder (backups, hires) | 14:43 (11:09 to 19:27) | $63,239 | 7:22 | 8.0 | 9.0 | 9 / 3 / 0 | 19% |
-| Builder, also gets ready for the CEO | 16:22 (8:42 to 27:11) | $76,286 | 7:20 | 7.8 | 8.8 | 8 / 2 / 2 | 20% |
-| Greedy builder (no backups) | 3:24 (2:00 to 4:05) | $3,363 | never | 2.6 | 2.3 | 0 / 0 / 12 | 4% |
-| Builder that never hires | 8:26 (7:23 to 9:35) | $15,941 | 7:07 | 6.1 | 2.0 | 0 / 3 / 9 | 34% |
-| Slow builder (decides every 4 s) | 15:35 (10:39 to 21:24) | $65,948 | 7:35 | 7.9 | 9.0 | 9 / 1 / 2 | 17% |
+| Compute first, backups from hall 4, hires | 11:51 (3:17 to 17:01) | $73,855 | 5:41 | 7.0 | 7.6 | 8 / 0 / 4 | 22% |
+| The same, also getting ready for the CEO | 11:44 (3:17 to 17:03) | $72,710 | 5:42 | 6.8 | 7.3 | 5 / 0 / 7 | 21% |
+| Compute first, backups from hall 6 | 11:32 (3:17 to 17:19) | $74,183 | 4:49 | 7.1 | 7.8 | 8 / 0 / 4 | 21% |
+| Careful (backups as soon as a hall has 4 racks) | 7:47 (6:28 to 9:43) | $9,283 | never | 1.9 | 2.0 | 0 / 0 / 12 | 7% |
+| Greedy (never a backup) | 11:42 (3:17 to 17:14) | $73,234 | 4:49 | 7.0 | 7.5 | 6 / 0 / 6 | 21% |
+| Never hires | 8:02 (3:17 to 13:56) | $31,354 | 5:38 | 6.3 | 2.0 | 2 / 0 / 10 | 45% |
+| Decides every 4 s | 14:00 (4:01 to 16:31) | $88,310 | 6:01 | 7.6 | 8.4 | 7 / 0 / 5 | 20% |
 
-Against the targets: 150 MW, run length, the slow player and the CEO are met. "First income within 60 s" is met trivially, since the run starts with two racks earning. The greedy builder does earn more early (about $2,300 against $1,700 in the first 3 minutes) but then collapses, earning 95% less: far more than the 15% asked for. Skipping backups is a losing strategy rather than a gamble, and the owner's play should decide whether that is right.
+Compute first is clearly right: backups early earn 87% less. Mid-game backups and none at all come out about even for scripted players, who never panic; your play decides whether backups need to be worth more. Hiring matters (never hiring earns 58% less). Two seeds in twelve go broke at about 3:15, after spending everything just before the ribbon-cutting fine.
+
+(M24's first economy, with the Stability meter and no burn, made backups mandatory: a builder without them collapsed by 3:30. The owner found that too harsh.)
 
 ## 5. Open questions for the owner
 
