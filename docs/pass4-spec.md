@@ -126,7 +126,7 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 - Tap Build, or tap the same spot again, to confirm. Tap elsewhere to cancel.
 - The card names the device, so the map still needs no captions. Infrastructure shows its upkeep ("+$0.25/s upkeep"), so a backup is a visible choice. A rack row warns when it would not earn yet: "Needs a switchboard in this half to earn", "Earns once Hall 3 has a switchboard and a coolant unit", "Cooling will run short: build a chiller too".
 - The card sits beside the spot, or above or below it on a narrow map, never over it.
-- In building mode the pipework is drawn complete from the start (the building is being fitted out); halls not yet online are pale, titled "needs power and coolant".
+- In building mode the pipework is drawn complete from the start (the building is being fitted out); halls not yet online are pale, with just their name (owner, 15 Nov: "needs power and coolant" was a bit much; the tutorial explains the order).
 - **Until M27:** building mode has no tutorial (the classic tutorial's lessons need Hall 1's backups). The device introductions for network and pump alarms still show. The drawer's **Building mode** switch, off, brings back the classic game with its tutorial.
 
 ### 3.3 HUD and crew bar
@@ -150,7 +150,7 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 
 ### 3.6 Tutorial
 
-Rewritten for building, one step at a time, on Hall 1 and Plant A:
+Rewritten for building, one step at a time, on Hall 1 and Plant A. It must teach **the build order** (owner, 15 Nov), since the map no longer says it: a hall needs a switchboard and a coolant unit, the plant needs a pump and a chiller, then racks earn; one chiller per hall's worth of racks; backups once the compute is running.
 
 1. Build a pump, then a chiller (`Chillers cool everything. They need a pump.`)
 2. Build a switchboard and a coolant unit in Hall 1 (`A hall needs power and coolant.`); the hall comes online.

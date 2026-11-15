@@ -93,7 +93,7 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
     status: equipmentStatus(state),
     pipes: 'shadows',
     pipeSpan: pipesOnline,
-    ...(building ? { hallUp: (h) => hallOnline(state, h), spot: (e) => spots.get(e.id) ?? null, offlineTitle: 'needs power and coolant' } : {}),
+    ...(building ? { hallUp: (h) => hallOnline(state, h), spot: (e) => spots.get(e.id) ?? null, offlineTitle: null } : {}),
   });
   // Shields are on the overview strip only (pass 3 spec 4b.3): the map stays uncluttered.
   // The bob only moves the drawing; tap targets stay where the rules put each tech.

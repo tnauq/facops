@@ -194,11 +194,12 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   for (const h of Object.values(HALLS)) {
     if (!onScreen(v, screen, h.cx, h.y + 20, 120, 20)) continue;
     const up = isUp(h.id);
-    drawLabel(ctx, up ? `Hall ${h.id}` : `Hall ${h.id} · ${offlineTitle}`, sx(v, h.cx), sy(v, h.y + 8), up ? titlePx : labelPx, COLOR.muted);
+    // offlineTitle null (building mode, owner 15 Nov): an offline hall is just pale, with its name.
+    drawLabel(ctx, up || offlineTitle === null ? `Hall ${h.id}` : `Hall ${h.id} · ${offlineTitle}`, sx(v, h.cx), sy(v, h.y + 8), up ? titlePx : labelPx, COLOR.muted);
   }
   for (const p of Object.values(PLANTS)) {
     const up = p.id === 'A' || plantB;
-    drawLabel(ctx, up ? `Plant ${p.id}` : `Plant ${p.id} · ${offlineTitle}`, sx(v, p.x + p.w / 2), sy(v, p.y - 26), up ? titlePx : labelPx, COLOR.plantInk);
+    drawLabel(ctx, up || offlineTitle === null ? `Plant ${p.id}` : `Plant ${p.id} · ${offlineTitle}`, sx(v, p.x + p.w / 2), sy(v, p.y - 26), up ? titlePx : labelPx, COLOR.plantInk);
   }
 
   // Equipment.

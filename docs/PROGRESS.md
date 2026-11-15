@@ -63,6 +63,10 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 
 ## Log
 
+### After M25: plain hall names
+
+At the owner's request: halls not yet online in building mode show just their name ("Hall 2"), pale, without "needs power and coolant". The tutorial (M27) will teach the build order instead (spec 3.6). The owner found the money pressure about right for now.
+
 ### M25. Building on screen
 
 Pass 4 spec 3.1 to 3.3. **Building mode is now the game** (the drawer's "Building mode" switch, off, brings back the classic game).
