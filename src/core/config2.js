@@ -11,7 +11,16 @@ export { TRADES };
 export const ALARMS2 = {
   ...PASS1_ALARMS,
   network: { ...PASS1_ALARMS.network, equipment: 'row' },
+  // The yard's failures (pass 4 spec 7.3, M30), building mode only. A short is fixed in two places:
+  // disconnected at its RMU (disconnectTime), then repaired at the transformer (fixTime). An RMU
+  // fault has no clock: it is already the worst. Weights against the five above, which sum to 100.
+  short: { id: 'short', label: 'Transformer Short', equipment: 'xfmr', trade: 'electrical', fixTime: 8, disconnectTime: 3, clock: 45, steps: 2, weight: 8 },
+  rmu: { id: 'rmu', label: 'RMU Fault', equipment: 'rmu', trade: 'electrical', fixTime: 10, clock: Infinity, steps: 3, weight: 3 },
+  fan: { id: 'fan', label: 'Dry Cooler Fan Failure', equipment: 'dry', trade: 'mechanical', fixTime: 6, clock: 60, steps: 2, weight: 7 },
 };
+
+/** The yard's alarm types (M30): only in building mode. */
+export const YARD_ALARMS = ['short', 'rmu', 'fan'];
 
 export const UPGRADES = {
   carts: { id: 'carts', label: 'Carts', text: 'Whole crew walks 20% faster', max: 2, walkBonus: 0.2 },
@@ -91,6 +100,7 @@ export const DEFAULT_CONFIG2 = {
     // M29: with the RMU and transformer that feed that switchboard, and one dry cooler at Plant A.
     start: ['pump-A-t', 'chiller-A-0', 'dry-A-0', 'rmu-1-t', 'xfmr-1-t-A', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1'],
     chillersPerDryCooler: 2, // each dry cooler unit lets this many of its plant's chillers run
+    yardFromHalls: 3, // the director starts yard failures (M30) once this many halls are online
     tighten: 0.015, // the director tightens this much every tightenEvery seconds, with no reset (M24's checks)
     firstSpawn: 20, // seconds before the first alarm: time to look round and buy a first backup
     chillersPerHall: 1, // replaces chillersPerHall: one chiller per hall's worth of racks (owner's compute-first economy)

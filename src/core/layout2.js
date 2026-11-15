@@ -6,7 +6,7 @@
 // Until milestone M9 the rules engine still runs on the pass 1 map (layout.js); this file is only
 // drawn and tested.
 
-import { buildYard } from './outdoor.js';
+import { DRY, DRY_LANE_X, YARD_LANE_Y, buildYard } from './outdoor.js';
 
 export const WORLD = { width: 3920, height: 780 };
 export const CENTRE_X = WORLD.width / 2;
@@ -114,19 +114,22 @@ function buildEquipment() {
 
 const INDOOR = buildEquipment();
 
-// The yard (pass 4 spec 7, M29): transformers, RMUs and dry cooler units are equipment too. Their
-// service point (sx, sy) is the device itself for now; M30 gives techs a way out to them.
+// The yard (pass 4 spec 7, M29): transformers, RMUs and dry cooler units are equipment too. Techs
+// work on them from the yard's walkways (M30): transformers and RMUs from the walkway between them,
+// dry coolers from the walkway through the middle of their block.
+const laneY = (half) => (half === 't' ? YARD_LANE_Y : my(YARD_LANE_Y));
 export const YARD_LAYOUT = buildYard(INDOOR.filter((e) => e.type === 'msb'), INDOOR.filter((e) => e.type === 'pump'), WORLD);
 export const { TRANSFORMERS, RMUS, POWER_LINES, POLES, DRY_COOLERS, DRY_PIPES } = YARD_LAYOUT;
 
 function yardEquipment() {
   const list = [];
   for (const t of TRANSFORMERS) {
-    list.push({ id: t.id, type: 'xfmr', hall: t.hall, half: t.half, side: t.side, msbId: t.msbId, rmuId: `rmu-${t.hall}-${t.half}`, label: '', x: t.x, y: t.y, sx: t.x, sy: t.y });
+    list.push({ id: t.id, type: 'xfmr', hall: t.hall, half: t.half, side: t.side, msbId: t.msbId, rmuId: `rmu-${t.hall}-${t.half}`, label: '', x: t.x, y: t.y, sx: t.x, sy: laneY(t.half) });
   }
-  for (const r of RMUS) list.push({ id: r.id, type: 'rmu', hall: r.hall, half: r.half, feeds: r.feeds, label: '', x: r.x, y: r.y, sx: r.x, sy: r.y });
+  for (const r of RMUS) list.push({ id: r.id, type: 'rmu', hall: r.hall, half: r.half, feeds: r.feeds, label: '', x: r.x, y: r.y, sx: r.x, sy: laneY(r.half) });
   for (const d of DRY_COOLERS) {
-    d.units.forEach((u, index) => list.push({ id: u.id, type: 'dry', plant: d.plant, index, w: u.w, h: u.h, label: '', x: u.x, y: u.y, sx: u.x, sy: u.y }));
+    const sx = d.plant === 'A' ? DRY_LANE_X : mx(DRY_LANE_X);
+    d.units.forEach((u, index) => list.push({ id: u.id, type: 'dry', plant: d.plant, index, w: u.w, h: u.h, label: '', x: u.x, y: u.y, sx, sy: u.y }));
   }
   return list;
 }
@@ -135,6 +138,9 @@ export const EQUIPMENT = [...INDOOR, ...yardEquipment()];
 export const EQUIPMENT_BY_ID = Object.fromEntries(EQUIPMENT.map((e) => [e.id, e]));
 
 // ---------------------------------------------------------------- lanes (spec 3.5)
+
+// Where the doors out to the yard are along each long wall (M30).
+const EXIT_XS = [PLANT_A.lane, 1180, CENTRE_X, mx(1180), mx(PLANT_A.lane)];
 
 function buildLanes() {
   const lanes = [];
@@ -153,6 +159,18 @@ function buildLanes() {
     v(`h${hall.id}-outer`, outer, CORRIDOR_TOP, CORRIDOR_BOTTOM);
     v(`h${hall.id}-inner`, inner, INNER_Y[0], INNER_Y[1]);
     h(`h${hall.id}-middle`, MID_Y, Math.min(inner, outer), Math.max(inner, outer));
+  }
+  // The yard (M30): a walkway along each long side outside, reached through doors in the long walls
+  // where the plant lanes, the gaps between hall pairs and the centre line meet the corridors; and,
+  // through a door in each end wall, a walkway out to the middle of each dry cooler block.
+  for (const [side, y, corridor] of [['top', YARD_LANE_Y, CORRIDOR_TOP], ['bottom', my(YARD_LANE_Y), CORRIDOR_BOTTOM]]) {
+    h(`yard-${side}`, y, 50, WORLD.width - 50);
+    for (const x of EXIT_XS) v(`exit-${side}-${x}`, x, Math.min(y, corridor), Math.max(y, corridor));
+  }
+  for (const plant of Object.values(PLANTS)) {
+    const x = plant.id === 'A' ? DRY_LANE_X : mx(DRY_LANE_X);
+    h(`dry-${plant.id}-way`, MID_Y, Math.min(x, plant.lane), Math.max(x, plant.lane));
+    v(`dry-${plant.id}`, x, DRY.y1, DRY.y2);
   }
   // Shared-wall doors: each link joins the inner aisles of the two halls of a pair.
   const pairs = [[1, 2], [3, 4], [5, 6], [7, 8]];
@@ -177,6 +195,13 @@ export const DOORS = (() => {
   for (const [a] of [[1], [3], [5], [7]]) {
     for (const y of SHARED_DOOR_Y) out.push({ hall: a, x: HALLS[a].shared, y, vertical: true });
   }
+  // The building's own doors out to the yard (M30).
+  for (const x of EXIT_XS) {
+    out.push({ outside: true, x, y: 0, vertical: false });
+    out.push({ outside: true, x, y: WORLD.height, vertical: false });
+  }
+  out.push({ outside: true, x: 0, y: MID_Y, vertical: true });
+  out.push({ outside: true, x: WORLD.width, y: MID_Y, vertical: true });
   return out;
 })();
 
@@ -274,7 +299,9 @@ export function locationTag(equipId) {
   const e = EQUIPMENT_BY_ID[equipId];
   if (!e) return '';
   if (e.type === 'chiller' || e.type === 'pump') return `Plant ${e.plant}`;
+  if (e.type === 'dry') return `Plant ${e.plant} cooler`;
   const half = e.half === 't' ? 'top' : 'bottom';
-  if (e.type === 'msb') return `H${e.hall} ${half} ${e.side}`;
+  if (e.type === 'msb' || e.type === 'xfmr') return `H${e.hall} ${half} ${e.side}`;
+  if (e.type === 'rmu') return `H${e.hall} ${half} RMU`;
   return `H${e.hall} ${half}`;
 }

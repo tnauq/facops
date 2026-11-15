@@ -417,8 +417,50 @@ export function drawFaultGlyph(ctx, x, y, size, alarmType, ink) {
     ctx.restore();
     return;
   }
+  if (alarmType === 'short' || alarmType === 'rmu' || alarmType === 'fan') {
+    drawYardGlyph(ctx, x, y, size, alarmType, ink);
+    return;
+  }
   const trade = { network: 'network', leak: 'ce', breaker: 'electrical', chiller: 'mechanical' }[alarmType];
   drawTradeIcon(ctx, x, y, size, trade, ink);
+}
+
+// The yard's fault pictures (M30), so each alarm is readable from its picture alone:
+//   short - a transformer's two coils with a spark between them;
+//   rmu   - a switch thrown open: a line with a gap and a lifted blade;
+//   fan   - a three-bladed fan.
+function drawYardGlyph(ctx, x, y, size, type, ink) {
+  const u = size / 20;
+  const w = Math.max(1, 2 * u);
+  ctx.save();
+  ctx.translate(x, y);
+  if (type === 'short') {
+    for (const cx of [-5, 5]) {
+      ctx.beginPath();
+      ctx.arc(cx * u, 0, 5 * u, 0, Math.PI * 2);
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = w;
+      ctx.stroke();
+    }
+    // The spark: a small zigzag across the top, where the coils meet.
+    line(ctx, [-3 * u, -9 * u, 1 * u, -6.5 * u, -1 * u, -4.5 * u, 3 * u, -2 * u], ink, Math.max(1, 1.8 * u));
+  } else if (type === 'rmu') {
+    line(ctx, [-9 * u, 3 * u, -4 * u, 3 * u], ink, w);
+    line(ctx, [4 * u, 3 * u, 9 * u, 3 * u], ink, w);
+    disc(ctx, -4 * u, 3 * u, 1.8 * u, ink);
+    disc(ctx, 4 * u, 3 * u, 1.8 * u, ink);
+    line(ctx, [-4 * u, 3 * u, 4 * u, -5 * u], ink, w); // the blade, lifted
+  } else {
+    for (let b = 0; b < 3; b++) {
+      const a = (b * 2 * Math.PI) / 3 - Math.PI / 2;
+      ctx.beginPath();
+      ctx.ellipse(Math.cos(a) * 4.5 * u, Math.sin(a) * 4.5 * u, 4.5 * u, 2.2 * u, a, 0, Math.PI * 2);
+      ctx.fillStyle = ink;
+      ctx.fill();
+    }
+    disc(ctx, 0, 0, 2 * u, ink);
+  }
+  ctx.restore();
 }
 
 const BUBBLE = { paper: '#FFFFFF', ink: '#1F3A5F', track: '#C9D1DB', work: '#2F6DBC', worst: '#1F3A5F' };

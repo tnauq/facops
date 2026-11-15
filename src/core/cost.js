@@ -44,8 +44,30 @@ function campusLevels(state) {
 
 const coolingTarget = (state, extra) => Math.min(1, (runningChillers(state) + extra) / Math.max(1, chillersNeeded(state)));
 
+// The yard's faults (M30) and the flag each sets on its device.
+const YARD_FLAG = { short: 'shorted', rmu: 'faulted', fan: 'stopped' };
+
+// What fixing a yard fault gives back: measured with the fault in place and with it cleared for a
+// moment (the flag is put back at once, so the state is unchanged). A short or RMU fault can only
+// cost its own hall; a fan failure works through the cooling, campus-wide.
+function yardCost(state, alarm) {
+  const e = EQUIPMENT_BY_ID[alarm.equipId];
+  const mw = state.config.rowMw;
+  const dyn = state.equip[alarm.equipId];
+  const flag = YARD_FLAG[alarm.type];
+  const measure = () => (alarm.type === 'fan'
+    ? campusLevels(state) * mw * coolingTarget(state, 0)
+    : hallLevels(state, e.hall, null) * mw * state.thermal);
+  const before = measure();
+  dyn[flag] = false;
+  const after = measure();
+  dyn[flag] = true;
+  return Math.max(0, Math.round(after - before + 1e-9));
+}
+
 /** MW this alarm is costing now, rounded to whole MW (0 when it costs nothing yet). */
 export function alarmCost(state, alarm) {
+  if (YARD_FLAG[alarm.type]) return yardCost(state, alarm);
   const e = EQUIPMENT_BY_ID[alarm.equipId];
   const mw = state.config.rowMw;
   let gain = 0;

@@ -162,11 +162,33 @@ test('walks are long on purpose: Plant A to hall 8 is over 3000 units', () => {
   assert.ok(route(START_POINT, { x: far.sx, y: far.sy }).length > 3000);
 });
 
-test('plants and lanes stay inside the building', () => {
+test('plants and lanes stay inside the building; the yard\'s walkways stay in the yard (M30)', async () => {
+  const { YARD } = await import('../src/core/outdoor.js');
   for (const p of Object.values(PLANTS)) assert.ok(p.x >= 0 && p.x + p.w <= WORLD.width);
+  const yard = (l) => /^(yard-|exit-|dry-)/.test(l.id);
   for (const l of LANES) {
-    for (const v of [l.x1, l.x2]) assert.ok(v >= 0 && v <= WORLD.width);
-    for (const v of [l.y1, l.y2]) assert.ok(v >= 0 && v <= WORLD.height);
+    const [mx, my] = yard(l) ? [YARD.x, YARD.y] : [0, 0];
+    for (const v of [l.x1, l.x2]) assert.ok(v >= -mx && v <= WORLD.width + mx, l.id);
+    for (const v of [l.y1, l.y2]) assert.ok(v >= -my && v <= WORLD.height + my, l.id);
+  }
+});
+
+test('every yard device can be reached from inside, through a door in the outside wall (M30)', () => {
+  const yardDevices = EQUIPMENT.filter((e) => ['xfmr', 'rmu', 'dry'].includes(e.type));
+  for (const e of yardDevices) {
+    const p = { x: e.sx, y: e.sy };
+    assert.ok(isOnNetwork(p), `${e.id} service point is off the walkways`);
+    const r = route(START_POINT, p);
+    assert.ok(r.length > 0 && Number.isFinite(r.length), e.id);
+    // Where the route leaves the building, it does so at a door.
+    for (let i = 1; i < r.points.length; i++) {
+      const a = r.points[i - 1];
+      const b = r.points[i];
+      const crossY = [0, WORLD.height].find((y) => (a.y - y) * (b.y - y) < 0);
+      if (crossY !== undefined) assert.ok(DOORS.some((d) => d.outside && near(d.x, a.x) && d.y === crossY), `${e.id} leaves through a wall at x ${a.x}`);
+      const crossX = [0, WORLD.width].find((x) => (a.x - x) * (b.x - x) < 0);
+      if (crossX !== undefined) assert.ok(DOORS.some((d) => d.outside && d.x === crossX && near(d.y, a.y)), `${e.id} leaves through an end wall at y ${a.y}`);
+    }
   }
 });
 
@@ -175,5 +197,8 @@ test('location tags', () => {
   assert.equal(locationTag('cdu-6-b'), 'H6 bottom');
   assert.equal(locationTag('msb-2-t-A'), 'H2 top A');
   assert.equal(locationTag('chiller-B-4'), 'Plant B');
+  assert.equal(locationTag('xfmr-2-t-B'), 'H2 top B');
+  assert.equal(locationTag('rmu-5-b'), 'H5 bottom RMU');
+  assert.equal(locationTag('dry-A-3'), 'Plant A cooler');
   assert.equal(locationTag('pump-A-b'), 'Plant A');
 });

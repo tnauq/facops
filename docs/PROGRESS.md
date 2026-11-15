@@ -62,9 +62,36 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | M27. New tutorial and balance | `m27` | Done (balance waits for the owner's runs) |
 | M28. The yard on the map; black pipes | `m28` | Done |
 | M29. Building the yard | `m29` | Done |
-| M30. Yard failures | `m30` | Specified (spec 7.3) |
+| M30. Yard failures | `m30` | Done |
 
 ## Log
+
+### M30. Yard failures
+
+Pass 4 spec 7.3 (owner's answers, 15 Nov).
+
+Built:
+
+- **A way out to the yard** (`src/core/layout2.js`): doors in the long walls lead to a walkway between the transformers and the RMUs; doors in the end walls lead through the middle of each dry cooler block. The outside walls now have their door gaps drawn.
+- **Transformer short** (Electrical): its switchboard loses power at once. Fixed in two places by the same tech: **disconnect at the RMU** (3 s), then **repair at the transformer** (8 s). Once disconnected it can no longer spread; left connected for 45 s, it takes out its RMU.
+- **RMU fault** (Electrical): both of the pair's switchboards lose power, backups or not. No clock: it is already the worst. 10 s at the RMU.
+- **Dry cooler fan failure** (Mechanical): the unit stops, so its plant's chillers may stop; left 60 s, the next unit at the plant fails.
+- **Building mode only**, and none until 3 halls are online (a small campus runs through one RMU).
+- Costs on the rail, auto-dispatch (with both legs of a short's walk), the CEO (only outages), new pictures, failed devices greyed with a red slash, introductions, and CEO lines for each.
+- 9 new tests (432 in all).
+
+Scripted checks (spec 7.3): backups from hall 6 now beat never buying them by about 19%: the yard's failures are what backups protect against.
+
+Worth knowing:
+
+- The first yard failures come once your third hall is online. An RMU fault is rare but the worst there is: run for it.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: a short sent to the RMU then the transformer, an RMU fault darkening the half, techs walking out through the doors. No console errors.
+
+Owner's checklist:
+
+- Watch a tech handle a short: is the walk to the RMU, then the transformer, clear?
+- Does an RMU fault feel like the one to run for?
+- Do mid-game backups now feel worth buying?
 
 ### M29. Building the yard
 

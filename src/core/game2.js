@@ -9,7 +9,7 @@
 //   if (game.pendingPick) choose(game, 0); // take a card after a Delivery
 //   const events = game.events.splice(0);
 
-import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, makeConfig2 } from './config2.js';
+import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, YARD_ALARMS, makeConfig2 } from './config2.js';
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
 import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit } from './ceo.js';
@@ -22,6 +22,9 @@ const CDUS = EQUIPMENT.filter((e) => e.type === 'cdu');
 const MSBS = EQUIPMENT.filter((e) => e.type === 'msb');
 const CHILLERS = EQUIPMENT.filter((e) => e.type === 'chiller');
 const PUMPS = EQUIPMENT.filter((e) => e.type === 'pump');
+const XFMRS = EQUIPMENT.filter((e) => e.type === 'xfmr');
+const RMU_LIST = EQUIPMENT.filter((e) => e.type === 'rmu');
+const DRY_UNITS = EQUIPMENT.filter((e) => e.type === 'dry');
 const ROWS_PER_HALL = ROWS.length / Object.keys(HALLS).length;
 
 const otherHalf = (half) => (half === 't' ? 'b' : 't');
@@ -276,6 +279,27 @@ export function fixDuration(state, alarmType, trade) {
   return def.fixTime * hat * Math.pow(1 - UPGRADES.tools.fixBonus, state.upgrades.tools);
 }
 
+/**
+ * Seconds this tech needs for the alarm's current step (M30): a transformer short is disconnected at
+ * its RMU first (disconnectTime), then repaired at the transformer (fixTime).
+ */
+export function stepDuration(state, alarm, trade) {
+  if (alarm.type === 'short' && alarm.stage === 'disconnect') {
+    return fixDuration(state, 'short', trade) * (ALARMS.short.disconnectTime / ALARMS.short.fixTime);
+  }
+  return fixDuration(state, alarm.type, trade);
+}
+
+/** Where a tech works on this alarm now: a short's RMU until it is disconnected, else the device. */
+export function serviceOf(state, alarm) {
+  const e = EQUIPMENT_BY_ID[alarm.equipId];
+  if (alarm.type === 'short' && alarm.stage === 'disconnect') {
+    const r = EQUIPMENT_BY_ID[e.rmuId];
+    return { x: r.sx, y: r.sy };
+  }
+  return { x: e.sx, y: e.sy };
+}
+
 const progressHold = (state) => (state.upgrades.radios > 0 ? UPGRADES.radios.progressHold : state.config.progressHold);
 
 /** Everything the screen needs to draw one alarm (same shape as pass 1). */
@@ -314,8 +338,14 @@ export function sortedAlarms(state) {
 }
 
 export function walkDistance(state, tech, alarm) {
-  const e = EQUIPMENT_BY_ID[alarm.equipId];
-  return route({ x: tech.x, y: tech.y }, { x: e.sx, y: e.sy }).length;
+  const to = serviceOf(state, alarm);
+  let d = route({ x: tech.x, y: tech.y }, to).length;
+  // A short not yet disconnected: on from the RMU to the transformer afterwards.
+  if (alarm.type === 'short' && alarm.stage === 'disconnect') {
+    const e = EQUIPMENT_BY_ID[alarm.equipId];
+    d += route(to, { x: e.sx, y: e.sy }).length;
+  }
+  return d;
 }
 
 export function nearestIdleTech(state, alarmId) {
@@ -349,6 +379,9 @@ function spawnAlarm(state, type, equipId, cause) {
   if (type === 'breaker') dyn.tripped = true;
   if (type === 'chiller') dyn.running = false;
   if (type === 'pump') dyn.overpressure = true;
+  if (type === 'short') dyn.shorted = true;
+  if (type === 'rmu') dyn.faulted = true;
+  if (type === 'fan') dyn.stopped = true;
   const alarm = {
     id: state.nextAlarmId++,
     type,
@@ -361,6 +394,7 @@ function spawnAlarm(state, type, equipId, cause) {
     queuedAt: null,
     cause,
   };
+  if (type === 'short') alarm.stage = 'disconnect'; // M30: disconnect at the RMU, then repair
   dyn.alarmId = alarm.id;
   state.alarms.push(alarm);
   if (cause === 'escalation') state.stats.escalationSpawns += 1;
@@ -382,7 +416,11 @@ export function raiseAlarm(state, type, equipId) {
 /** Equipment the director may pick for a new alarm of this type, with the mercy rules (spec 4.7). */
 export function eligibleEquipment(state, type) {
   const d = state.config.director;
-  if (state.halls < 2 && !d.firstHallTypes.includes(type)) return [];
+  // The yard's failures (M30) only happen in building mode, where the yard is part of the game.
+  if (YARD_ALARMS.includes(type) && !buildingOn(state)) return [];
+  // Mercy: no yard failures until the campus has a few halls, since a small one runs through one RMU.
+  if (YARD_ALARMS.includes(type) && state.halls < state.config.building.yardFromHalls) return [];
+  if (state.halls < 2 && !d.firstHallTypes.includes(type) && !YARD_ALARMS.includes(type)) return [];
   // Fairness (pass 3 spec 4.3): once the CEO has arrived, no new alarms on anything the CEO could
   // still see. During the warning alarms still come there: that is what getting ready is for.
   const shielded = (e) => state.ceo !== null && state.ceo.phase === 'visit' && onCeoRoute(state, e);
@@ -401,9 +439,22 @@ export function eligibleEquipment(state, type) {
       return spareChillers(state) >= 1 ? CHILLERS.filter((e) => ok(e) && state.equip[e.id].running) : [];
     case 'pump':
       return PUMPS.filter(ok);
+    // M30. A short only where its RMU is working (and its switchboard is built, so it matters).
+    case 'short':
+      return XFMRS.filter((e) => ok(e) && !state.equip[e.id].shorted && !state.equip[e.rmuId].faulted && isBuilt(state, e.msbId));
+    case 'rmu':
+      return RMU_LIST.filter((e) => ok(e) && !state.equip[e.id].faulted && e.feeds.some((x) => isBuilt(state, EQUIPMENT_BY_ID[x].msbId)));
+    case 'fan':
+      // Mercy, as for chillers: only while a spare unit keeps every chiller running.
+      return DRY_UNITS.filter((e) => ok(e) && !state.equip[e.id].stopped && dryCapacity(state, e.plant) - state.config.building.chillersPerDryCooler >= runningAt(state, e.plant));
     default:
       return [];
   }
+}
+
+// Chillers that would run at a plant with all its dry coolers working (for the fan mercy).
+function runningAt(state, plant) {
+  return CHILLERS.filter((c) => c.plant === plant && isOnline(state, c) && state.equip[c.id].running && plantHasPump(state, c.plant)).length;
 }
 
 function freeTech(tech) {
@@ -435,6 +486,9 @@ function clearAlarm(state, alarm, tech) {
   if (alarm.type === 'breaker') dyn.tripped = false;
   if (alarm.type === 'chiller') dyn.running = true;
   if (alarm.type === 'pump') dyn.overpressure = false;
+  if (alarm.type === 'short') dyn.shorted = false;
+  if (alarm.type === 'rmu') dyn.faulted = false;
+  if (alarm.type === 'fan') dyn.stopped = false;
   const age = removeAlarm(state, alarm);
   state.stats.cleared += 1;
   state.stats.clearTimeSum += age;
@@ -503,6 +557,27 @@ function escalate(state, alarm) {
         spawnAlarm(state, 'chiller', target, 'escalation');
         state.stats.secondChillers += 1;
         emit(state, 'escalate', { alarmId: alarm.id, alarmType: 'chiller', equipId: alarm.equipId, effect: 'secondChiller', target });
+      }
+      break;
+    }
+    case 'short': {
+      // M30: left connected, the short takes out its RMU: both sides of that half go dark.
+      alarm.clockEnd = Infinity;
+      const rmuId = eq.rmuId;
+      if (alarm.stage === 'disconnect' && !state.equip[rmuId].faulted && state.equip[rmuId].alarmId === null) {
+        spawnAlarm(state, 'rmu', rmuId, 'escalation');
+        emit(state, 'escalate', { alarmId: alarm.id, alarmType: 'short', equipId: alarm.equipId, effect: 'rmuFault', target: rmuId });
+      }
+      break;
+    }
+    case 'fan': {
+      // M30: the next unit at that plant fails.
+      alarm.clockEnd = Infinity;
+      const candidates = DRY_UNITS.filter((d) => d.plant === eq.plant && isBuilt(state, d.id) && !state.equip[d.id].stopped && state.equip[d.id].alarmId === null).map((d) => d.id);
+      if (candidates.length > 0) {
+        const target = state.rng.pick(candidates);
+        spawnAlarm(state, 'fan', target, 'escalation');
+        emit(state, 'escalate', { alarmId: alarm.id, alarmType: 'fan', equipId: alarm.equipId, effect: 'nextFan', target });
       }
       break;
     }
@@ -850,8 +925,7 @@ export function assign(state, techId, alarmId) {
   alarm.techId = tech.id;
   alarm.holdUntil = null;
   alarm.queuedAt = null;
-  const eq = EQUIPMENT_BY_ID[alarm.equipId];
-  const r = route({ x: tech.x, y: tech.y }, { x: eq.sx, y: eq.sy });
+  const r = route({ x: tech.x, y: tech.y }, serviceOf(state, alarm));
   tech.alarmId = alarm.id;
   tech.path = r.points;
   tech.leg = 1;
@@ -887,6 +961,18 @@ function serviceQueue(state) {
     if (!tech) return;
     assign(state, tech.id, waiting[0].id);
   }
+}
+
+// M30: a short disconnected at its RMU can no longer spread; the same tech walks on to repair it.
+function disconnected(state, alarm, tech) {
+  alarm.stage = 'repair';
+  alarm.progress = 0;
+  alarm.clockEnd = Infinity;
+  emit(state, 'disconnect', { alarmId: alarm.id, equipId: alarm.equipId, techId: tech.id });
+  const r = route({ x: tech.x, y: tech.y }, serviceOf(state, alarm));
+  tech.path = r.points;
+  tech.leg = 1;
+  tech.state = r.length < EPS ? 'fixing' : 'walking';
 }
 
 // ---------------------------------------------------------------- the tick
@@ -946,8 +1032,11 @@ export function step(state, dt) {
         freeTech(tech);
         continue;
       }
-      alarm.progress += dt / fixDuration(state, alarm.type, tech.trade);
-      if (alarm.progress >= 1 - EPS) clearAlarm(state, alarm, tech);
+      alarm.progress += dt / stepDuration(state, alarm, tech.trade);
+      if (alarm.progress >= 1 - EPS) {
+        if (alarm.type === 'short' && alarm.stage === 'disconnect') disconnected(state, alarm, tech);
+        else clearAlarm(state, alarm, tech);
+      }
     }
   }
   serviceQueue(state);

@@ -235,7 +235,7 @@ Compute first is clearly right: backups early earn 87% less. Mid-game backups an
 
 M29's checks (12 seeds): compute first with backups from hall 4 earns $71,885 in 12:28 and reaches 150 MW at 6:22; backups from hall 6 $70,372; never a backup $67,285 (6% less); backups early $10,147 (86% less); never hiring $25,335 (65% less).
 
-### 7.3 M30. Yard failures (owner's answers 15 November; rules and screen)
+### 7.3 M30. Yard failures (built; owner's answers 15 November)
 
 Three new alarm types, each with its own picture on the bubble and ticket, so eight in all. **Transformers do not trip: they short, and a short must be disconnected at the RMU before the transformer can be fixed** (owner).
 
@@ -249,7 +249,11 @@ Three new alarm types, each with its own picture on the bubble and ticket, so ei
 - The RMU is the shared single point of failure: rare (a low weight in the director's mix), but always costly, so it is the alarm to run for. An ignored short is the other way to get one.
 - Breaker trips stay as they are.
 - The CEO only cares about outages, as now: an RMU fault, or a short on a switchboard with no backup, is a sighting until a tech is on it.
-- Scripted checks re-run with the new alarms and prices.
+- **The way out** (M30): five doors in each long wall (at the plant lanes, the gaps between hall pairs and the centre line) lead to a walkway along the yard between the transformers and the RMUs, where techs stand to work on either; a door in each end wall leads to a walkway through the middle of each dry cooler block.
+- **Mercy:** no yard failures until 3 halls are online (`building.yardFromHalls`), since a small campus runs through a single RMU: without it, an early RMU fault could end a run in its first minute.
+- New pictures: a short is two coils with a spark; an RMU fault an open switch; a fan failure a three-bladed fan. A failed yard device is greyed with the red slash a tripped chiller has. Each gets an introduction the first time, and the CEO has lines for each.
+
+M30's checks (12 seeds): compute first with backups from hall 6 earns $80,180 in 13:40; from hall 4 $61,653; never a backup $64,949 (19% less than from hall 6); backups early $10,147; never hiring $42,824. **Mid-game backups now pay**: the yard's failures are what they protect against.
 
 ### 7.4 Milestones
 
@@ -257,7 +261,7 @@ Three new alarm types, each with its own picture on the bubble and ticket, so ei
 |---|---|---|
 | M28 | The yard on the map, black pipes (7.1) | Medium (built) |
 | M29 | Building the yard: spots, prices, the power chain, dry coolers, the start, card and tutorial text (7.2) | Large (built) |
-| M30 | Yard failures: transformer short (disconnect at the RMU, then repair), RMU fault, dry cooler fan failure, with pictures; scripted checks (7.3) | Large |
+| M30 | Yard failures: transformer short (disconnect at the RMU, then repair), RMU fault, dry cooler fan failure, with pictures; the way out to the yard; scripted checks (7.3) | Large (built) |
 
 ## 5. Open questions for the owner
 

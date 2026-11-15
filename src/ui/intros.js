@@ -1,6 +1,7 @@
 // Device introductions after the tutorial (pass 3 spec 4b.4). Pure.
 // The map has no captions, so the first Network Failure and the first Pump Overpressure of a run
-// that began with the tutorial each get a one-line callout naming the device, for a few seconds.
+// that began with the tutorial each get a one-line callout naming the device, for a few seconds, and
+// so do the yard's first transformer short, RMU fault and fan failure (M30).
 // An introduction never covers a CEO warning: it waits until the warning is over.
 
 export const INTRO_SECONDS = 6;
@@ -8,6 +9,10 @@ export const INTRO_SECONDS = 6;
 export const INTRO_TEXT = {
   network: 'A rack row lost its network. Racks are the computers: down racks deliver nothing.',
   pump: "A pump's pressure is climbing. Fix it before the pipe bursts and floods two halls' coolant units.",
+  // The yard (M30).
+  short: 'A transformer shorted. A tech disconnects it at its RMU first, then repairs it. Left alone, the RMU goes.',
+  rmu: 'An RMU failed: both sides of that half are dark, backups or not. This is the one to run for.',
+  fan: "A dry cooler's fan stopped: with no spare, its plant's chillers stop too. Left alone, the next one goes.",
 };
 
 /** A fresh set of introductions: none given yet. */

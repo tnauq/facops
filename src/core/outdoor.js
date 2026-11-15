@@ -24,6 +24,13 @@ export const POLE_EVERY = 280;
  */
 export const YARD_PAD = { y1: RMU.y - RMU.h / 2 - 18 };
 
+/**
+ * Walkways in the yard (M30): one along each long side between the transformers and the RMUs, where
+ * techs stand to work on either; and one through the middle of each dry cooler block.
+ */
+export const YARD_LANE_Y = (TRANSFORMER.y - TRANSFORMER.h / 2 + RMU.y + RMU.h / 2) / 2; // north side
+export const DRY_LANE_X = (DRY.x1 + DRY.x2) / 2; // Plant A's block; Plant B's mirrors it
+
 /** How far past the walls the yard reaches, for the camera (x: past the ends, y: past the sides). */
 export const YARD = { x: 330, y: 280 };
 

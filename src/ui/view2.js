@@ -18,6 +18,10 @@ export function equipmentStatus(state) {
     }
     if (e.type === 'msb') return { tripped: dyn.tripped };
     if (e.type === 'chiller') return { running: dyn.running };
+    // The yard (M30): a shorted transformer, a faulted RMU, a stopped dry cooler.
+    if (e.type === 'xfmr') return { failed: Boolean(dyn.shorted) };
+    if (e.type === 'rmu') return { failed: Boolean(dyn.faulted) };
+    if (e.type === 'dry') return { failed: Boolean(dyn.stopped) };
     if (e.type === 'pump') {
       const alarm = dyn.alarmId === null ? null : getAlarm(state, dyn.alarmId);
       return { pressure: alarm ? 1 - alarmInfo(state, alarm).clockFraction : 0 };

@@ -175,10 +175,11 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   ctx.globalAlpha = 1;
 
   // Walls: the building outline, then every hall with gaps at its doors.
-  wall(ctx, v, 0, 0, WORLD.width, 0, [], 8);
-  wall(ctx, v, 0, WORLD.height, WORLD.width, WORLD.height, [], 8);
-  wall(ctx, v, 0, 0, 0, WORLD.height, [], 8);
-  wall(ctx, v, WORLD.width, 0, WORLD.width, WORLD.height, [], 8);
+  // The outside walls have doors out to the yard (M30).
+  wall(ctx, v, 0, 0, WORLD.width, 0, DOORS, 8);
+  wall(ctx, v, 0, WORLD.height, WORLD.width, WORLD.height, DOORS, 8);
+  wall(ctx, v, 0, 0, 0, WORLD.height, DOORS, 8);
+  wall(ctx, v, WORLD.width, 0, WORLD.width, WORLD.height, DOORS, 8);
   for (const h of Object.values(HALLS)) {
     ctx.globalAlpha = isUp(h.id) ? 1 : OFFLINE_ALPHA;
     const doors = DOORS;
@@ -193,6 +194,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   // a transformer serves is not built yet (or its hall not online, in the classic game).
   // Since M29 each yard device has its own spot: faint until built, filling in while it is built.
   drawYard(ctx, v, screen, {
+    status,
     alpha: (id) => {
       const e = EQUIPMENT_BY_ID[id];
       const sp = spot ? spot(e) : null;

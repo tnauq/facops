@@ -39,8 +39,10 @@ export const inStripTarget = (strip, p) => {
 const PAD = 3; // px inside the strip, top and bottom
 
 /** World to strip px, and back (x only: the strip is true to width). */
-export const stripX = (strip, wx) => strip.x + (wx / WORLD.width) * strip.w;
-export const stripY = (strip, wy) => strip.y + PAD + (wy / WORLD.height) * (strip.h - 2 * PAD);
+// The yard (M30) lies past the building's edges: its alarms and techs sit at the strip's edge.
+const clamp01 = (k) => Math.max(0, Math.min(1, k));
+export const stripX = (strip, wx) => strip.x + clamp01(wx / WORLD.width) * strip.w;
+export const stripY = (strip, wy) => strip.y + PAD + clamp01(wy / WORLD.height) * (strip.h - 2 * PAD);
 export const worldXAt = (strip, px) => Math.max(0, Math.min(WORLD.width, ((px - strip.x) / strip.w) * WORLD.width));
 
 /**

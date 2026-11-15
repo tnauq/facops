@@ -32,6 +32,13 @@ function urgency(state, alarm) {
       return spareChillers(state) === 0 || left < 20 ? 1 : 5;
     case 'pump':
       return left < 12 ? 1 : 2.5;
+    // The yard (M30): an RMU fault is the worst there is; a short threatens its RMU.
+    case 'rmu':
+      return 0;
+    case 'short':
+      return left < 15 ? 0.3 : 1;
+    case 'fan':
+      return left < 20 ? 1 : 3;
     default:
       return 1.5; // a network failure is losing power now
   }

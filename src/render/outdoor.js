@@ -3,7 +3,7 @@
 // lines on poles, and the dry cooler blocks piped to the plants' pumps. Seen from above, in the
 // style of the equipment inside. Positions come from src/core/outdoor.js.
 
-import { DRY_COOLERS, DRY_PIPES, POLES, POWER_LINES, RMUS, TRANSFORMERS, WORLD } from '../core/layout2.js';
+import { DRY_COOLERS, DRY_PIPES, EQUIPMENT_BY_ID, POLES, POWER_LINES, RMUS, TRANSFORMERS, WORLD } from '../core/layout2.js';
 import { RMU, TRANSFORMER, YARD_PAD } from '../core/outdoor.js';
 import { drawJoints, fillConcrete } from './floors.js';
 
@@ -136,6 +136,12 @@ function pole(ctx, v, p) {
   ctx.fill();
 }
 
+// A failed yard device (M30): greyed, with the red slash a tripped chiller has.
+function failedMark(ctx, v, x, y, w, h) {
+  box(ctx, v, x, y, w, h, 'rgba(40, 44, 50, 0.35)', null, 4);
+  polyline(ctx, v, [{ x: x - w * 0.38, y: y + h * 0.38 }, { x: x + w * 0.38, y: y - h * 0.38 }], 4, '#D9483B');
+}
+
 // ---------------------------------------------------------------- cooling
 
 // A dry cooler unit from above: a grey frame with two big fans.
@@ -198,7 +204,8 @@ export function drawYardGround(ctx, v) {
  * (faint while it is only a spot, filling in while it is built). Called after the building's floors
  * and walls, before the equipment inside.
  */
-export function drawYard(ctx, v, screen, { alpha = () => 1 } = {}) {
+export function drawYard(ctx, v, screen, { alpha = () => 1, status = () => ({}) } = {}) {
+  const failed = (id) => Boolean(status(EQUIPMENT_BY_ID[id]).failed);
   ctx.save();
   // Dry cooler blocks on their pads, then their pipes to the pumps.
   for (const d of DRY_COOLERS) {
@@ -211,6 +218,7 @@ export function drawYard(ctx, v, screen, { alpha = () => 1 } = {}) {
     for (const u of d.units) {
       ctx.globalAlpha = alpha(u.id);
       dryCooler(ctx, v, u);
+      if (failed(u.id)) failedMark(ctx, v, u.x, u.y, u.w, u.h);
     }
     ctx.globalAlpha = 1;
   }
@@ -235,11 +243,13 @@ export function drawYard(ctx, v, screen, { alpha = () => 1 } = {}) {
     if (!seen(v, screen, r.x, r.y, 40)) continue;
     ctx.globalAlpha = alpha(r.id);
     rmu(ctx, v, r);
+    if (failed(r.id)) failedMark(ctx, v, r.x, r.y, RMU.w, RMU.h);
   }
   for (const t of TRANSFORMERS) {
     if (!seen(v, screen, t.x, t.y, 50)) continue;
     ctx.globalAlpha = alpha(t.id);
     transformer(ctx, v, t);
+    if (failed(t.id)) failedMark(ctx, v, t.x, t.y, TRANSFORMER.w, TRANSFORMER.h);
   }
   ctx.restore();
 }

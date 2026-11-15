@@ -8,7 +8,7 @@ export const TICKET_HEIGHT = 44;
 export const GAP = 4;
 export const CHIP_HEIGHT = 22;
 
-export const ALARM_SHORT = { network: 'Network', leak: 'Leak', breaker: 'Breaker', pump: 'Pump', chiller: 'Chiller' };
+export const ALARM_SHORT = { network: 'Network', leak: 'Leak', breaker: 'Breaker', pump: 'Pump', chiller: 'Chiller', short: 'Short', rmu: 'RMU', fan: 'Fan' };
 
 /**
  * The bar along the bottom of a ticket: clock left while unattended, fix progress while a tech is
