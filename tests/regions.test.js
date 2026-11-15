@@ -64,3 +64,15 @@ for (const [W, H] of SIZES) {
     assert.ok(m.y >= HUD_HEIGHT);
   });
 }
+
+for (const [W] of [[844], [660]]) {
+  test(`at ${W} wide, with the speed buttons: hold, speed and the gear, 44 px each, clear of the meter (pass 4 spec 3.4)`, () => {
+    const hud = hudLayout(W, { speedButtons: true });
+    assert.deepEqual(hud.buttons.map((b) => b.id), ['hold', 'speed', 'settings']);
+    assert.equal(hud.buttons.at(-1).x + hud.buttons.at(-1).w, W);
+    assert.ok(hud.meter.x + hud.meter.w < hud.buttons[0].x);
+    for (const b of hudButtonTargets(W, { speedButtons: true })) assert.ok(b.w >= 44 && b.h >= 44);
+    // Real-time mode keeps pass 3's two buttons.
+    assert.deepEqual(hudLayout(W).buttons.map((b) => b.id), ['settings', 'pause']);
+  });
+}

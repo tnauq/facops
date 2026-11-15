@@ -1,6 +1,6 @@
 # FacOps pass 4 build spec: build and manage
 
-Version 0.1 (draft for the owner's approval), 14 November 2026. Written after the owner played M21: the pressure still turns "very crazy around 6 minutes", the rail's switch from tickets to tiles causes misclicks, and the owner wants to move from a pure dispatch game towards a Prison Architect-style management game **on the existing layout, with tap-to-build in predetermined spots**.
+Version 0.2, 14 November 2026: **approved by the owner**, with the answers to section 5 folded in (0.1 was the draft). Written after the owner played M21: the pressure still turns "very crazy around 6 minutes", the rail's switch from tickets to tiles causes misclicks, and the owner wants to move from a pure dispatch game towards a Prison Architect-style management game **on the existing layout, with tap-to-build in predetermined spots**.
 
 When approved, this becomes the source of truth for pass 4, as `docs/pass3-spec.md` was for pass 3. Pass 3's rules and screen carry over except where this spec says otherwise. Numbers marked *starting value* are for M24's scripted checks to settle. Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them.
 
@@ -11,7 +11,10 @@ When approved, this becomes the source of truth for pass 4, as `docs/pass3-spec.
 | Who sends techs to alarms? | Techs pick their own jobs; the player can override |
 | What can be built? | Every current device. A data hall comes online once it has at least 1 switchboard (MSB), 1 coolant unit (CDU) and there is at least 1 chiller |
 | What pays for building? | Money from the MW delivered |
-| Pause and speed controls? | An option |
+| Pause and speed controls? | An option: on by default; real-time mode (no pause or speed buttons) is for experienced players |
+| Pumps? | Buildable, and a plant's chillers need one (as drafted) |
+| How does a run start? | Hall 1 already has the bare minimum: one pump, one chiller, one switchboard, one coolant unit and a few rack rows |
+| CEO triggers? | As drafted (2.8) |
 
 ## 1. What changes, in one paragraph
 
@@ -29,6 +32,7 @@ The design pillars change one word: **Redundancy is the drama, and now it is you
 - **Build time:** 8 s (*starting value*), shown as a ring on the spot. A contractor builds it; no tech is needed.
 - No selling or demolishing in pass 4.
 - Halls can be built in any order. Plant B's spots are open from the start.
+- **The run starts with the bare minimum for one hall** (owner): Plant A's top pump and one chiller, and in Hall 1 the top half's A switchboard, the top coolant unit and 2 rack rows in the top half. Everything else is empty. Starting cash: **$400** (*starting value*), enough for the next rack row and a backup soon after.
 
 ### 2.2 Prices (*starting values*)
 
@@ -40,11 +44,11 @@ Money is shown as `$`, in whole dollars (`$1,240`).
 | Switchboard (MSB) | $200 | Each half-hall has an A and a B spot |
 | Coolant unit (CDU) | $250 | Each hall has a top and a bottom spot |
 | Chiller | $300 | 8 spots per plant |
-| Pump | $200 | 2 spots per plant (see open question 1) |
+| Pump | $200 | 2 spots per plant; a plant's chillers need one |
 | Hire a tech | $400 | Pick the trade (section 2.6) |
 | Upgrade (Carts, Better tools, Radios) | $500 | As in pass 2, same limits |
 
-Starting cash: **$1,200**, enough for a minimal working hall (one each of pump, chiller, switchboard, coolant unit, and one rack row). Everything on the campus costs about $23,000.
+Everything on the campus costs about $23,000.
 
 ### 2.3 What works
 
@@ -56,7 +60,7 @@ A rack row delivers its 6.25 MW (times the cooling factor, as now) only when **a
 
 A **hall is online** when it has at least 1 built switchboard and 1 built coolant unit, and at least 1 chiller is built anywhere (owner's rule). Online halls show their title; offline halls stay pale. A row built in a hall that is not online yet earns nothing until it is.
 
-**Chillers needed** = rows built × 1.25 / 6, rounded up (the same ratio as pass 2's 1.25 per full hall). Too few running and the cooling factor falls as now. A plant's chillers only run while that plant has at least 1 built pump (see open question 1).
+**Chillers needed** = rows built × 1.25 / 6, rounded up (the same ratio as pass 2's 1.25 per full hall). Too few running and the cooling factor falls as now. A plant's chillers only run while that plant has at least 1 built pump (owner).
 
 ### 2.4 Redundancy is the player's choice
 
@@ -119,9 +123,11 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 
 ### 3.4 Speed controls  [owner: an option]
 
-- A drawer switch, **Pause and speed buttons** (on by default [Recommended]). When on, the HUD gets `❚❚ · 1x · 2x` (one 44 px button that cycles, plus the existing pause).
-- While paused this way (not the pause card), the player can still build, select, assign and redirect; nothing moves.
-- 2x doubles game time; building and money run at the same rate.
+- On by default. A drawer switch, **Real-time mode**, takes them away, for experienced players (owner).
+- With the buttons, the HUD's right end holds three 44 px buttons: **Hold** (`❚❚`, turning to `▶` while held), **Speed** (`1x` / `2x`), and the **menu** (the gear, which opens the pause card with Resume, Restart and Tuning).
+- While held, nothing moves, but the player can still select, assign and redirect (and, from M25, build). The space bar holds and releases.
+- 2x runs the game twice as fast; everything (clocks, walking, money) keeps the same rate in game time.
+- In real-time mode the HUD is as in pass 3: the gear opens the drawer, `❚❚` opens the pause card.
 
 ### 3.5 The rail
 
@@ -170,10 +176,7 @@ A scripted **builder** player: builds in a fixed sensible order (one hall's mini
 
 ## 5. Open questions for the owner
 
-1. **Pumps.** Your rule names switchboard, coolant unit and chiller. Should pumps be (a) buildable and required for a plant's chillers to run [as drafted], (b) built for free with each plant's first chiller, or (c) left out of building, always there?
-2. **CEO.** Drafted: ribbon-cutting at the 3rd hall online, Handover at 200 MW or at 10:00, then walkthroughs as now. Keep, or change?
-3. **Where to start.** Hall 1 and Plant A empty, $1,200 to spend (drafted); or Hall 1 already built with a few racks, so the first minute is playing rather than shopping?
-4. **Speed buttons default:** on (drafted) or off?
+All answered on 14 November (section 0).
 
 ## 6. Out of pass 4
 

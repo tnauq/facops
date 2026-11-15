@@ -55,8 +55,21 @@ function drawPauseBars(ctx, cx, cy, r) {
   ctx.fillRect(cx + r * 0.25, cy - r, r * 0.55, r * 2);
 }
 
-/** layout: hudLayout(W). model: hudModel(state). note: optional muted text (or wordings, longest first). */
-export function drawHud(ctx, W, layout, model, note = '') {
+function drawPlay(ctx, cx, cy, r) {
+  ctx.fillStyle = INK;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.6, cy - r);
+  ctx.lineTo(cx + r * 0.9, cy);
+  ctx.lineTo(cx - r * 0.6, cy + r);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
+ * layout: hudLayout(W). model: hudModel(state). note: optional muted text (or wordings, longest
+ * first). buttons: { held, speed } for the hold and speed buttons (pass 4 spec 3.4).
+ */
+export function drawHud(ctx, W, layout, model, note = '', buttons = { held: false, speed: 1 }) {
   const { cy } = layout;
   // The strip: a white panel with an edge along the bottom.
   ctx.fillStyle = PANEL;
@@ -112,7 +125,14 @@ export function drawHud(ctx, W, layout, model, note = '') {
     ctx.stroke();
     const cx = b.x + b.w / 2;
     if (b.id === 'settings') drawGear(ctx, cx, cy, 7);
-    else drawPauseBars(ctx, cx, cy, 7);
+    else if (b.id === 'hold') (buttons.held ? drawPlay : drawPauseBars)(ctx, cx, cy, 7);
+    else if (b.id === 'speed') {
+      ctx.font = `700 14px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = INK;
+      ctx.fillText(`${buttons.speed}x`, cx, cy + 1);
+      ctx.textAlign = 'left';
+    } else drawPauseBars(ctx, cx, cy, 7);
   }
 }
 

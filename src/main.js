@@ -45,7 +45,7 @@ import { mapTargets2, railTargets2 } from './ui/targets2.js';
 import { HUD_HEIGHT, crewColumns, hudLayout, regions } from './ui/regions.js';
 import { createFeel2, feelEvents2, flashAlpha, liveCelebrations, liveFloats } from './ui/feel2.js';
 import { crewCards, techForKey } from './ui/crewbar.js';
-import { autoTop, railTickets2, scrollByDrag } from './ui/rail2.js';
+import { autoTop, railTapCounts, railTickets2, scrollByDrag } from './ui/rail2.js';
 import { DRAG_PX } from './ui/drag.js';
 import { hudModel2 } from './ui/hud2.js';
 import { reduceFlow } from './ui/flow.js';
@@ -87,6 +87,7 @@ const portrait = () => size.h > size.w;
 // ---- Rounds and screens ----
 
 function newRound() {
+  held = false;
   round = {
     state: createGame({ seed: Date.now() % 1000000000, config: tuning2.tuningToConfig(tuning) }),
     clock: createClock(),
@@ -99,6 +100,8 @@ function newRound() {
     callout: '',
     railFirst: 0, // the rail's scroll position (pass 3 spec 2.3)
     railKnown: new Set(), // alarms already costing something, for sending the rail back to the top
+    railCompact: false, // whether the rail showed tiles last frame (pass 4 spec 3.5)
+    railSwitchedAt: null, // when it last changed between tickets and tiles (ms), to ignore stray taps
     ceoView: createCeoView(), // the CEO's lines, the assistant's trail, shaken bubbles
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
@@ -130,6 +133,20 @@ function markTutorialSeen() {
 
 function showStart() {
   showOverlay('start', { best: bestText(best, formatClock) });
+}
+
+// Hold and speed (pass 4 spec 3.4). While held nothing moves, but taps still select, assign and
+// redirect. Both belong to the screen, not the rules: 2x simply runs two rules steps per step.
+let held = false;
+let speed = 1;
+const speedButtons = () => round && !round.state.config.realtime;
+
+function pressButton(id) {
+  if (id === 'hold') held = !held;
+  else if (id === 'speed') speed = speed === 1 ? 2 : 1;
+  else if (id === 'settings') act(speedButtons() ? 'pause' : 'tuning'); // the gear is the menu when the speed buttons show
+  else act('pause');
+  draw();
 }
 
 function act(action) {
@@ -278,8 +295,10 @@ function draw() {
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
-  const rail = railTickets2(s, regs.rail, alarmId, round.railFirst);
+  const rail = railTickets2(s, regs.rail, alarmId, round.railFirst, round.railCompact);
   round.railFirst = rail.first;
+  if (rail.compact !== round.railCompact) round.railSwitchedAt = performance.now();
+  round.railCompact = rail.compact;
   drawRail2(ctx, rail);
   if (round.callout) {
     // Keep the callout away from the alarms the lesson is about.
@@ -292,17 +311,18 @@ function draw() {
     drawCallout(ctx, cam.rect, round.callout, ys);
   }
   const model = hudModel2(s, { auto: round.auto });
-  drawHud(ctx, w, hudLayout(w), model, [model.note, model.noteShort]);
+  const notes = held ? ['Held: tap ▶ to carry on', 'Held'] : [model.note, model.noteShort];
+  drawHud(ctx, w, hudLayout(w, { speedButtons: speedButtons() }), model, notes, { held, speed });
   drawHudFlash(ctx, w, HUD_HEIGHT, flashAlpha(round.feel, s.t));
 }
 
 function frame(now) {
   const { state } = round;
-  const paused = mode !== 'playing' || document.hidden || portrait() || state.over;
+  const paused = mode !== 'playing' || document.hidden || portrait() || state.over || held;
   runFrame(round.clock, now, (dt) => {
     // #auto takes the first card; a player chooses on the Delivery card (step waits until then).
     if (round.auto && state.pendingPick) choose(state, pickFor(state, 'first'));
-    step(state, dt);
+    for (let k = 0; k < speed && !state.over; k++) step(state, dt);
     if (round.auto && state.t >= round.nextAuto && greedyMove(state, { reaction: 1 })) round.nextAuto = state.t + AUTO_GAP;
   }, paused);
   const events = state.events.splice(0); // drained every frame so the list never grows
@@ -324,7 +344,7 @@ function frame(now) {
   if (state.over && mode === 'playing') roundOver();
   round.selection = pruneSelection(round.selection, state);
   if (!railGesture) {
-    const top = autoTop(state, layout().rail, round.railFirst, round.railKnown);
+    const top = autoTop(state, layout().rail, round.railFirst, round.railKnown, round.railCompact);
     round.railFirst = top.first;
     round.railKnown = top.known;
   }
@@ -372,7 +392,7 @@ function onDown(e) {
   e.preventDefault();
   const p = point(e);
   const regs = layout();
-  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst);
+  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst, round.railCompact);
   // A rail that overflows scrolls with a drag, so its tickets and chips act when the finger lifts
   // (pass 3 spec 2.3). Otherwise HUD buttons, crew cards and tickets act at finger-down, as in pass 1.
   const onRail = p.x >= regs.rail.x && p.y >= regs.rail.y && !hitTest(p, { buttons: targets.buttons }).id;
@@ -383,9 +403,10 @@ function onDown(e) {
   }
   const hit = hitTest(p, targets);
   if (hit.kind === 'button') {
-    act(hit.id === 'settings' ? 'tuning' : 'pause');
+    pressButton(hit.id);
     return;
   }
+  if (onRail && !railTapCounts(round.railSwitchedAt, performance.now())) return; // the rail just changed under the finger
   if (hit.kind !== 'empty') {
     applyTap(hit);
     revealFor(hit);
@@ -422,7 +443,7 @@ function onMove(e) {
     const p = point(e);
     const dy = railGesture.start.y - p.y; // finger up moves further down the list
     if (!railGesture.dragging && Math.abs(dy) > DRAG_PX) railGesture.dragging = true;
-    if (railGesture.dragging) round.railFirst = scrollByDrag(railGesture.startFirst, dy, layout().rail.h, round.state.alarms.length);
+    if (railGesture.dragging) round.railFirst = scrollByDrag(railGesture.startFirst, dy, layout().rail.h, round.state.alarms.length, round.railCompact);
     return;
   }
   if (!gesture) return;
@@ -435,7 +456,8 @@ function onRailUp(e) {
   const g = railGesture;
   railGesture = null;
   if (e.type === 'pointercancel' || g.dragging || !canPlay()) return;
-  const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst);
+  const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst, round.railCompact);
+  if (!railTapCounts(round.railSwitchedAt, performance.now())) return; // the rail just changed under the finger
   const hit = hitTest(g.start, { tickets: targets.tickets });
   applyTap(hit); // a ticket, or the gap between tickets (clears the selection)
   if (hit.kind !== 'empty') revealFor(hit);
@@ -466,7 +488,8 @@ function onKey(e) {
   if (e.repeat && !KEY_PAN[e.key]) return;
   if (e.code === 'Space') {
     e.preventDefault();
-    act('togglePause');
+    if (speedButtons() && mode === 'playing') pressButton('hold');
+    else act('togglePause');
     return;
   }
   if (KEY_PAN[e.key] && cam) {

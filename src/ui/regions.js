@@ -44,10 +44,11 @@ export const METER_HEIGHT = 12;
 
 /**
  * Where each HUD item sits, left to right: clock, band mark and load, "Stability" and its bar,
- * then the settings and pause buttons at the right end. x values are left edges; cy is the
- * strip's vertical middle.
+ * then the buttons at the right end. x values are left edges; cy is the strip's vertical middle.
+ * Buttons: in real-time mode the settings gear and pause, as in pass 3; otherwise (pass 4 spec
+ * 3.4, the default) hold, speed, and the gear, which then opens the pause card.
  */
-export function hudLayout(W) {
+export function hudLayout(W, { speedButtons = false } = {}) {
   const cy = HUD_HEIGHT / 2;
   return {
     cy,
@@ -57,14 +58,12 @@ export function hudLayout(W) {
     meterLabel: { x: 200 },
     meter: { x: 254, y: cy - METER_HEIGHT / 2, w: METER_WIDTH, h: METER_HEIGHT },
     note: { x: 254 + METER_WIDTH + 12 }, // free space, used for "Auto" while the scripted player plays
-    buttons: [
-      { id: 'settings', x: W - 2 * BUTTON_WIDTH, y: 0, w: BUTTON_WIDTH, h: HUD_HEIGHT },
-      { id: 'pause', x: W - BUTTON_WIDTH, y: 0, w: BUTTON_WIDTH, h: HUD_HEIGHT },
-    ],
+    buttons: (speedButtons ? ['hold', 'speed', 'settings'] : ['settings', 'pause']).map((id, i, ids) => (
+      { id, x: W - (ids.length - i) * BUTTON_WIDTH, y: 0, w: BUTTON_WIDTH, h: HUD_HEIGHT })),
   };
 }
 
 /** The HUD buttons as tap targets for hitTest: as drawn, but 44 px tall. */
-export function hudButtonTargets(W) {
-  return hudLayout(W).buttons.map((b) => ({ ...b, h: BUTTON_TAP_HEIGHT }));
+export function hudButtonTargets(W, opts = {}) {
+  return hudLayout(W, opts).buttons.map((b) => ({ ...b, h: BUTTON_TAP_HEIGHT }));
 }

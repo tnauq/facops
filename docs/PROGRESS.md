@@ -48,7 +48,43 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 | M20. Gentler escalation; a rail without pages | `m20` | Done |
 | M21. A cleaner map; each device introduced | `m21` | Done |
 
+## Pass 4
+
+The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 November 2026.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M22. Rail fix; hold and speed buttons | `m22` | Done |
+| M23. Techs pick their own jobs | `m23` | |
+| M24. Rules for building | `m24` | |
+| M25. Building on screen | `m25` | |
+| M26. Hiring and upgrades for money | `m26` | |
+| M27. New tutorial and balance | `m27` | |
+
 ## Log
+
+### M22. Rail fix, and hold and speed buttons
+
+The first milestone of pass 4 (spec 3.4, 3.5). Screen only.
+
+Built:
+
+- **No more misclicks when the rail changes.** Once the rail turns to tiles it stays tiles until the alarms fit as tickets with 3 slots to spare, so it no longer flips back and forth. And a tap on the rail in the 0.4 s after it changes between tickets and tiles is ignored, since the finger was aiming at where a ticket used to be.
+- **Hold and speed buttons** (on by default): at the HUD's right end, **Hold** (`❚❚`, showing `▶` while held), **Speed** (`1x` / `2x`) and the gear, which now opens the pause card (Resume, Restart, Tuning). While held, nothing moves but you can still select, send and redirect techs; the HUD says "Held". The space bar holds and releases. 2x runs two rules steps per step, so everything keeps its rate in game time.
+- **Real-time mode** in the drawer takes the hold and speed buttons away (for experienced players); the HUD is then as in pass 3. It applies from the next round.
+- Pass 4 spec 0.2 (approved) in `docs/pass4-spec.md`; `CLAUDE.md` now points at it.
+- 4 new tests (366 in all).
+
+Worth knowing:
+
+- Hold and speed are screen controls; the rules are unchanged. A held game still pauses properly (with the pause card) when the phone locks or the app goes to the background.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: holding stops the clock, a tech can be sent while held, 2x runs two seconds of game a second, and the gear opens the pause card. No console errors.
+
+Owner's checklist:
+
+- Late in a run, hold the game, sort out the alarms, then carry on. Does that take the edge off the crazy part?
+- Try 2x early in a run, when nothing much is happening.
+- Watch the rail as alarms come and go around 7 or 8: does it stay put, and do your taps land where you meant?
 
 ### M21. A cleaner map, and each device introduced
 

@@ -115,3 +115,26 @@ test('a new alarm that costs more than everything in view sends the rail back to
   r = autoTop(s, rail, 3, r.known);
   assert.equal(r.first, 3);
 });
+
+test('tiles stay until the alarms fit as tickets with 3 slots to spare, so the rail does not flip (pass 4 spec 3.5)', async () => {
+  const { BACK_TO_TICKETS } = await import('../src/ui/rail2.js');
+  const rail = regions(844, 390).rail; // 7 ticket slots
+  assert.equal(BACK_TO_TICKETS, 3);
+  assert.equal(railMode(rail.h, 8).compact, true);
+  // Coming down from tiles: still tiles at 7, 6 and 5 alarms...
+  for (const n of [7, 6, 5]) assert.equal(railMode(rail.h, n, true).compact, true, `${n} alarms`);
+  // ...tickets again at 4.
+  assert.equal(railMode(rail.h, 4, true).compact, false);
+  // Going up from tickets: tickets until they overflow.
+  assert.equal(railMode(rail.h, 7, false).compact, false);
+  const r = railTickets2(crowded(6), rail, null, 0, true);
+  assert.equal(r.compact, true);
+  assert.equal(r.tickets[0].w, TILE);
+});
+
+test('a tap on the rail just after it changed between tickets and tiles does not count', async () => {
+  const { RAIL_SETTLE_MS, railTapCounts } = await import('../src/ui/rail2.js');
+  assert.equal(railTapCounts(null, 1000), true);
+  assert.equal(railTapCounts(1000, 1000 + RAIL_SETTLE_MS - 1), false);
+  assert.equal(railTapCounts(1000, 1000 + RAIL_SETTLE_MS), true);
+});

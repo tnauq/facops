@@ -20,22 +20,37 @@ export const slotsIn = (railHeight) => Math.max(1, Math.floor((railHeight - GAP)
 /** Rows of tiles in a rail this tall. */
 export const tileRowsIn = (railHeight) => Math.max(1, Math.floor((railHeight - GAP) / TILE_SLOT));
 
-/** How the rail shows `count` alarms: { compact, rows, capacity } (rows of tiles or tickets). */
-export function railMode(railHeight, count) {
+// Tiles stay until the alarms fit as tickets with this many slots to spare (pass 4 spec 3.5), so
+// the rail does not flip back and forth under a finger as alarms come and go.
+export const BACK_TO_TICKETS = 3;
+
+// A tap on the rail this soon after it changed between tickets and tiles is ignored: the finger was
+// aiming at where a ticket used to be (pass 4 spec 3.5).
+export const RAIL_SETTLE_MS = 400;
+
+/** Whether a tap on the rail at `now` (ms) counts, given when the rail last changed layout. */
+export const railTapCounts = (switchedAt, now) => switchedAt === null || now - switchedAt >= RAIL_SETTLE_MS;
+
+/**
+ * How the rail shows `count` alarms: { compact, rows, capacity } (rows of tiles or tickets).
+ * wasCompact: whether the rail showed tiles last frame.
+ */
+export function railMode(railHeight, count, wasCompact = false) {
   const slots = slotsIn(railHeight);
-  if (count <= slots) return { compact: false, rows: slots, capacity: slots };
+  const tiles = count > slots || (wasCompact && count > slots - BACK_TO_TICKETS);
+  if (!tiles) return { compact: false, rows: slots, capacity: slots };
   const rows = tileRowsIn(railHeight);
   return { compact: true, rows, capacity: rows * TILES_ACROSS };
 }
 
 /** The furthest the rail can scroll, in rows of tiles (0 unless even the tiles overflow). */
-export function maxFirst(railHeight, count) {
-  const m = railMode(railHeight, count);
+export function maxFirst(railHeight, count, wasCompact = false) {
+  const m = railMode(railHeight, count, wasCompact);
   if (!m.compact || count <= m.capacity) return 0;
   return Math.ceil((count - m.capacity) / TILES_ACROSS);
 }
 
-export const clampFirst = (first, railHeight, count) => Math.max(0, Math.min(Math.round(first), maxFirst(railHeight, count)));
+export const clampFirst = (first, railHeight, count, wasCompact = false) => Math.max(0, Math.min(Math.round(first), maxFirst(railHeight, count, wasCompact)));
 
 function ticketOf(state, alarm, cost, selectedAlarmId, box) {
   const info = alarmInfo(state, alarm);
@@ -61,12 +76,13 @@ function ticketOf(state, alarm, cost, selectedAlarmId, box) {
  * { tickets, compact, more, first }. Tickets as in rail.js, plus `cost` (whole MW, 0 when free),
  * `costText` ("−6 MW" or "") and `info`. compact: whether they are tiles. more: null, or the note
  * { x, y, w, h, text: "+N" } over the bottom of the rail when tiles are hidden below. first: the
- * scroll position (rows of tiles) after clamping.
+ * scroll position (rows of tiles) after clamping. wasCompact: whether the rail showed tiles last
+ * frame (the screen keeps it; see BACK_TO_TICKETS).
  */
-export function railTickets2(state, rect, selectedAlarmId = null, first = 0) {
+export function railTickets2(state, rect, selectedAlarmId = null, first = 0, wasCompact = false) {
   const order = triageOrder(state);
-  const mode = railMode(rect.h, order.length);
-  const f = clampFirst(first, rect.h, order.length);
+  const mode = railMode(rect.h, order.length, wasCompact);
+  const f = clampFirst(first, rect.h, order.length, wasCompact);
   const left = rect.x + (rect.w - TICKET_WIDTH) / 2;
   if (!mode.compact) {
     const tickets = order.map(({ alarm, cost }, i) =>
@@ -90,12 +106,12 @@ export function railTickets2(state, rect, selectedAlarmId = null, first = 0) {
  * Back to the top when an alarm newly starts costing more than everything in view (spec 2.3).
  * known: Set of alarm ids that were costing something last time. Returns { first, known }.
  */
-export function autoTop(state, rect, first, known) {
+export function autoTop(state, rect, first, known, wasCompact = false) {
   const order = triageOrder(state);
   const now = new Set(order.filter((x) => x.cost > 0).map((x) => x.alarm.id));
-  let f = clampFirst(first, rect.h, order.length);
+  let f = clampFirst(first, rect.h, order.length, wasCompact);
   if (f > 0) {
-    const mode = railMode(rect.h, order.length);
+    const mode = railMode(rect.h, order.length, wasCompact);
     const inView = order.slice(f * TILES_ACROSS, f * TILES_ACROSS + mode.capacity);
     const best = Math.max(0, ...inView.map((x) => x.cost));
     const fresh = order.some((x) => x.cost > best && !known.has(x.alarm.id) && now.has(x.alarm.id));
@@ -105,4 +121,4 @@ export function autoTop(state, rect, first, known) {
 }
 
 /** Rail scroll from a vertical drag of `dy` px (finger up = positive = further down the list). */
-export const scrollByDrag = (first, dy, railHeight, count) => clampFirst(first + dy / TILE_SLOT, railHeight, count);
+export const scrollByDrag = (first, dy, railHeight, count, wasCompact = false) => clampFirst(first + dy / TILE_SLOT, railHeight, count, wasCompact);

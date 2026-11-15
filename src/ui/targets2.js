@@ -44,11 +44,11 @@ function trimAbove(button, tickets) {
  * scroll position (pass 3 spec 4b.2). `scrolls` says whether the rail overflows even as tiles
  * (then it acts on finger-up, so a drag can scroll it). There are no chips any more.
  */
-export function railTargets2(state, regs, crewColumns, railFirst = 0) {
-  const rail = railTickets2(state, regs.rail, null, railFirst);
+export function railTargets2(state, regs, crewColumns, railFirst = 0, railCompact = false) {
+  const rail = railTickets2(state, regs.rail, null, railFirst, railCompact);
   const tickets = rail.tickets.map(rectOf);
   return {
-    buttons: hudButtonTargets(regs.hud.w).map((b) => trimAbove(b, tickets)),
+    buttons: hudButtonTargets(regs.hud.w, { speedButtons: !state.config.realtime }).map((b) => trimAbove(b, tickets)),
     cards: crewCards(state, regs.crew, null, { columns: crewColumns }).map(rectOf),
     tickets,
     scrolls: rail.more !== null || rail.first > 0,
