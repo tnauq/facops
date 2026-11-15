@@ -12,8 +12,9 @@
 import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, makeConfig2 } from './config2.js';
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
-import { ceoStep, onCeoRoute, queueCeoVisit } from './ceo.js';
+import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit } from './ceo.js';
 import { autoDispatch } from './auto.js';
+import { HALL_IDS, buildingOn, builtCdus, builtMsbs, hallOnline, isBuilt, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
 
 const EPS = 1e-9;
 const ROWS = EQUIPMENT.filter((e) => e.type === 'row');
@@ -47,13 +48,20 @@ export function createGame({ seed = 1, config = {} } = {}) {
     if (e.type === 'msb') dyn.tripped = false;
     if (e.type === 'chiller') dyn.running = true;
     if (e.type === 'pump') dyn.overpressure = false;
+    if (e.type === 'cdu') dyn.shut = false; // building mode: a lone CDU's leak ran out of clock (2.4)
+    if (cfg.building.enabled) {
+      dyn.built = cfg.building.start.includes(e.id);
+      dyn.buildEnd = null; // while a contractor builds it: when it will be done
+    }
     equip[e.id] = dyn;
   }
-  const halls = Math.max(1, Math.min(cfg.maxHalls, cfg.startHalls));
+  const building = cfg.building.enabled;
+  const halls = building ? 0 : Math.max(1, Math.min(cfg.maxHalls, cfg.startHalls));
   const techs = cfg.startCrew.map((trade, i) => makeTech(trade, i, START_POINT));
   // Starting with more halls also brings the automatic hires those Deliveries would have made.
-  cfg.autoHires.slice(0, halls - 1).forEach((trade, k) => techs.push(makeTech(trade, techs.length, arrivalPoint(k + 2))));
-  return {
+  // In building mode the crew is bought instead (pass 4 spec 2.6).
+  if (!building) cfg.autoHires.slice(0, halls - 1).forEach((trade, k) => techs.push(makeTech(trade, techs.length, arrivalPoint(k + 2))));
+  const state = {
     seed,
     config: cfg,
     rng: createRng(seed),
@@ -76,7 +84,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     meter: cfg.meter.start,
     band: 'green',
     halfDark: {}, // "<hall>-<t|b>": true while that half of the hall is dark
-    director: { nextSpawn: cfg.director.firstSpawn, nextWave: cfg.director.waveEvery },
+    director: { nextSpawn: cfg.building.enabled ? cfg.building.firstSpawn : cfg.director.firstSpawn, nextWave: cfg.director.waveEvery },
     stats: {
       energyMwh: 0,
       possibleMwh: 0,
@@ -108,7 +116,20 @@ export function createGame({ seed = 1, config = {} } = {}) {
     ceoWalks: 0, // walkthroughs started
     ceoVisits: 0, // visits finished
     ceoRng: createRng((seed * 7919 + 104729) >>> 0),
+    // Building mode (pass 4 spec 2.1, 2.5).
+    cash: building ? cfg.building.startCash : 0,
+    hallsUp: null, // hall id -> online (building mode; see sites.js)
+    handoverQueued: false,
+    ribbonQueued: false,
   };
+  if (building) {
+    state.stats.earned = 0;
+    state.stats.spent = 0;
+    state.stats.built = 0;
+    state.stats.hallsOnline = [];
+    for (const h of refreshSites(state)) state.stats.hallsOnline.push({ hall: h, t: 0 });
+  }
+  return state;
 }
 
 // ---------------------------------------------------------------- queries
@@ -116,54 +137,89 @@ export function createGame({ seed = 1, config = {} } = {}) {
 export const getAlarm = (state, alarmId) => state.alarms.find((a) => a.id === alarmId) ?? null;
 export const getTech = (state, techId) => state.techs.find((t) => t.id === techId) ?? null;
 
-export const plantBOnline = (state) => state.halls >= state.config.plantBHall;
+/** Is Plant B part of the campus? Classic: from hall 6. Building: once anything there is built. */
+export function plantBOnline(state) {
+  if (buildingOn(state)) return [...CHILLERS, ...PUMPS].some((e) => e.plant === 'B' && isBuilt(state, e.id));
+  return state.halls >= state.config.plantBHall;
+}
 
-/** Is this piece of equipment part of the running campus yet? */
+/** Is this piece of equipment part of the running campus? Building mode: built, in an online hall. */
 export function isOnline(state, e) {
-  if (e.hall) return e.hall <= state.halls;
-  return e.plant === 'A' || plantBOnline(state);
+  if (!isBuilt(state, e.id)) return false;
+  if (e.hall) return hallOnline(state, e.hall);
+  return buildingOn(state) || e.plant === 'A' || plantBOnline(state);
 }
 
-/** Both MSBs of one half of a hall are tripped: that half is dark. */
+// Building mode: does this half of the hall have any rack rows built? A half with no racks is never
+// "dark", whatever its switchboards, so an empty half costs nothing.
+const halfHasRows = (state, hallId, half) => ROWS.some((r) => r.hall === hallId && r.half === half && isBuilt(state, r.id));
+
+/** A half with racks and no working switchboard (classic: both of its MSBs tripped) is dark. */
 export function isHalfDark(state, hallId, half) {
-  return state.equip[`msb-${hallId}-${half}-A`].tripped && state.equip[`msb-${hallId}-${half}-B`].tripped;
+  if (!halfHasRows(state, hallId, half)) return false;
+  return builtMsbs(state, hallId, half).every((id) => state.equip[id].tripped);
 }
 
-/** 'whole' | 'cracked' | 'broken' for a hall's power: the worse of its two MSB pairs. */
+// Worst first. 'single' (building mode): working, but with no backup built (pass 4 spec 2.4).
+const SHIELD_RANK = { whole: 0, single: 1, cracked: 2, broken: 3 };
+const worse = (a, b) => (SHIELD_RANK[b] > SHIELD_RANK[a] ? b : a);
+
+/** 'whole' | 'single' | 'cracked' | 'broken' for a hall's power: the worse of its two MSB pairs. */
 export function powerShield(state, hallId) {
   let worst = 'whole';
   for (const half of ['t', 'b']) {
-    const a = state.equip[`msb-${hallId}-${half}-A`].tripped;
-    const b = state.equip[`msb-${hallId}-${half}-B`].tripped;
-    if (a && b) return 'broken';
-    if (a || b) worst = 'cracked';
+    const built = builtMsbs(state, hallId, half);
+    const tripped = built.filter((id) => state.equip[id].tripped).length;
+    if (built.length === 0) {
+      if (isHalfDark(state, hallId, half)) worst = worse(worst, 'broken'); // racks with no switchboard
+    } else if (tripped === built.length) worst = worse(worst, isHalfDark(state, hallId, half) ? 'broken' : 'cracked');
+    else if (tripped > 0) worst = worse(worst, 'cracked');
+    else if (built.length === 1) worst = worse(worst, 'single');
   }
   return worst;
 }
 
-/** Dark half-halls: a half whose MSB pair is down, or both halves of a hall shut by two leaks. */
+/**
+ * A hall's coolant: 'ok', 'throttled' (some built CDU leaking, rows at leakThrottle) or 'shut' (every
+ * built CDU leaking, or a lone CDU's leak ran out of clock). Classic: one leak throttles, two shut.
+ */
+export function coolantState(state, hallId) {
+  const built = builtCdus(state, hallId);
+  const leaking = built.filter((id) => state.equip[id].leaking);
+  if (leaking.length === 0) return 'ok';
+  if (leaking.length === built.length && (built.length >= 2 || leaking.some((id) => state.equip[id].shut))) return 'shut';
+  return 'throttled';
+}
+
+/** Dark half-halls: a half with no working switchboard, or both halves of a hall shut by leaks. */
 export function darkHalves(state) {
   let n = 0;
-  for (let h = 1; h <= state.halls; h++) {
-    const shut = state.equip[`cdu-${h}-t`].leaking && state.equip[`cdu-${h}-b`].leaking;
+  for (const h of onlineHallIds(state)) {
+    const shut = coolantState(state, h) === 'shut';
     for (const half of ['t', 'b']) if (shut || isHalfDark(state, h, half)) n += 1;
   }
   return n;
 }
 
-/** 'whole' | 'cracked' | 'broken' for a hall's CDU pair. */
+/** 'whole' | 'single' | 'cracked' | 'broken' for a hall's coolant units. */
 export function liquidShield(state, hallId) {
-  const n = ['t', 'b'].filter((h) => state.equip[`cdu-${hallId}-${h}`].leaking).length;
-  return n === 0 ? 'whole' : n === 1 ? 'cracked' : 'broken';
+  const c = coolantState(state, hallId);
+  if (c === 'shut') return 'broken';
+  if (c === 'throttled') return 'cracked';
+  return builtCdus(state, hallId).length === 1 && buildingOn(state) ? 'single' : 'whole';
 }
 
-/** Chillers needed for the halls online (spec 4.4). */
+/** Rack rows in online halls (all of a hall's rows in the classic game; the built ones when building). */
+export const onlineRows = (state) => ROWS.filter((r) => isOnline(state, r));
+
+/** Chillers needed: 1.25 per hall's worth of rows online (spec 4.4; pass 4 spec 2.3). */
 export function chillersNeeded(state) {
-  return Math.ceil(state.halls * state.config.chillersPerHall - EPS);
+  return Math.ceil((onlineRows(state).length * state.config.chillersPerHall) / ROWS_PER_HALL - EPS);
 }
 
+/** Chillers running: built, not tripped, at a plant with a pump (pass 4 spec 2.3). */
 export function runningChillers(state) {
-  return CHILLERS.filter((c) => isOnline(state, c) && state.equip[c.id].running).length;
+  return CHILLERS.filter((c) => isOnline(state, c) && state.equip[c.id].running && plantHasPump(state, c.plant)).length;
 }
 
 /** Running chillers beyond those needed (negative when short). */
@@ -179,9 +235,9 @@ export function coolingShield(state) {
 function rowTarget(state, row) {
   const dyn = state.equip[row.id];
   if (dyn.netDown || state.halfDark[`${row.hall}-${row.half}`]) return 0;
-  const leaks = ['t', 'b'].filter((h) => state.equip[`cdu-${row.hall}-${h}`].leaking).length;
-  if (leaks === 2) return 0;
-  return leaks === 1 ? state.config.leakThrottle : 1;
+  const c = coolantState(state, row.hall);
+  if (c === 'shut') return 0;
+  return c === 'throttled' ? state.config.leakThrottle : 1;
 }
 
 export function bandOf(fraction, config = DEFAULT_CONFIG2) {
@@ -191,9 +247,10 @@ export function bandOf(fraction, config = DEFAULT_CONFIG2) {
 
 /** Live load: { deliveredMw, capacityMw, fraction, band }. Capacity counts online halls only. */
 export function load(state) {
-  const capacityMw = state.halls * ROWS_PER_HALL * state.config.rowMw;
+  const rows = onlineRows(state);
+  const capacityMw = rows.length * state.config.rowMw;
   let deliveredMw = 0;
-  for (const row of ROWS) if (row.hall <= state.halls) deliveredMw += state.equip[row.id].level * state.thermal * state.config.rowMw;
+  for (const row of rows) deliveredMw += state.equip[row.id].level * state.thermal * state.config.rowMw;
   const fraction = capacityMw > 0 ? deliveredMw / capacityMw : 1;
   return { deliveredMw, capacityMw, fraction, band: bandOf(fraction, state.config) };
 }
@@ -360,7 +417,10 @@ function removeAlarm(state, alarm) {
 function clearAlarm(state, alarm, tech) {
   const dyn = state.equip[alarm.equipId];
   if (alarm.type === 'network') dyn.netDown = false;
-  if (alarm.type === 'leak') dyn.leaking = false;
+  if (alarm.type === 'leak') {
+    dyn.leaking = false;
+    dyn.shut = false;
+  }
   if (alarm.type === 'breaker') dyn.tripped = false;
   if (alarm.type === 'chiller') dyn.running = true;
   if (alarm.type === 'pump') dyn.overpressure = false;
@@ -376,7 +436,7 @@ export function pumpLoop(state, pumpId) {
   const p = EQUIPMENT_BY_ID[pumpId];
   const split = plantBOnline(state);
   return CDUS.filter((c) => {
-    if (c.half !== p.half || c.hall > state.halls) return false;
+    if (c.half !== p.half || !isOnline(state, c)) return false;
     if (!split) return p.plant === 'A';
     return (c.hall <= 4 ? 'A' : 'B') === p.plant;
   });
@@ -404,7 +464,11 @@ function escalate(state, alarm) {
     case 'leak': {
       alarm.clockEnd = Infinity;
       const otherId = `cdu-${eq.hall}-${otherHalf(eq.half)}`;
-      if (!state.equip[otherId].leaking && state.equip[otherId].alarmId === null) {
+      if (!isBuilt(state, otherId)) {
+        // No backup built (pass 4 spec 2.4): the hall shuts until this leak is fixed.
+        state.equip[alarm.equipId].shut = true;
+        emit(state, 'escalate', { alarmId: alarm.id, alarmType: 'leak', equipId: alarm.equipId, effect: 'hallShut' });
+      } else if (!state.equip[otherId].leaking && state.equip[otherId].alarmId === null) {
         spawnAlarm(state, 'leak', otherId, 'escalation');
         state.stats.leakSpreads += 1;
         emit(state, 'escalate', { alarmId: alarm.id, alarmType: 'leak', equipId: alarm.equipId, effect: 'secondCdu', target: otherId });
@@ -414,7 +478,7 @@ function escalate(state, alarm) {
     case 'breaker': {
       alarm.clockEnd = Infinity;
       const otherId = `msb-${eq.hall}-${eq.half}-${otherSide(eq.side)}`;
-      if (!state.equip[otherId].tripped && state.equip[otherId].alarmId === null) {
+      if (isBuilt(state, otherId) && !state.equip[otherId].tripped && state.equip[otherId].alarmId === null) {
         spawnAlarm(state, 'breaker', otherId, 'escalation');
         emit(state, 'escalate', { alarmId: alarm.id, alarmType: 'breaker', equipId: alarm.equipId, effect: 'secondSide', target: otherId });
       }
@@ -452,17 +516,35 @@ function escalate(state, alarm) {
 
 // ---------------------------------------------------------------- director
 
-/** Seconds between director alarms with `halls` online, `sincePhase` seconds into the phase, before jitter. */
-export function spawnInterval(config, halls, sincePhase) {
+/**
+ * Seconds between director alarms with `halls` online, `sincePhase` seconds into the phase, before
+ * jitter. Building mode passes its own tightening (pass 4 spec 2.7).
+ */
+export function spawnInterval(config, halls, sincePhase, tighten = config.director.tighten) {
   const d = config.director;
-  const start = d.phaseIntervals[Math.min(halls, d.phaseIntervals.length) - 1];
+  const start = d.phaseIntervals[Math.max(1, Math.min(halls, d.phaseIntervals.length)) - 1];
   const steps = Math.floor(sincePhase / d.tightenEvery + EPS);
-  return Math.max(d.floor, start * Math.pow(1 - d.tighten, steps));
+  return Math.max(d.floor, start * Math.pow(1 - tighten, steps));
+}
+
+/**
+ * Building mode (pass 4 spec 2.7): the interval follows what is built, read from the phase table by
+ * rows online / 6 rounded up, and tightens slowly from the start of the run with no reset.
+ */
+export function buildingInterval(state) {
+  const b = state.config.building;
+  const rows = onlineRows(state).length;
+  const halls = Math.ceil(rows / ROWS_PER_HALL - EPS);
+  // A campus smaller than one full hall gets fewer alarms still: more equipment, more alarms.
+  const stretch = rows >= ROWS_PER_HALL ? 1 : Math.min(b.smallStretch, ROWS_PER_HALL / Math.max(1, rows));
+  return spawnInterval(state.config, halls, state.t, b.tighten) * stretch;
 }
 
 /** Largest number of active alarms at which the director still adds one. */
 export function alarmCap(state) {
   const d = state.config.director;
+  // Building mode: the cap follows what is built, so a hire is relief, not more alarms (M24's checks).
+  if (buildingOn(state)) return state.config.building.capExtra + Math.ceil(onlineRows(state).length / ROWS_PER_HALL - EPS);
   const growth = state.fullCampusAt === null || !(d.capGrowEvery > 0) ? 0 : Math.floor((state.t - state.fullCampusAt) / d.capGrowEvery + EPS);
   return state.techs.length + d.capExtra + growth;
 }
@@ -483,7 +565,7 @@ function directorStep(state) {
   if (!d.enabled || state.scripted) return;
   if (state.t >= state.director.nextSpawn - EPS) {
     directorSpawnOne(state);
-    const base = spawnInterval(state.config, state.halls, state.t - state.phaseStart);
+    const base = buildingOn(state) ? buildingInterval(state) : spawnInterval(state.config, state.halls, state.t - state.phaseStart);
     state.director.nextSpawn = state.t + base * (1 + d.jitter * state.rng.range(-1, 1));
   }
   if (d.waveEvery > 0 && state.halls >= d.waveFromHalls && state.t >= state.director.nextWave - EPS) {
@@ -529,7 +611,7 @@ function addTech(state, trade, hallId) {
 
 /** Share of the next hall built, 0 to 1 (1 once every hall is online). */
 export function buildProgress(state) {
-  if (state.halls >= state.config.maxHalls) return 1;
+  if (buildingOn(state) || state.halls >= state.config.maxHalls) return 1;
   return Math.min(1, state.build / state.config.build.every);
 }
 
@@ -575,6 +657,116 @@ export function choose(state, index) {
   state.stats.picks.push({ hall: pick.hall, card });
   state.pendingPick = null;
   return { ok: true };
+}
+
+// ---------------------------------------------------------------- building and money (pass 4)
+
+/** Price of a device (by equipment id or type), or of 'hire' / 'upgrade'. */
+export function priceOf(state, what) {
+  const prices = state.config.building.prices;
+  const type = EQUIPMENT_BY_ID[what] ? EQUIPMENT_BY_ID[what].type : what;
+  return prices[type];
+}
+
+/** Why a spot cannot be built now, or null if it can: 'off' | 'unknown' | 'built' | 'building' | 'cash' | 'over'. */
+export function cannotBuild(state, equipId) {
+  if (!buildingOn(state)) return 'off';
+  if (state.over) return 'over';
+  if (!EQUIPMENT_BY_ID[equipId]) return 'unknown';
+  const dyn = state.equip[equipId];
+  if (dyn.built) return 'built';
+  if (dyn.buildEnd !== null) return 'building';
+  if (state.cash + EPS < priceOf(state, equipId)) return 'cash';
+  return null;
+}
+
+/**
+ * Buy and build the device at a spot (pass 4 spec 2.1): the money goes at once, and a contractor
+ * finishes it buildTime seconds later. Returns { ok, until } or { ok: false, reason }.
+ */
+export function build(state, equipId) {
+  const reason = cannotBuild(state, equipId);
+  if (reason) return { ok: false, reason };
+  const price = priceOf(state, equipId);
+  state.cash -= price;
+  state.stats.spent += price;
+  const until = state.t + state.config.building.buildTime;
+  state.equip[equipId].buildEnd = until;
+  emit(state, 'buildStart', { equipId, price, until });
+  return { ok: true, until };
+}
+
+/** Hire a tech of this trade for money (pass 4 spec 2.6). They arrive at Hall 1's door. */
+export function hire(state, trade) {
+  if (!buildingOn(state)) return { ok: false, reason: 'off' };
+  if (state.over) return { ok: false, reason: 'over' };
+  if (!state.config.hireTieOrder.includes(trade)) return { ok: false, reason: 'unknown' };
+  const price = priceOf(state, 'hire');
+  if (state.cash + EPS < price) return { ok: false, reason: 'cash' };
+  state.cash -= price;
+  state.stats.spent += price;
+  const tech = addTech(state, trade, 1);
+  return { ok: true, techId: tech.id };
+}
+
+/** Buy one level of an upgrade (Carts, Better tools, Radios) for money. */
+export function buyUpgrade(state, id) {
+  if (!buildingOn(state)) return { ok: false, reason: 'off' };
+  if (state.over) return { ok: false, reason: 'over' };
+  const u = UPGRADES[id];
+  if (!u) return { ok: false, reason: 'unknown' };
+  if (state.upgrades[id] >= u.max) return { ok: false, reason: 'max' };
+  const price = priceOf(state, 'upgrade');
+  if (state.cash + EPS < price) return { ok: false, reason: 'cash' };
+  state.cash -= price;
+  state.stats.spent += price;
+  state.upgrades[id] += 1;
+  emit(state, 'upgrade', { upgrade: id, level: state.upgrades[id] });
+  return { ok: true };
+}
+
+// Money in: each rack row earns `income` dollars a second at full output (pass 4 spec 2.5).
+function earn(state, deliveredMw, dt) {
+  const dollars = (deliveredMw / state.config.rowMw) * state.config.building.income * dt;
+  state.cash += dollars;
+  state.stats.earned += dollars;
+}
+
+// Finished devices, halls coming online, and the CEO's first two visits (pass 4 spec 2.1, 2.8).
+function buildingStep(state) {
+  const cfg = state.config;
+  let finished = false;
+  for (const e of EQUIPMENT) {
+    const dyn = state.equip[e.id];
+    if (dyn.buildEnd !== null && state.t >= dyn.buildEnd - EPS) {
+      dyn.built = true;
+      dyn.buildEnd = null;
+      if (e.type === 'row') dyn.level = 0; // a new row powers up over recoverTime, like a recovery
+      state.stats.built += 1;
+      finished = true;
+      emit(state, 'built', { equipId: e.id });
+    }
+  }
+  if (finished) {
+    for (const hall of refreshSites(state)) {
+      state.stats.hallsOnline.push({ hall, t: state.t });
+      emit(state, 'hallOnline', { hall });
+      if (state.halls === cfg.ceo.ribbonHall && !state.ribbonQueued) {
+        state.ribbonQueued = true;
+        queueCeo(state, 'ribbon', hall);
+      }
+    }
+    if (state.halls >= cfg.maxHalls && state.fullCampusAt === null) {
+      state.fullCampusAt = state.t;
+      emit(state, 'fullCampus', {});
+    }
+  }
+  const b = cfg.building;
+  const rowsMw = onlineRows(state).length * cfg.rowMw;
+  if (!state.handoverQueued && state.halls > 0 && (rowsMw >= b.handoverMw - EPS || state.t >= b.handoverAt - EPS)) {
+    state.handoverQueued = true;
+    queueCeo(state, 'handover');
+  }
 }
 
 // ---------------------------------------------------------------- commands
@@ -706,8 +898,11 @@ export function step(state, dt) {
   serviceQueue(state);
   autoDispatch(state); // techs pick their own jobs (pass 4 spec 2.6)
 
+  // Building mode: devices that contractors finish, and halls coming online (pass 4 spec 2.1).
+  if (buildingOn(state)) buildingStep(state);
+
   // Halves of halls going dark or coming back.
-  for (let h = 1; h <= state.halls; h++) {
+  for (const h of onlineHallIds(state)) {
     for (const half of ['t', 'b']) {
       const key = `${h}-${half}`;
       const dark = isHalfDark(state, h, half);
@@ -720,7 +915,7 @@ export function step(state, dt) {
   }
 
   for (const row of ROWS) {
-    if (row.hall > state.halls) continue;
+    if (!isOnline(state, row)) continue;
     const dyn = state.equip[row.id];
     const want = rowTarget(state, row);
     dyn.level = dyn.level > want ? want : Math.min(want, dyn.level + dt / state.config.recoverTime);
@@ -738,10 +933,13 @@ export function step(state, dt) {
   if (now.band === 'green' && dark === 0) state.meter = Math.min(m.max, state.meter + m.fill * dt);
   else if (now.band === 'yellow') state.meter -= m.yellowDrain * dt;
   else if (now.band === 'red') state.meter -= m.redDrain * dt;
-  state.meter -= m.darkDrain * dark * dt;
+  state.meter -= (buildingOn(state) ? state.config.building.darkDrain : m.darkDrain) * dark * dt;
   // The run cannot be lost before the first Delivery, while a hall is still to be built (pass 3
   // spec 1.1: with every hall online from the start no Delivery comes, and the run must still end).
-  if (state.deliveries === 0 && state.halls < state.config.maxHalls) state.meter = Math.max(m.safeFloor, state.meter);
+  if (buildingOn(state)) {
+    // Building mode: the meter cannot empty in the first two minutes (pass 4 spec 2.8).
+    if (state.t < state.config.building.safeUntil) state.meter = Math.max(m.safeFloor, state.meter);
+  } else if (state.deliveries === 0 && state.halls < state.config.maxHalls) state.meter = Math.max(m.safeFloor, state.meter);
   if (state.scripted) state.meter = Math.min(m.tutorialCap, state.meter);
 
   const hours = (dt * state.config.timeScale) / 3600;
@@ -749,10 +947,11 @@ export function step(state, dt) {
   state.stats.possibleMwh += now.capacityMw * hours;
   state.stats.bandTime[now.band] += dt;
   state.stats.lowestFraction = Math.min(state.stats.lowestFraction, now.fraction);
+  if (buildingOn(state)) earn(state, now.deliveredMw, dt);
 
   // Construction: the next hall comes on a timer, faster while the load is green. It waits while
   // the tutorial runs, so no hall arrives mid-lesson.
-  if (!state.scripted && state.halls < state.config.maxHalls) {
+  if (!buildingOn(state) && !state.scripted && state.halls < state.config.maxHalls) {
     const b = state.config.build;
     state.build += dt * (now.band === 'green' ? b.greenBoost : 1);
     if (state.build >= b.every - EPS) deliver(state);
@@ -830,6 +1029,11 @@ export function results(state) {
     crew: state.techs.map((t) => t.trade),
     picks: s.picks.map((p) => ({ hall: p.hall, card: cardText(p.card) })),
     tuning: changedTuning(state.config),
+    // Building mode (pass 4 spec 2.5): money earned is the score.
+    building: buildingOn(state),
+    earned: buildingOn(state) ? state.stats.earned : 0,
+    spent: buildingOn(state) ? state.stats.spent : 0,
+    built: buildingOn(state) ? state.stats.built : 0,
   };
 }
 
@@ -855,6 +1059,7 @@ export function resultsText(state) {
     `Alarms: ${r.raised} raised, ${r.cleared} cleared, average ${r.averageClear.toFixed(1)} s to clear, longest ${Math.round(r.longestAlarm)} s, peak ${r.peakAlarms} at once`,
     `Escalations: ${r.halfDark} half-halls dark, ${r.leakSpreads} leaks spread, ${r.spreads} network spreads, ${r.bursts} pump bursts, ${r.secondChillers} second chillers`,
     `Redirects: ${r.redirects} | Matching-hat fixes: ${pct(r.matchedShare)} | Lowest load: ${pct(r.lowestFraction)}`,
+    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent | Devices built: ${r.built}`] : []),
     `Tuning: ${r.tuning.length > 0 ? r.tuning.join(', ') : 'defaults'}`,
   ].join('\n');
 }

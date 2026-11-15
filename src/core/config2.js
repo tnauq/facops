@@ -77,6 +77,26 @@ export const DEFAULT_CONFIG2 = {
     areasMin: 2,
     areasMax: 3,
   },
+  // Building and money (pass 4 spec 2.1 to 2.8). Off until the screen can build (M25). All numbers
+  // are starting values for the scripted checks to settle.
+  building: {
+    enabled: false,
+    buildTime: 8, // seconds for a contractor to build a device
+    startCash: 400,
+    income: 3, // dollars a second from one rack row at full output (M24's checks; the draft had 5)
+    prices: { row: 150, msb: 200, cdu: 250, chiller: 300, pump: 200, hire: 400, upgrade: 500 },
+    // The bare minimum for one hall (owner): Plant A's top pump and one chiller; in Hall 1 the top
+    // half's A switchboard, the top coolant unit and two rack rows.
+    start: ['pump-A-t', 'chiller-A-0', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1'],
+    tighten: 0.015, // the director tightens this much every tightenEvery seconds, with no reset (M24's checks)
+    firstSpawn: 20, // seconds before the first alarm: time to look round and buy a first backup
+    capExtra: 2, // the director stops at this many alarms plus one per hall's worth of racks online, whatever the crew
+    smallStretch: 3, // under a hall's worth of racks, the gap between alarms grows by 6 / rows, up to this
+    handoverMw: 200, // the Handover comes once rows in online halls reach this many MW...
+    handoverAt: 600, // ...or at this many seconds, whichever is first
+    safeUntil: 120, // the meter cannot empty before this
+    darkDrain: 0.25, // replaces meter.darkDrain: lost income is already the main cost of a dark half (M24's checks)
+  },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free
   // Techs pick their own jobs (pass 4 spec 2.6): a free tech takes an alarm nobody is on once it has

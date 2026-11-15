@@ -76,7 +76,7 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 
 ### 2.5 Money in and out
 
-- **Income:** $5 a second per row at full output, scaled by its actual output (*starting value*). Shown in the HUD as `$1,240 · +$85/s`.
+- **Income:** $3 a second per row at full output, scaled by its actual output (set by M24's checks; the draft had $5). Shown in the HUD as `$1,240 · +$85/s`.
 - Nothing else costs money over time in pass 4 (no wages, no power bill).
 - **Score** becomes money earned over the run (shown alongside GWh, which stays in the results).
 
@@ -91,10 +91,13 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 
 ### 2.7 Alarms and pacing
 
-- The director only picks built, working devices.
-- **The interval follows what is built, not time.** The start-of-phase table is read by **rows built ÷ 6, rounded up** (so a full hall's worth of racks counts as one more hall) and tightens 1% every 10 s (*starting value*, down from 3%) with no reset. More equipment means more alarms; the player controls the pace by how fast they grow.
-- The alarm cap stays crew size + 2.
-- Pass 3's dark-half-hall drain stays.
+- The director only picks built devices in online halls.
+- **The interval follows what is built, not time.** The start-of-phase table is read by **rows online ÷ 6, rounded up** (so a full hall's worth of racks counts as one more hall) and tightens 1.5% every 10 s from the start of the run, with no reset (M24's checks; the draft had 1%). More equipment means more alarms; the player controls the pace by how fast they grow.
+- **A small campus gets fewer alarms still:** under one hall's worth of racks, the gap between alarms is stretched by 6 ÷ rows, up to 3 times (M24: with 2 racks every fault is most of the load).
+- **The first alarm comes after 20 s**, time to look round and buy a first backup (M24).
+- **The alarm cap follows what is built:** 2 plus one per hall's worth of racks online, whatever the crew (M24: with crew + 2, never hiring meant fewer alarms, and hiring made no difference).
+- Pass 3's dark-half-hall drain is 0.25 a second in building mode, not 1: the lost income is already the main cost of an outage (M24's checks).
+- A half-hall with no racks built is never dark, whatever its switchboards.
 
 ### 2.8 Stability and the end of a run
 
@@ -156,7 +159,7 @@ One per session. Commit titles start with the milestone so the action tags them.
 |---|---|---|
 | M22 | Rail hysteresis (the misclick fix); pause and speed buttons as an option (3.4, 3.5) | Small |
 | M23 | Auto-dispatch with player override, and its drawer switch (2.6, rules only; the crew still arrives as in pass 3) | Medium |
-| M24 | Rules for building: spots, prices, money, the online rule, what works, redundancy without backups, director by rows built, CEO triggers; scripted builder player and checks (2.1 to 2.5, 2.7, 2.8) | Large |
+| M24 | Rules for building: spots, prices, money, the online rule, what works, redundancy without backups, director by rows built, CEO triggers, hiring and upgrades for money (the commands; their screen is M26); scripted builder player and checks (2.1 to 2.8). Behind `building.enabled`, off until M25 can show it | Large |
 | M25 | Building on screen: empty spots, the build card, cash in the HUD, build rings, the no-backup shield (3.1 to 3.3) | Large |
 | M26 | Hire card and upgrades for money; Deliveries removed | Medium |
 | M27 | The new tutorial, and a balance pass from the owner's runs (3.6) | Medium |
@@ -174,6 +177,20 @@ A scripted **builder** player: builds in a fixed sensible order (one hall's mini
 | Builder: run length | 10 to 15 minutes, most ended by the CEO |
 | Greedy builder (no backups) | Earns more early, ends sooner; scores at least 15% less |
 | Very slow player (4 s reactions, auto-dispatch on) | More alarms waiting than free techs under 25% of the time before minute 8 |
+
+### 4.2 M24's results
+
+12 seeds, tutorial off, auto-dispatch on, with the defaults above:
+
+| Scripted player | Run length (range) | Earned | 150 MW at | Halls | Crew | Ended by zero tolerance / CEO hit / meter | Short-handed before 8:00 |
+|---|---|---|---|---|---|---|---|
+| Builder (backups, hires) | 14:43 (11:09 to 19:27) | $63,239 | 7:22 | 8.0 | 9.0 | 9 / 3 / 0 | 19% |
+| Builder, also gets ready for the CEO | 16:22 (8:42 to 27:11) | $76,286 | 7:20 | 7.8 | 8.8 | 8 / 2 / 2 | 20% |
+| Greedy builder (no backups) | 3:24 (2:00 to 4:05) | $3,363 | never | 2.6 | 2.3 | 0 / 0 / 12 | 4% |
+| Builder that never hires | 8:26 (7:23 to 9:35) | $15,941 | 7:07 | 6.1 | 2.0 | 0 / 3 / 9 | 34% |
+| Slow builder (decides every 4 s) | 15:35 (10:39 to 21:24) | $65,948 | 7:35 | 7.9 | 9.0 | 9 / 1 / 2 | 17% |
+
+Against the targets: 150 MW, run length, the slow player and the CEO are met. "First income within 60 s" is met trivially, since the run starts with two racks earning. The greedy builder does earn more early (about $2,300 against $1,700 in the first 3 minutes) but then collapses, earning 95% less: far more than the 15% asked for. Skipping backups is a losing strategy rather than a gamble, and the owner's play should decide whether that is right.
 
 ## 5. Open questions for the owner
 

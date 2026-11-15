@@ -4,6 +4,7 @@
 import { ALARMS2 as ALARMS } from './config2.js';
 import { EQUIPMENT_BY_ID } from './layout2.js';
 import { onCeoRoute } from './ceo.js';
+import { buildMove } from './builder.js';
 import { createRng } from './rng.js';
 import { assign, choose, createGame, fixDuration, getAlarm, results, spareChillers, step, walkSpeed, walkDistance } from './game2.js';
 
@@ -110,7 +111,9 @@ export function pickFor(state, policy = 'first') {
  * Play a whole run and return results(state) plus the final state.
  * `actionGap` is the shortest time between two commands; `maxSeconds` stops a run that never ends.
  */
-export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
+export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
+  // builder (pass 4, building mode): a scripted builder plan from builder.js ('builder', 'greedy',
+  // 'nohire'), deciding every `buildGap` seconds.
   // policy: 'greedy' (gets ready for the CEO), 'blind' (ignores the CEO), 'random', or 'none' (never
   // gives an order: with auto-dispatch on, the crew runs itself; pass 4 M23).
   const state = createGame({ seed, config });
@@ -119,10 +122,15 @@ export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, 
     ? () => randomMove(state, rng, { reaction })
     : () => greedyMove(state, { reaction, ceo: policy !== 'blind' });
   let nextAction = 0;
+  let nextBuild = 0;
   while (!state.over && state.t < maxSeconds) {
     if (state.pendingPick) choose(state, pickFor(state, picks));
     step(state, dt);
     if (state.t >= nextAction && move()) nextAction = state.t + actionGap;
+    if (builder && state.t >= nextBuild) {
+      buildMove(state, builder);
+      nextBuild = state.t + buildGap;
+    }
     if (onStep) onStep(state);
   }
   return { ...results(state), finished: state.over, state };

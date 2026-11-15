@@ -56,12 +56,37 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 |---|---|---|
 | M22. Rail fix; hold and speed buttons | `m22` | Done |
 | M23. Techs pick their own jobs | `m23` | Done |
-| M24. Rules for building | `m24` | |
+| M24. Rules for building | `m24` | Done (behind a switch until M25) |
 | M25. Building on screen | `m25` | |
 | M26. Hiring and upgrades for money | `m26` | |
 | M27. New tutorial and balance | `m27` | |
 
 ## Log
+
+### M24. Rules for building
+
+Pass 4 spec 2.1 to 2.8. The rules only; the screen to build arrives in M25. Building mode is behind `building.enabled`, **off by default**, so the game you play is unchanged until M25.
+
+Built:
+
+- **Spots and building** (`src/core/sites.js`, `build` in `src/core/game2.js`): every device spot starts empty except the bare minimum for Hall 1 (Plant A's top pump and one chiller; Hall 1's top A switchboard, top coolant unit and 2 rack rows), with $400. Building takes the money at once and a contractor finishes 8 s later.
+- **What works:** a hall is online with a switchboard and a coolant unit, and a chiller anywhere. A row delivers only in a half with a working switchboard, in a hall with a working coolant unit, and earns $3 a second at full output. Chillers run only at a plant with a pump; they are needed by racks online (1.25 per hall's worth).
+- **Backups are your choice:** a breaker trip with no B switchboard darkens that half at once; a leak with no second coolant unit throttles, then shuts the hall when its clock runs out. A "single" shield status (working, no backup) for M25 to draw.
+- **One engine for both games:** every "hall online" question now goes through `sites.js`, so the classic game and building mode share the rules. The classic game's 375 tests pass unchanged.
+- **Pacing in building mode:** alarms follow what is built (the hall table by racks online, 1.5% tightening from the start), a small campus gets fewer, the first comes after 20 s, and the alarm cap is 2 plus one per hall's worth of racks, whatever the crew.
+- **CEO:** the ribbon-cutting at the third hall online (whichever it is), the Handover at 200 MW of racks online or 10:00.
+- **Hiring and upgrades for money** (`hire`, `buyUpgrade`): the commands are in; their screen is M26.
+- **Scripted builders** (`src/core/builder.js`): careful, greedy (no backups) and never-hiring plans; `scripts/pacing4.mjs` and `scripts/sweep4.mjs`.
+- 19 new tests (394 in all).
+
+Scripted checks: see pass 4 spec 4.2. In short, a careful builder reaches 150 MW at about 7:20 and lasts about 14:40, mostly ended by zero tolerance; never hiring earns 75% less; never buying backups collapses by about 3:30.
+
+Settled by the checks (all in the spec): income $3 (draft $5), tightening 1.5%, a 20 s start, fewer alarms under one hall of racks, the cap set by racks, and a gentler dark-half drain (0.25) in building mode.
+
+Worth knowing:
+
+- **Skipping backups is brutal.** The greedy builder earns more for 3 minutes, then collapses. That is a strong push to buy backups, maybe too strong; your play will tell.
+- Nothing to try on the phone yet: building mode is off until M25 gives it a screen.
 
 ### M23. Techs pick their own jobs
 

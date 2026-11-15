@@ -7,34 +7,37 @@
 // what the fault is costing, not where the recovery has got to. Tests check it against the engine.
 
 import { EQUIPMENT, EQUIPMENT_BY_ID } from './layout2.js';
-import { chillersNeeded, runningChillers } from './game2.js';
+import { chillersNeeded, isOnline, runningChillers } from './game2.js';
+import { isBuilt } from './sites.js';
 
 const ROWS = EQUIPMENT.filter((e) => e.type === 'row');
 
-// A row's level with its hall's faults, as the rules set it (pass 2 spec 4.1), with one change
-// applied: `fix` is the id of a piece of equipment treated as healthy.
+// A row's level with its hall's faults, as the rules set it (pass 2 spec 4.1; pass 4 spec 2.4 for
+// halls without backups), with one change applied: `fix` is the id of a device treated as healthy.
 function rowLevel(state, row, fix) {
   const ok = (id) => id === fix;
   const netDown = state.equip[row.id].netDown && !ok(row.id);
-  const tripped = (side) => state.equip[`msb-${row.hall}-${row.half}-${side}`].tripped && !ok(`msb-${row.hall}-${row.half}-${side}`);
-  const dark = tripped('A') && tripped('B');
+  const msbs = ['A', 'B'].map((side) => `msb-${row.hall}-${row.half}-${side}`).filter((id) => isBuilt(state, id));
+  const dark = msbs.every((id) => state.equip[id].tripped && !ok(id)); // this row is built, so its half has racks
   if (netDown || dark) return 0;
-  const leaks = ['t', 'b'].filter((h) => state.equip[`cdu-${row.hall}-${h}`].leaking && !ok(`cdu-${row.hall}-${h}`)).length;
-  if (leaks === 2) return 0;
-  return leaks === 1 ? state.config.leakThrottle : 1;
+  const cdus = ['t', 'b'].map((h) => `cdu-${row.hall}-${h}`).filter((id) => isBuilt(state, id));
+  const leaking = cdus.filter((id) => state.equip[id].leaking && !ok(id));
+  if (leaking.length === 0) return 1;
+  const shut = leaking.length === cdus.length && (cdus.length >= 2 || leaking.some((id) => state.equip[id].shut));
+  return shut ? 0 : state.config.leakThrottle;
 }
 
 // Sum of row levels across one hall (the only hall a non-cooling alarm can affect).
 function hallLevels(state, hall, fix) {
   let sum = 0;
-  for (const row of ROWS) if (row.hall === hall) sum += rowLevel(state, row, fix);
+  for (const row of ROWS) if (row.hall === hall && isOnline(state, row)) sum += rowLevel(state, row, fix);
   return sum;
 }
 
 // Sum of row levels across every online hall.
 function campusLevels(state) {
   let sum = 0;
-  for (const row of ROWS) if (row.hall <= state.halls) sum += rowLevel(state, row, null);
+  for (const row of ROWS) if (isOnline(state, row)) sum += rowLevel(state, row, null);
   return sum;
 }
 

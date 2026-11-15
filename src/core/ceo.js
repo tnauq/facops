@@ -8,6 +8,7 @@
 // game2.js owns the state; it calls ceoStep every tick and queueCeoVisit when a hall comes online.
 
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, MID_Y, PLANTS, S_OUTER, hallX, route } from './layout2.js';
+import { buildingOn, isBuilt, onlineHallIds } from './sites.js';
 
 const EPS = 1e-9;
 const UP = -Math.PI / 2; // y grows downwards
@@ -21,9 +22,16 @@ export const areaOf = (e) => (e.hall ? `h${e.hall}` : `p${e.plant}`);
 /** Online areas in order along the building: Plant A, halls 1 to N, then Plant B once online. */
 export function onlineAreas(state) {
   const out = ['pA'];
-  for (let h = 1; h <= state.halls; h++) out.push(`h${h}`);
-  if (state.halls >= state.config.plantBHall) out.push('pB');
+  for (const h of onlineHallIds(state)) out.push(`h${h}`);
+  if (plantBUp(state)) out.push('pB');
   return out;
+}
+
+// Plant B is an area once it is part of the campus: from hall 6 (classic), or once anything there
+// is built (building mode). Worked out here to keep ceo.js free of game2.js.
+function plantBUp(state) {
+  if (!buildingOn(state)) return state.halls >= state.config.plantBHall;
+  return EQUIPMENT.some((e) => e.plant === 'B' && isBuilt(state, e.id));
 }
 
 /** Where the CEO stands to inspect an area: a hall's centre on its middle aisle; a plant's lane. */
@@ -103,9 +111,9 @@ export function routePoints(ceo) {
 }
 
 // What the next visit of this kind is: its areas, warning, cost and zero tolerance.
-function visitFor(state, kind) {
+function visitFor(state, kind, hall = null) {
   const cfg = state.config.ceo;
-  if (kind === 'ribbon') return { areas: [`h${cfg.ribbonHall}`], ...cfg.ribbon, inspect: cfg.inspect, zeroTolerance: false };
+  if (kind === 'ribbon') return { areas: [`h${hall ?? cfg.ribbonHall}`], ...cfg.ribbon, inspect: cfg.inspect, zeroTolerance: false };
   if (kind === 'handover') {
     const areas = onlineAreas(state).filter((a) => a[0] === 'h');
     return { areas, ...cfg.handover, inspect: cfg.inspectHandover, zeroTolerance: false };
@@ -122,8 +130,9 @@ function emit(state, type, data = {}) {
   state.events.push({ t: state.t, type, ...data });
 }
 
-function startVisit(state, kind) {
-  const v = visitFor(state, kind);
+function startVisit(state, entry) {
+  const kind = typeof entry === 'string' ? entry : entry.kind;
+  const v = visitFor(state, kind, typeof entry === 'string' ? null : entry.hall);
   if (kind === 'walk') state.ceoWalks += 1;
   const steps = planSteps(v.areas, v.inspect);
   const first = steps[0].points[0];
@@ -164,6 +173,15 @@ export function queueCeoVisit(state, hall) {
   if (!cfg.enabled) return;
   if (hall === cfg.ribbonHall) state.ceoQueue.push('ribbon');
   if (hall >= state.config.maxHalls) state.ceoQueue.push('handover');
+}
+
+/**
+ * Building mode (pass 4 spec 2.8): queue a visit directly. The ribbon-cutting names the hall that
+ * came online third, since halls can be built in any order.
+ */
+export function queueCeo(state, kind, hall = null) {
+  if (!state.config.ceo.enabled) return;
+  state.ceoQueue.push(hall === null ? kind : { kind, hall });
 }
 
 // ---------------------------------------------------------------- what the CEO sees

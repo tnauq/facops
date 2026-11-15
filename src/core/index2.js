@@ -10,9 +10,14 @@ export {
   arrivalPoint,
   assign,
   bandOf,
+  build,
   buildProgress,
+  buildingInterval,
+  buyUpgrade,
+  cannotBuild,
   choose,
   chillersNeeded,
+  coolantState,
   coolingShield,
   createGame,
   darkHalves,
@@ -22,12 +27,15 @@ export {
   formatClock,
   getAlarm,
   getTech,
+  hire,
   isHalfDark,
   isOnline,
   liquidShield,
   load,
   nearestIdleTech,
+  onlineRows,
   pickCards,
+  priceOf,
   plantBOnline,
   powerShield,
   pumpLoop,
@@ -45,5 +53,6 @@ export {
 } from './game2.js';
 export { greedyMove, pickFor, playRun } from './bot2.js';
 export { autoDispatch, autoOrder } from './auto.js';
+export { HALL_IDS, buildingOn, hallOnline, isBuilt, onlineHallIds, plantHasPump, spotState } from './sites.js';
 export { alarmCost, triageOrder } from './cost.js';
 export { areaName, areaOf, ceoCone, ceoSees, ceoSeesPoint, entryPoint, inspectPoint, onCeoRoute, onlineAreas, routePoints } from './ceo.js';
