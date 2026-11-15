@@ -126,7 +126,9 @@ function cduTurn(e) {
 }
 
 // Half sizes in world units, for culling.
-const EXTENT = { row: [24, 75], chiller: [52, 40], pump: [42, 34], cdu: [26, 30], msb: [34, 30] };
+const EXTENT = { row: [24, 75], chiller: [52, 40], pump: [42, 34], cdu: [26, 30], msb: [34, 30], xfmr: [36, 30], rmu: [28, 22] };
+const YARD_TYPES = new Set(['xfmr', 'rmu', 'dry']); // drawn by outdoor.js; here only their spot badges
+const extentOf = (e) => (e.type === 'dry' ? [e.w / 2, e.h / 2] : EXTENT[e.type]);
 
 /**
  * Draw the building. view: { scale, ox, oy } (see src/ui/camera.js cameraView).
@@ -189,7 +191,15 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
 
   // The yard outside (M28): transformers, RMUs, power lines, dry coolers. Pale where the switchboard
   // a transformer serves is not built yet (or its hall not online, in the classic game).
-  drawYard(ctx, v, screen, { built: (id) => (spot && spot(EQUIPMENT_BY_ID[id]) ? false : live(EQUIPMENT_BY_ID[id])) });
+  // Since M29 each yard device has its own spot: faint until built, filling in while it is built.
+  drawYard(ctx, v, screen, {
+    alpha: (id) => {
+      const e = EQUIPMENT_BY_ID[id];
+      const sp = spot ? spot(e) : null;
+      if (sp) return sp.state === 'building' ? 0.3 + 0.6 * sp.progress : 0.2;
+      return live(e) ? 1 : OFFLINE_ALPHA;
+    },
+  });
 
   // Chilled-water pipes: their shadows on the floor, and (for previews) the pipes themselves.
   const span = pipeSpan ?? { online, plantB };
@@ -210,9 +220,15 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
 
   // Equipment.
   for (const e of EQUIPMENT) {
-    const [hw, hh] = EXTENT[e.type];
+    const [hw, hh] = extentOf(e);
     if (!onScreen(v, screen, e.x, e.y, hw, hh + 20)) continue;
     const sp = spot ? spot(e) : null;
+    if (YARD_TYPES.has(e.type)) {
+      // The yard draws the device itself (outdoor.js); a spot here only adds its "+" or build ring.
+      if (sp && sp.state === 'empty') drawEmptySpot(ctx, v, e);
+      else if (sp) drawBuildRing(ctx, v, e, sp.progress);
+      continue;
+    }
     if (sp) {
       // Not built yet: a faint ghost of the device, filling in while a contractor builds it.
       ctx.globalAlpha = sp.state === 'building' ? 0.3 + 0.6 * sp.progress : 0.2;
@@ -235,7 +251,7 @@ const SPOT_INK = '#1F3A5F';
 
 // An empty spot (pass 4 spec 3.1): a dashed outline round the device's footprint and a "+" badge.
 function drawEmptySpot(ctx, v, e) {
-  const [hw, hh] = EXTENT[e.type];
+  const [hw, hh] = extentOf(e);
   ctx.save();
   ctx.strokeStyle = 'rgba(31, 58, 95, 0.55)';
   ctx.lineWidth = 1.5;

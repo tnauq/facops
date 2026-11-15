@@ -61,10 +61,37 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | M26. Hiring and upgrades for money | `m26` | Done |
 | M27. New tutorial and balance | `m27` | Done (balance waits for the owner's runs) |
 | M28. The yard on the map; black pipes | `m28` | Done |
-| M29. Building the yard | `m29` | Specified (spec 7.2) |
+| M29. Building the yard | `m29` | Done |
 | M30. Yard failures | `m30` | Specified (spec 7.3) |
 
 ## Log
+
+### M29. Building the yard
+
+Pass 4 spec 7.2. A rules change the owner approved (15 Nov).
+
+Built:
+
+- **Yard devices are equipment** (`src/core/layout2.js` builds them from `src/core/outdoor.js`): 32 transformers, 16 RMUs, 16 dry cooler units, each a buildable spot with a build card and its own picture.
+- **The power chain** (`msbFed` in `src/core/sites.js`): a switchboard works only with its transformer and RMU built; a hall needs one fed switchboard, a coolant unit and a chiller to come online.
+- **Dry coolers** (`dryCapacity`): each lets two of its plant's chillers run.
+- **The start** adds Hall 1's top RMU and A transformer and a dry cooler at Plant A; $800 to start.
+- **Prices and burn** settled by the scripted checks: transformer $75, RMU $100, dry cooler $150, switchboard $150; upkeep $0.15 a second; the burn doubles every 150 s.
+- **The tutorial** teaches the chain: the bottom half needs its RMU, transformer and switchboard first.
+- The scripted builders build each half's chain and the dry coolers their chillers need.
+- 4 new tests (428 in all); the building tests updated for the chain and the new start.
+
+Worth knowing:
+
+- Nothing in the yard fails yet: shorts, RMU faults and fan failures are M30, along with a way for techs to walk out to the yard.
+- The layout tests that check every service point is on a walking lane cover indoor equipment only, until M30.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: yard spots, the transformer's card, building one. No console errors.
+
+Owner's checklist:
+
+- Build a new hall: is it clear you need the RMU and transformer outside as well as the switchboard?
+- Do the yard's "+" spots and build cards read well?
+- Does the money still feel about right with the extra pieces?
 
 ### After M28: concrete under the yard
 

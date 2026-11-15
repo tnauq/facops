@@ -1,8 +1,8 @@
 // The yard outside the building (M28, owner 15 Nov): layout only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EQUIPMENT, EQUIPMENT_BY_ID, WORLD } from '../src/core/layout2.js';
-import { DRY_COOLERS, DRY_PIPES, POLES, POWER_LINES, RMUS, TRANSFORMER, TRANSFORMERS, YARD } from '../src/core/outdoor.js';
+import { DRY_COOLERS, DRY_PIPES, EQUIPMENT, EQUIPMENT_BY_ID, POLES, POWER_LINES, RMUS, TRANSFORMERS, WORLD } from '../src/core/layout2.js';
+import { TRANSFORMER, YARD } from '../src/core/outdoor.js';
 
 const MSBS = EQUIPMENT.filter((e) => e.type === 'msb');
 const inYard = (x, y) => x >= -YARD.x && x <= WORLD.width + YARD.x && y >= -YARD.y && y <= WORLD.height + YARD.y;

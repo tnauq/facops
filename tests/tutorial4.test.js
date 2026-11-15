@@ -29,8 +29,7 @@ function play(answer = () => {}, maxSeconds = 400) {
 const patient = (step, s) => {
   if (step === 'rack' && s.t > 3) build(s, 'row-1-t-2');
   if (step === 'half' && s.t > 6) {
-    build(s, 'msb-1-b-A');
-    build(s, 'row-1-b-0');
+    for (const id of ['rmu-1-b', 'xfmr-1-b-A', 'msb-1-b-A', 'row-1-b-0']) build(s, id);
   }
 };
 
@@ -46,11 +45,11 @@ test('the lessons teach the build order: racks, a switchboard for each half, bac
   const { seen } = play(patient);
   const text = seen.map((x) => x.callout).join(' ');
   assert.match(text, /Racks earn money/);
-  assert.match(text, /own switchboard first/);
+  assert.match(text, /own RMU, transformer and switchboard first/);
   assert.match(text, /no backup/);
   assert.match(text, /Backups cost upkeep/);
-  assert.match(text, /switchboard and coolant unit first, then racks/);
-  assert.match(text, /chiller/);
+  assert.match(text, /RMU, transformer, switchboard and coolant unit, then racks/);
+  assert.match(text, /dry cooler/);
   assert.match(text, /hire/i);
 });
 

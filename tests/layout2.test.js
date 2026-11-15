@@ -60,8 +60,8 @@ test('the right half mirrors the left across the centre line', () => {
   }
   for (const e of EQUIPMENT.filter((q) => q.x < CENTRE_X)) {
     const twinId = e.id
-      .replace(/^(row|cdu|msb)-(\d)/, (m, t, h) => `${t}-${{ 1: 8, 2: 7, 3: 6, 4: 5 }[h]}`)
-      .replace(/^(chiller|pump)-A/, '$1-B');
+      .replace(/^(row|cdu|msb|xfmr|rmu)-(\d)/, (m, t, h) => `${t}-${{ 1: 8, 2: 7, 3: 6, 4: 5 }[h]}`)
+      .replace(/^(chiller|pump|dry)-A/, '$1-B');
     const twin = EQUIPMENT_BY_ID[twinId];
     assert.ok(twin, `${e.id} has a mirror twin ${twinId}`);
     assert.ok(near(twin.x, WORLD.width - e.x), `${e.id} x`);
@@ -96,8 +96,11 @@ test('rows sit inside their hall, MSBs and CDUs outside it', () => {
   }
 });
 
+// The yard's devices (pass 4 M29) get their way out to them in M30.
+const INDOOR = EQUIPMENT.filter((e) => !['xfmr', 'rmu', 'dry'].includes(e.type));
+
 test('every service point is on a lane and reachable from the start', () => {
-  for (const e of EQUIPMENT) {
+  for (const e of INDOOR) {
     const p = { x: e.sx, y: e.sy };
     assert.ok(isOnNetwork(p), `${e.id} service point is off the lanes`);
     const r = route(START_POINT, p);
@@ -136,7 +139,7 @@ function crossings(points) {
 }
 
 test('techs pass through walls only at doors', () => {
-  const targets = EQUIPMENT.filter((e, i) => i % 7 === 0);
+  const targets = INDOOR.filter((e, i) => i % 7 === 0);
   for (const from of [START_POINT, { x: CENTRE_X, y: MID_Y }]) {
     for (const e of targets) {
       for (const c of crossings(route(from, { x: e.sx, y: e.sy }).points)) {

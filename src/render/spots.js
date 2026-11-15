@@ -3,6 +3,7 @@
 // src/ui/spots.js; where it goes from cardLayout there.
 
 import { ICON_SIZE, drawChiller, drawCdu, drawMsb, drawPump, drawRack } from './icons.js';
+import { drawYardPicture } from './outdoor.js';
 
 const PANEL = '#FFFFFF';
 const EDGE = '#C9D1DB';
@@ -20,6 +21,7 @@ function picture(ctx, type, x, y, side) {
   else if (type === 'pump') drawPump(ctx, x, y, fit * 0.9, {});
   else if (type === 'cdu') drawCdu(ctx, x, y, fit * (ICON_SIZE.cdu / 44) * 0.8, {});
   else if (type === 'msb') drawMsb(ctx, x, y, fit, { side });
+  else drawYardPicture(ctx, type, x, y, fit, side); // transformer, RMU, dry cooler (M29)
 }
 
 // Text cut to fit a width, with an ellipsis.
@@ -60,7 +62,7 @@ export function drawBuildCard(ctx, layout, info) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  picture(ctx, info.type, x + 30, y + 30, info.name.endsWith(' A') ? 'A' : info.name.endsWith(' B') ? 'B' : null);
+  picture(ctx, info.type, x + 30, y + 30, info.name.endsWith(' A') ? 'A' : info.name.endsWith(' B') ? 'B' : 'A');
   const tx = x + 58;
   const tw = w - 58 - 10;
   ctx.textBaseline = 'middle';

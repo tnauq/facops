@@ -6,7 +6,7 @@
 //
 // Lessons:
 //   rack    - the hall has power, coolant and cooling; racks earn: build one.
-//   half    - the bottom half needs its own switchboard first, then a rack.
+//   half    - the bottom half needs its own power chain first (RMU, transformer, switchboard), then a rack.
 //   trip    - a switchboard with no backup trips: half the hall goes dark; a tech goes by themselves.
 //   backup  - a B switchboard is a backup: it costs upkeep, so buy backups once racks are earning.
 //   grow    - a new hall: switchboard and coolant unit first, then racks; one chiller per 6 racks.
@@ -25,6 +25,7 @@ export function createTutorial4(verb = 'Tap') {
 const started = (state, id) => spotState(state, id) !== 'empty';
 const anyStarted = (state, ids) => ids.some((id) => started(state, id));
 const BOTTOM_ROWS = ['row-1-b-0', 'row-1-b-1', 'row-1-b-2'];
+const BOTTOM_CHAIN = ['rmu-1-b', 'xfmr-1-b-A', 'msb-1-b-A']; // the bottom half's power chain (M29)
 
 function go(tut, state, step, callout, focus = null) {
   tut.step = step;
@@ -48,11 +49,11 @@ export function updateTutorial4(tut, state, events) {
       break;
     case 'rack':
       if (events.some((e) => e.type === 'buildStart' && e.equipId.startsWith('row-')) || waited > LESSON_LIMIT) {
-        go(tut, state, 'half', 'The bottom half needs its own switchboard first. Build Switchboard A there, then a rack.', 'msb-1-b-A');
+        go(tut, state, 'half', 'The bottom half needs its own RMU, transformer and switchboard first (outside, then in), then a rack.', 'xfmr-1-b-A');
       }
       break;
     case 'half':
-      if ((started(state, 'msb-1-b-A') && anyStarted(state, BOTTOM_ROWS)) || waited > LESSON_LIMIT) {
+      if ((BOTTOM_CHAIN.every((id) => started(state, id)) && anyStarted(state, BOTTOM_ROWS)) || waited > LESSON_LIMIT) {
         const alarm = raiseAlarm(state, 'breaker', 'msb-1-t-A');
         tut.ids = alarm ? [alarm.id] : [];
         go(tut, state, 'trip', 'A switchboard tripped with no backup: that half is dark and earns nothing. A tech goes on their own.', 'msb-1-t-A');
@@ -61,11 +62,11 @@ export function updateTutorial4(tut, state, events) {
     case 'trip':
       if (tut.ids.every((id) => !state.alarms.some((a) => a.id === id)) || waited > LESSON_LIMIT) {
         tut.ids = [];
-        go(tut, state, 'backup', 'Switchboard B would have kept it lit. Backups cost upkeep: buy them once your racks earn.');
+        go(tut, state, 'backup', 'Switchboard B and its transformer would have kept it lit. Backups cost upkeep: buy them later.');
       }
       break;
     case 'backup':
-      if (waited > READ_TIME) go(tut, state, 'grow', "For a new hall: switchboard and coolant unit first, then racks. One chiller cools a hall's racks.");
+      if (waited > READ_TIME) go(tut, state, 'grow', 'New hall: RMU, transformer, switchboard and coolant unit, then racks. Each chiller needs a dry cooler.');
       break;
     case 'grow':
       if (waited > READ_TIME) {

@@ -223,15 +223,17 @@ Compute first is clearly right: backups early earn 87% less. Mid-game backups an
 - In building mode a transformer is pale until its switchboard is built, and an RMU until either of its pair is; in the classic game, until its hall is online.
 - **Concrete under the yard** (owner, after M28): one long piece along the whole north wall, from the wall out past the RMUs, and one along the south. The ends (east and west, with the dry coolers) stay dirt, as does the ground beyond the power lines.
 
-### 7.2 M29. Building the yard (proposed: rules and screen)
+### 7.2 M29. Building the yard (built)
 
-[Recommended] throughout; numbers are starting values for the scripted checks.
+- **New spots:** every transformer, RMU and dry cooler unit is a buildable spot with the build card ("Transformer B · Feeds Switchboard B of Hall 1's top half", "RMU · Feeds Hall 1's bottom transformers from the power line", "Dry cooler · Lets 2 of Plant A's chillers run"); the power lines are always there. Prices (set by M29's checks): transformer $75, RMU $100, dry cooler $150, switchboard $150 (was $200). All infrastructure costs upkeep.
+- **The power chain:** a switchboard works only while its transformer and that transformer's RMU are built (and, from M30, working). The hall-online rule: a switchboard **with its transformer and RMU**, a coolant unit, and a chiller anywhere. The build card warns "Needs its transformer and RMU outside to work".
+- **Heat out:** each built dry cooler unit lets two of its plant's chillers run.
+- **The start:** Hall 1's top RMU and A transformer, and one dry cooler at Plant A, join the bare minimum. Starting cash $800.
+- **Upkeep** $0.15 a second per piece of infrastructure (was $0.25) and the burn's base doubling every 150 s (was 140), since every half now needs three pieces of infrastructure (M29's checks).
+- **The tutorial's** second lesson asks for the bottom half's RMU, transformer and switchboard, and the "new hall" lesson names the whole chain and the dry coolers.
+- The yard's devices have no walking route yet; M30 adds one along with their alarms.
 
-- **New spots:** each transformer, each RMU and each dry cooler unit becomes a buildable spot with the build card; the power lines are always there. Prices: transformer $100, RMU $150, dry cooler $150, all with upkeep like other infrastructure. A switchboard drops to $150, so a half's power chain (RMU, transformer, switchboard) costs $400.
-- **The power chain:** a switchboard works only while its transformer is built and working, and that transformer's RMU is built and working. The hall-online rule becomes: a switchboard **with its transformer and RMU**, a coolant unit, and a chiller anywhere.
-- **Heat out:** each working dry cooler unit lets two of its plant's chillers run; chillers beyond that do not run.
-- **The start:** the bare minimum grows to match: Hall 1's top RMU and A transformer, and one dry cooler at Plant A. Starting cash $800.
-- **The build card** names the chain ("Feeds Hall 1's top switchboards", "Needs its RMU to work"), and the tutorial's second lesson becomes "The bottom half needs its own RMU, transformer and switchboard first".
+M29's checks (12 seeds): compute first with backups from hall 4 earns $71,885 in 12:28 and reaches 150 MW at 6:22; backups from hall 6 $70,372; never a backup $67,285 (6% less); backups early $10,147 (86% less); never hiring $25,335 (65% less).
 
 ### 7.3 M30. Yard failures (owner's answers 15 November; rules and screen)
 
@@ -254,7 +256,7 @@ Three new alarm types, each with its own picture on the bubble and ticket, so ei
 | Milestone | Build | Size |
 |---|---|---|
 | M28 | The yard on the map, black pipes (7.1) | Medium (built) |
-| M29 | Building the yard: spots, prices, the power chain, dry coolers, the start, card and tutorial text (7.2) | Large |
+| M29 | Building the yard: spots, prices, the power chain, dry coolers, the start, card and tutorial text (7.2) | Large (built) |
 | M30 | Yard failures: transformer short (disconnect at the RMU, then repair), RMU fault, dry cooler fan failure, with pictures; scripted checks (7.3) | Large |
 
 ## 5. Open questions for the owner

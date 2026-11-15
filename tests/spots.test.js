@@ -15,7 +15,7 @@ const camAt = (W, H, x, y) => {
 
 test('every device not built yet is a spot; the classic game has none', () => {
   const s = game();
-  assert.equal(spotsModel(s).length, EQUIPMENT.length - 6);
+  assert.equal(spotsModel(s).length, EQUIPMENT.length - s.config.building.start.length);
   assert.deepEqual(spotsModel(createGame({ seed: 1 })), []);
   build(s, 'row-1-t-2');
   const sp = spotsModel(s).find((x) => x.id === 'row-1-t-2');
@@ -42,13 +42,30 @@ test('the build card names the device, its price, and what it does here', () => 
   const s = game();
   const msb = spotInfo(s, 'msb-1-b-A');
   assert.equal(msb.name, 'Switchboard A');
-  assert.equal(msb.priceText, '$200');
-  assert.match(msb.line, /Powers Hall 1's bottom half/);
+  assert.equal(msb.priceText, '$150');
+  assert.match(msb.line, /Needs its transformer and RMU outside to work/, 'the bottom half has no RMU yet');
+  assert.equal(msb.warn, true);
+  assert.match(spotInfo(s, 'msb-2-t-A').line, /Needs its transformer and RMU/);
   assert.match(msb.upkeep, /upkeep/);
   assert.equal(msb.canBuild, true);
   assert.equal(msb.button, 'Build');
   const backup = spotInfo(s, 'msb-1-t-B');
-  assert.match(backup.line, /^Backup: keeps Hall 1's top half lit/);
+  assert.match(backup.line, /Needs its transformer and RMU/, 'the B transformer is not built yet');
+  s.equip['xfmr-1-t-B'].built = true;
+  assert.match(spotInfo(s, 'msb-1-t-B').line, /^Backup: keeps Hall 1's top half lit/);
+  // The yard (M29).
+  const xfmr = spotInfo(s, 'xfmr-1-b-A');
+  assert.equal(xfmr.name, 'Transformer A');
+  assert.equal(xfmr.priceText, '$75');
+  assert.match(xfmr.line, /Needs Hall 1's bottom RMU/);
+  assert.match(spotInfo(s, 'xfmr-1-t-B').line, /Feeds Switchboard B of Hall 1's top half/);
+  const rmu = spotInfo(s, 'rmu-1-b');
+  assert.equal(rmu.name, 'RMU');
+  assert.match(rmu.line, /Feeds Hall 1's bottom transformers/);
+  const dry = spotInfo(s, 'dry-A-1');
+  assert.equal(dry.name, 'Dry cooler');
+  assert.match(dry.line, /Lets 2 of Plant A's chillers run/);
+  assert.match(dry.upkeep, /upkeep/);
   const row = spotInfo(s, 'row-1-t-2');
   assert.equal(row.name, 'Rack row');
   assert.match(row.line, /earns \$4\/s/);

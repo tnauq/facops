@@ -6,6 +6,8 @@
 // Until milestone M9 the rules engine still runs on the pass 1 map (layout.js); this file is only
 // drawn and tested.
 
+import { buildYard } from './outdoor.js';
+
 export const WORLD = { width: 3920, height: 780 };
 export const CENTRE_X = WORLD.width / 2;
 const mx = (x) => WORLD.width - x; // mirror across the centre line
@@ -110,7 +112,26 @@ function buildEquipment() {
   return list;
 }
 
-export const EQUIPMENT = buildEquipment();
+const INDOOR = buildEquipment();
+
+// The yard (pass 4 spec 7, M29): transformers, RMUs and dry cooler units are equipment too. Their
+// service point (sx, sy) is the device itself for now; M30 gives techs a way out to them.
+export const YARD_LAYOUT = buildYard(INDOOR.filter((e) => e.type === 'msb'), INDOOR.filter((e) => e.type === 'pump'), WORLD);
+export const { TRANSFORMERS, RMUS, POWER_LINES, POLES, DRY_COOLERS, DRY_PIPES } = YARD_LAYOUT;
+
+function yardEquipment() {
+  const list = [];
+  for (const t of TRANSFORMERS) {
+    list.push({ id: t.id, type: 'xfmr', hall: t.hall, half: t.half, side: t.side, msbId: t.msbId, rmuId: `rmu-${t.hall}-${t.half}`, label: '', x: t.x, y: t.y, sx: t.x, sy: t.y });
+  }
+  for (const r of RMUS) list.push({ id: r.id, type: 'rmu', hall: r.hall, half: r.half, feeds: r.feeds, label: '', x: r.x, y: r.y, sx: r.x, sy: r.y });
+  for (const d of DRY_COOLERS) {
+    d.units.forEach((u, index) => list.push({ id: u.id, type: 'dry', plant: d.plant, index, w: u.w, h: u.h, label: '', x: u.x, y: u.y, sx: u.x, sy: u.y }));
+  }
+  return list;
+}
+
+export const EQUIPMENT = [...INDOOR, ...yardEquipment()];
 export const EQUIPMENT_BY_ID = Object.fromEntries(EQUIPMENT.map((e) => [e.id, e]));
 
 // ---------------------------------------------------------------- lanes (spec 3.5)

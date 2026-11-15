@@ -3,8 +3,8 @@
 // lines on poles, and the dry cooler blocks piped to the plants' pumps. Seen from above, in the
 // style of the equipment inside. Positions come from src/core/outdoor.js.
 
-import { WORLD } from '../core/layout2.js';
-import { DRY_COOLERS, DRY_PIPES, POLES, POWER_LINES, RMU, RMUS, TRANSFORMER, TRANSFORMERS, YARD_PAD } from '../core/outdoor.js';
+import { DRY_COOLERS, DRY_PIPES, POLES, POWER_LINES, RMUS, TRANSFORMERS, WORLD } from '../core/layout2.js';
+import { RMU, TRANSFORMER, YARD_PAD } from '../core/outdoor.js';
 import { drawJoints, fillConcrete } from './floors.js';
 
 const C = {
@@ -194,11 +194,11 @@ export function drawYardGround(ctx, v) {
 }
 
 /**
- * Everything in the yard. opts.built(id): whether a switchboard (or pump) is built, so a
- * transformer whose switchboard is not built yet, and an RMU with neither, are drawn pale.
- * Called after the building's floors and walls, before the equipment inside.
+ * Everything in the yard. opts.alpha(id): how solid to draw a transformer, RMU or dry cooler unit
+ * (faint while it is only a spot, filling in while it is built). Called after the building's floors
+ * and walls, before the equipment inside.
  */
-export function drawYard(ctx, v, screen, { built = () => true } = {}) {
+export function drawYard(ctx, v, screen, { alpha = () => 1 } = {}) {
   ctx.save();
   // Dry cooler blocks on their pads, then their pipes to the pumps.
   for (const d of DRY_COOLERS) {
@@ -208,7 +208,11 @@ export function drawYard(ctx, v, screen, { built = () => true } = {}) {
     ctx.strokeStyle = C.padEdge;
     ctx.lineWidth = 1;
     ctx.strokeRect(sx(v, d.x1 - 14), sy(v, d.y1 - 14), (d.x2 - d.x1 + 28) * v.scale, (d.y2 - d.y1 + 28) * v.scale);
-    for (const u of d.units) dryCooler(ctx, v, u);
+    for (const u of d.units) {
+      ctx.globalAlpha = alpha(u.id);
+      dryCooler(ctx, v, u);
+    }
+    ctx.globalAlpha = 1;
   }
   for (const p of DRY_PIPES) groundPipe(ctx, v, p.points);
 
@@ -216,28 +220,37 @@ export function drawYard(ctx, v, screen, { built = () => true } = {}) {
   for (const line of POWER_LINES) powerLine(ctx, v, screen, line);
   for (const r of RMUS) {
     if (!seen(v, screen, r.x, r.y, 160)) continue;
-    const up = r.feeds.some((id) => built(TRANSFORMERS.find((t) => t.id === id).msbId));
-    ctx.globalAlpha = up ? 1 : PALE;
+    ctx.globalAlpha = Math.max(PALE, alpha(r.id));
     rmuDrop(ctx, v, r, POWER_LINES.find((l) => l.side === r.half).y);
     rmuCables(ctx, v, r);
   }
   for (const t of TRANSFORMERS) {
     if (!seen(v, screen, t.x, t.y, 140)) continue;
-    ctx.globalAlpha = built(t.msbId) ? 1 : PALE;
+    ctx.globalAlpha = Math.max(PALE, alpha(t.id));
     busDuct(ctx, v, t);
   }
   ctx.globalAlpha = 1;
   for (const p of POLES) if (seen(v, screen, p.x, p.y, 20)) pole(ctx, v, p);
   for (const r of RMUS) {
     if (!seen(v, screen, r.x, r.y, 40)) continue;
-    const up = r.feeds.some((id) => built(TRANSFORMERS.find((t) => t.id === id).msbId));
-    ctx.globalAlpha = up ? 1 : PALE;
+    ctx.globalAlpha = alpha(r.id);
     rmu(ctx, v, r);
   }
   for (const t of TRANSFORMERS) {
     if (!seen(v, screen, t.x, t.y, 50)) continue;
-    ctx.globalAlpha = built(t.msbId) ? 1 : PALE;
+    ctx.globalAlpha = alpha(t.id);
     transformer(ctx, v, t);
   }
+  ctx.restore();
+}
+
+/** A yard device's picture for the build card, centred at (x, y) and about `size` px across. */
+export function drawYardPicture(ctx, type, x, y, size, side = 'A') {
+  const k = size / 62; // world units to px for the picture
+  const v = { scale: k, ox: x, oy: y };
+  ctx.save();
+  if (type === 'xfmr') transformer(ctx, v, { x: 0, y: 0, half: 't', side });
+  else if (type === 'rmu') rmu(ctx, v, { x: 0, y: 0 });
+  else if (type === 'dry') dryCooler(ctx, { scale: k * 0.55, ox: x, oy: y }, { x: 0, y: 0, w: 100, h: 92 });
   ctx.restore();
 }

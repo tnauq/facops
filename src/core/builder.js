@@ -16,8 +16,12 @@ import { CHILLERS_ORDER, nextChillerSpot } from './builderSpots.js';
 import { build, burnRate, cannotBuild, hire, onlineRows, priceOf, runningChillers } from './game2.js';
 import { spotState } from './sites.js';
 
-const BACKUPS = (h) => [`msb-${h}-t-B`, `msb-${h}-b-B`, `cdu-${h}-b`];
-const COMPUTE = (h) => [`msb-${h}-t-A`, `cdu-${h}-t`, `row-${h}-t-0`, `row-${h}-t-1`, `row-${h}-t-2`, `msb-${h}-b-A`, `row-${h}-b-0`, `row-${h}-b-1`, `row-${h}-b-2`];
+// M29: each half's power chain is its RMU, then the transformer, then the switchboard.
+const BACKUPS = (h) => [`xfmr-${h}-t-B`, `msb-${h}-t-B`, `xfmr-${h}-b-B`, `msb-${h}-b-B`, `cdu-${h}-b`];
+const COMPUTE = (h) => [
+  `rmu-${h}-t`, `xfmr-${h}-t-A`, `msb-${h}-t-A`, `cdu-${h}-t`, `row-${h}-t-0`, `row-${h}-t-1`, `row-${h}-t-2`,
+  `rmu-${h}-b`, `xfmr-${h}-b-A`, `msb-${h}-b-A`, `row-${h}-b-0`, `row-${h}-b-1`, `row-${h}-b-2`,
+];
 
 const PLANS = {
   builder: { backupsFrom: 4, early: false, hires: true },
@@ -37,7 +41,7 @@ function wishList(state, plan) {
     if (plan.early) {
       // Careful: backups once the hall has four racks (as M24's builder did).
       const c = COMPUTE(h);
-      list.push(...c.slice(0, 7), ...BACKUPS(h), ...c.slice(7));
+      list.push(...c.slice(0, 11), ...BACKUPS(h), ...c.slice(11));
     } else {
       // Backups for the halls already up come before the next hall, once there are enough halls.
       if (state.halls >= plan.backupsFrom) for (let k = 1; k < h; k++) list.push(...BACKUPS(k));

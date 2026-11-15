@@ -8,7 +8,7 @@
 
 import { EQUIPMENT, EQUIPMENT_BY_ID } from './layout2.js';
 import { chillersNeeded, isOnline, runningChillers } from './game2.js';
-import { isBuilt } from './sites.js';
+import { isBuilt, msbFed } from './sites.js';
 
 const ROWS = EQUIPMENT.filter((e) => e.type === 'row');
 
@@ -18,7 +18,8 @@ function rowLevel(state, row, fix) {
   const ok = (id) => id === fix;
   const netDown = state.equip[row.id].netDown && !ok(row.id);
   const msbs = ['A', 'B'].map((side) => `msb-${row.hall}-${row.half}-${side}`).filter((id) => isBuilt(state, id));
-  const dark = msbs.every((id) => state.equip[id].tripped && !ok(id)); // this row is built, so its half has racks
+  // This row is built, so its half has racks. A switchboard without its transformer and RMU is down.
+  const dark = msbs.every((id) => (state.equip[id].tripped && !ok(id)) || !msbFed(state, id));
   if (netDown || dark) return 0;
   const cdus = ['t', 'b'].map((h) => `cdu-${row.hall}-${h}`).filter((id) => isBuilt(state, id));
   const leaking = cdus.filter((id) => state.equip[id].leaking && !ok(id));

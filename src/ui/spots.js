@@ -5,13 +5,15 @@
 // Build, or the same spot again, to buy it. The card names the device, so the map needs no captions.
 
 import {
-  EQUIPMENT, EQUIPMENT_BY_ID, buildingOn, cannotBuild, chillersNeeded, hallOnline, isBuilt, onlineRows, plantHasPump,
+  EQUIPMENT, EQUIPMENT_BY_ID, buildingOn, cannotBuild, chillersNeeded, hallOnline, isBuilt, msbFed, onlineRows, plantHasPump,
   priceOf, runningChillers, spotState,
 } from '../core/index2.js';
 import { cameraView } from './camera.js';
 
-// Half sizes of each device in world units (as src/render/campus2.js draws them), for tap areas.
-const EXTENT = { row: [24, 75], chiller: [52, 40], pump: [42, 34], cdu: [26, 30], msb: [34, 30] };
+// Half sizes of each device in world units (as src/render/campus2.js and outdoor.js draw them),
+// for tap areas. Dry cooler units carry their own size.
+const EXTENT = { row: [24, 75], chiller: [52, 40], pump: [42, 34], cdu: [26, 30], msb: [34, 30], xfmr: [36, 30], rmu: [28, 22] };
+export const extentOf = (e) => (e.type === 'dry' ? [e.w / 2, e.h / 2] : EXTENT[e.type]);
 export const SPOT_MIN = 44; // px: every spot is at least a 44 x 44 tap target
 
 const HALF = { t: 'top', b: 'bottom' };
@@ -36,7 +38,7 @@ export function spotTargets(state, cam) {
   return spotsModel(state)
     .filter((s) => s.state === 'empty')
     .map((s) => {
-      const [hw, hh] = EXTENT[s.type];
+      const [hw, hh] = extentOf(EQUIPMENT_BY_ID[s.id]);
       const w = Math.max(SPOT_MIN, 2 * hw * v.scale);
       const h = Math.max(SPOT_MIN, 2 * hh * v.scale);
       const cx = v.ox + s.x * v.scale;
@@ -62,13 +64,17 @@ function whatItDoes(state, e) {
     case 'row': {
       if (!hallOnline(state, e.hall)) return { line: `Earns once ${hallName} has a switchboard and a coolant unit`, warn: true };
       const msbs = ['A', 'B'].map((s) => `msb-${e.hall}-${e.half}-${s}`);
-      if (!msbs.some((id) => isBuilt(state, id))) return { line: `Needs a switchboard in this half to earn`, warn: true };
+      if (!msbs.some((id) => isBuilt(state, id) && msbFed(state, id))) return { line: `Needs a switchboard in this half to earn`, warn: true };
       const needed = Math.ceil(((onlineRows(state).length + 1) * state.config.building.chillersPerHall) / 6 - 1e-9);
       if (needed > runningChillers(state) && needed > chillersNeeded(state)) return { line: 'Cooling will run short: build a chiller too', warn: true };
       return { line: `3 racks: earns ${money(state.config.building.income)}/s`, warn: false };
     }
     case 'msb': {
       const partner = other(e.id, '-A', '-B');
+      // M29: a switchboard needs its transformer and RMU.
+      if (!isBuilt(state, `xfmr-${e.id.slice(4)}`) || !isBuilt(state, `rmu-${e.hall}-${e.half}`)) {
+        return { line: `Needs its transformer and RMU outside to work`, warn: true };
+      }
       return isBuilt(state, partner)
         ? { line: `Backup: keeps ${hallName}'s ${HALF[e.half]} half lit if the other trips`, warn: false }
         : { line: `Powers ${hallName}'s ${HALF[e.half]} half`, warn: false };
@@ -83,6 +89,14 @@ function whatItDoes(state, e) {
       return plantHasPump(state, e.plant)
         ? { line: "Cools a hall's worth of racks", warn: false }
         : { line: `Needs a pump at Plant ${e.plant} to run`, warn: true };
+    case 'xfmr': {
+      if (!isBuilt(state, `rmu-${e.hall}-${e.half}`)) return { line: `Needs ${hallName}'s ${HALF[e.half]} RMU to work`, warn: true };
+      return { line: `Feeds Switchboard ${e.side} of ${hallName}'s ${HALF[e.half]} half`, warn: false };
+    }
+    case 'rmu':
+      return { line: `Feeds ${hallName}'s ${HALF[e.half]} transformers from the power line`, warn: false };
+    case 'dry':
+      return { line: `Lets ${state.config.building.chillersPerDryCooler} of Plant ${e.plant}'s chillers run`, warn: false };
     case 'pump': {
       const partner = `pump-${e.plant}-${e.half === 't' ? 'b' : 't'}`;
       return isBuilt(state, partner)
@@ -94,7 +108,7 @@ function whatItDoes(state, e) {
   }
 }
 
-const NAMES = { row: 'Rack row', chiller: 'Chiller', pump: 'Pump', cdu: 'Coolant unit' };
+const NAMES = { row: 'Rack row', chiller: 'Chiller', pump: 'Pump', cdu: 'Coolant unit', rmu: 'RMU', dry: 'Dry cooler' };
 
 /**
  * What the build card shows for a spot: { id, type, name, price, priceText, line, warn, upkeep,
@@ -110,7 +124,7 @@ export function spotInfo(state, id) {
   return {
     id,
     type: e.type,
-    name: e.type === 'msb' ? `Switchboard ${e.side}` : NAMES[e.type],
+    name: e.type === 'msb' ? `Switchboard ${e.side}` : e.type === 'xfmr' ? `Transformer ${e.side}` : NAMES[e.type],
     price,
     priceText: money(price),
     line,

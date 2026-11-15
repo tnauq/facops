@@ -15,11 +15,37 @@ const game = (config = {}) => createGame({
   seed: 1,
   config: { tutorial: false, autoDispatch: { enabled: false }, ...config, building: { enabled: true, burn: NO_BURN, ...(config.building ?? {}) }, director: { enabled: false, ...(config.director ?? {}) } },
 });
-test('a run starts with the bare minimum for one hall, and $600', () => {
+// A half's power chain (pass 4 spec 7.2): its RMU, the transformer, the switchboard.
+const chain = (hall, half, side = 'A') => [`rmu-${hall}-${half}`, `xfmr-${hall}-${half}-${side}`, `msb-${hall}-${half}-${side}`];
+
+test('the power chain: a switchboard works only while its transformer and RMU are built', () => {
+  const s = game({ building: { startCash: 10000 } });
+  for (const id of ['msb-1-b-A', 'row-1-b-0']) build(s, id);
+  advance(s, 8.1);
+  assert.equal(isHalfDark(s, 1, 'b'), true);
+  build(s, 'xfmr-1-b-A');
+  advance(s, 8.1);
+  assert.equal(isHalfDark(s, 1, 'b'), true, 'no RMU yet');
+  build(s, 'rmu-1-b');
+  advance(s, 8.1);
+  assert.equal(isHalfDark(s, 1, 'b'), false);
+});
+
+test('each dry cooler lets two of its plant\'s chillers run', () => {
+  const s = game({ building: { startCash: 10000 } });
+  for (const id of ['chiller-A-1', 'chiller-A-2']) build(s, id);
+  advance(s, 8.1);
+  assert.equal(runningChillers(s), 2, 'one dry cooler: two chillers');
+  build(s, 'dry-A-1');
+  advance(s, 8.1);
+  assert.equal(runningChillers(s), 3);
+});
+
+test('a run starts with the bare minimum for one hall, and $800', () => {
   const s = game();
-  for (const id of ['pump-A-t', 'chiller-A-0', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1']) assert.equal(isBuilt(s, id), true, id);
-  for (const id of ['pump-A-b', 'chiller-A-1', 'msb-1-t-B', 'msb-1-b-A', 'cdu-1-b', 'row-1-t-2', 'row-2-t-0']) assert.equal(isBuilt(s, id), false, id);
-  assert.equal(s.cash, 600);
+  for (const id of ['pump-A-t', 'chiller-A-0', 'dry-A-0', ...chain(1, 't'), 'cdu-1-t', 'row-1-t-0', 'row-1-t-1']) assert.equal(isBuilt(s, id), true, id);
+  for (const id of ['pump-A-b', 'chiller-A-1', 'dry-A-1', 'xfmr-1-t-B', 'msb-1-t-B', 'rmu-1-b', 'msb-1-b-A', 'cdu-1-b', 'row-1-t-2', 'row-2-t-0']) assert.equal(isBuilt(s, id), false, id);
+  assert.equal(s.cash, 800);
   assert.equal(hallOnline(s, 1), true);
   assert.equal(hallOnline(s, 2), false);
   assert.equal(s.halls, 1);
@@ -31,7 +57,7 @@ test('building takes the money at once, and the contractor finishes 8 s later', 
   const s = game();
   const r = build(s, 'row-1-t-2');
   assert.equal(r.ok, true);
-  assert.equal(s.cash, 600 - 150);
+  assert.equal(s.cash, 800 - 150);
   assert.equal(spotState(s, 'row-1-t-2'), 'building');
   assert.equal(cannotBuild(s, 'row-1-t-2'), 'building');
   advance(s, 7.9);
@@ -53,16 +79,20 @@ test('no building without the money, and nothing in the classic game', () => {
 test('rows earn money while they deliver: $4 a second each at full output', () => {
   const s = game();
   advance(s, 10);
-  assert.ok(Math.abs(s.cash - (600 + 2 * 4 * 10)) < 1, `${s.cash}`);
+  assert.ok(Math.abs(s.cash - (800 + 2 * 4 * 10)) < 1, `${s.cash}`);
   assert.ok(Math.abs(results(s).earned - 80) < 1);
 });
 
-test('a hall comes online with a switchboard, a coolant unit, and a chiller anywhere', () => {
+test('a hall comes online with a switchboard fed by its transformer and RMU, a coolant unit, and a chiller anywhere', () => {
   const s = game({ building: { startCash: 10000 } });
   build(s, 'msb-3-b-A');
-  advance(s, 8.1);
-  assert.equal(hallOnline(s, 3), false);
   build(s, 'cdu-3-b');
+  advance(s, 8.1);
+  assert.equal(hallOnline(s, 3), false, 'the switchboard has no transformer or RMU yet');
+  build(s, 'xfmr-3-b-A');
+  advance(s, 8.1);
+  assert.equal(hallOnline(s, 3), false, 'still no RMU');
+  build(s, 'rmu-3-b');
   advance(s, 8.1);
   assert.equal(hallOnline(s, 3), true);
   assert.equal(s.halls, 2);
@@ -81,7 +111,7 @@ test('rows only deliver in a half with a working switchboard', () => {
   assert.equal(isHalfDark(s, 1, 'b'), true);
   advance(s, 4);
   assert.equal(s.equip['row-1-b-0'].level, 0);
-  build(s, 'msb-1-b-A');
+  for (const id of chain(1, 'b')) build(s, id);
   advance(s, 12);
   assert.equal(isHalfDark(s, 1, 'b'), false);
   assert.ok(s.equip['row-1-b-0'].level > 0.99);
@@ -96,6 +126,7 @@ test('a breaker trip with no backup darkens the half at once; with the B built, 
   const t = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, building: { enabled: true, startCash: 10000 }, director: { enabled: false } } });
   assert.equal(powerShield(t, 1), 'single'); // working, no backup
   build(t, 'msb-1-t-B');
+  build(t, 'xfmr-1-t-B'); // the pair's RMU is already there
   advance(t, 8.1);
   assert.equal(powerShield(t, 1), 'whole');
   const a = raiseAlarm(t, 'breaker', 'msb-1-t-A');
@@ -133,13 +164,16 @@ test('chillers: one per hall\'s worth of racks online; they run only at a plant 
   const s = game({ building: { startCash: 10000 } });
   assert.equal(chillersNeeded(s), 1); // 2 rows
   assert.equal(runningChillers(s), 1);
-  for (const id of ['row-1-t-2', 'row-1-b-0', 'row-1-b-1', 'row-1-b-2', 'msb-1-b-A', 'msb-2-t-A', 'cdu-2-t', 'row-2-t-0']) build(s, id);
+  for (const id of ['row-1-t-2', 'row-1-b-0', 'row-1-b-1', 'row-1-b-2', ...chain(1, 'b'), ...chain(2, 't'), 'cdu-2-t', 'row-2-t-0']) build(s, id);
   advance(s, 8.1);
   assert.equal(chillersNeeded(s), 2); // 7 rows
   build(s, 'chiller-B-0');
   advance(s, 8.1);
   assert.equal(runningChillers(s), 1, 'Plant B has no pump yet');
   build(s, 'pump-B-t');
+  advance(s, 8.1);
+  assert.equal(runningChillers(s), 1, 'Plant B has no dry cooler yet');
+  build(s, 'dry-B-0');
   advance(s, 8.1);
   assert.equal(runningChillers(s), 2);
 });
@@ -165,9 +199,9 @@ test('the director only picks built devices in online halls', () => {
 
 test('the ribbon-cutting comes with the third hall online, whichever it is', () => {
   const s = game({ building: { startCash: 10000 }, ceo: { enabled: true } });
-  for (const id of ['msb-2-t-A', 'cdu-2-t']) build(s, id);
+  for (const id of [...chain(2, 't'), 'cdu-2-t']) build(s, id);
   advance(s, 4);
-  for (const id of ['msb-7-t-A', 'cdu-7-t']) build(s, id);
+  for (const id of [...chain(7, 't'), 'cdu-7-t']) build(s, id);
   advance(s, 8.2);
   assert.equal(s.halls, 3);
   assert.ok(s.ceo, 'a visit is announced');
@@ -244,15 +278,16 @@ test('the burn doubles over time, and grows with infrastructure and crew', async
   const { burnRate } = await import('../src/core/index2.js');
   const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, building: { enabled: true }, director: { enabled: false } } });
   const b = s.config.building.burn;
-  // At the start: base, plus upkeep on the pump, chiller, switchboard and coolant unit, plus 2 techs' wages.
-  assert.ok(Math.abs(burnRate(s) - (b.base + 4 * b.upkeep + 2 * b.wages)) < 1e-9);
+  // At the start: base, plus upkeep on the pump, chiller, dry cooler, RMU, transformer, switchboard
+  // and coolant unit, plus 2 techs' wages.
+  assert.ok(Math.abs(burnRate(s) - (b.base + 7 * b.upkeep + 2 * b.wages)) < 1e-9);
   s.t = b.doubling;
-  assert.ok(Math.abs(burnRate(s) - (2 * b.base + 4 * b.upkeep + 2 * b.wages)) < 1e-9);
+  assert.ok(Math.abs(burnRate(s) - (2 * b.base + 7 * b.upkeep + 2 * b.wages)) < 1e-9);
   s.t = 0;
   s.cash = 5000;
   build(s, 'msb-1-t-B');
   advance(s, 8.1);
-  assert.ok(burnRate(s) > b.base * Math.pow(2, s.t / b.doubling) + 4 * b.upkeep + 2 * b.wages, 'a backup costs upkeep');
+  assert.ok(burnRate(s) > b.base * Math.pow(2, s.t / b.doubling) + 7 * b.upkeep + 2 * b.wages, 'a backup costs upkeep');
 });
 
 test('in the red, a countdown runs: back out of it in time and the run goes on, stay in it and it ends', async () => {
@@ -285,9 +320,9 @@ test('the CEO only cares about outages: a tripped switchboard with its backup ca
   const s = game({ building: { startCash: 10000 }, ceo: { enabled: true } });
   // Halls 2 and 3 come online; Hall 3, the third, gets the ribbon-cutting. Its top half has both
   // switchboards and a rack row.
-  for (const id of ['msb-2-t-A', 'cdu-2-t']) build(s, id);
+  for (const id of [...chain(2, 't'), 'cdu-2-t']) build(s, id);
   advance(s, 8.2);
-  for (const id of ['msb-3-t-A', 'msb-3-t-B', 'cdu-3-t', 'row-3-t-1']) build(s, id);
+  for (const id of [...chain(3, 't'), 'xfmr-3-t-B', 'msb-3-t-B', 'cdu-3-t', 'row-3-t-1']) build(s, id);
   advance(s, 8.2);
   assert.deepEqual(s.ceo.areas, ['h3']);
   const free = raiseAlarm(s, 'breaker', 'msb-3-t-A'); // B carries the load: costs nothing

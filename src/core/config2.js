@@ -83,12 +83,14 @@ export const DEFAULT_CONFIG2 = {
   building: {
     enabled: false, // the rules' default is the classic game; the screen starts in building mode (GAME_CONFIG2)
     buildTime: 8, // seconds for a contractor to build a device
-    startCash: 600,
+    startCash: 800, // M29: the start also needs Hall 1's top RMU and transformer, and a dry cooler
     income: 4, // dollars a second from one rack row at full output
-    prices: { row: 150, msb: 200, cdu: 250, chiller: 300, pump: 200, hire: 400, upgrade: 500 },
+    prices: { row: 150, msb: 150, cdu: 250, chiller: 300, pump: 200, xfmr: 75, rmu: 100, dry: 150, hire: 400, upgrade: 500 },
     // The bare minimum for one hall (owner): Plant A's top pump and one chiller; in Hall 1 the top
     // half's A switchboard, the top coolant unit and two rack rows.
-    start: ['pump-A-t', 'chiller-A-0', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1'],
+    // M29: with the RMU and transformer that feed that switchboard, and one dry cooler at Plant A.
+    start: ['pump-A-t', 'chiller-A-0', 'dry-A-0', 'rmu-1-t', 'xfmr-1-t-A', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1'],
+    chillersPerDryCooler: 2, // each dry cooler unit lets this many of its plant's chillers run
     tighten: 0.015, // the director tightens this much every tightenEvery seconds, with no reset (M24's checks)
     firstSpawn: 20, // seconds before the first alarm: time to look round and buy a first backup
     chillersPerHall: 1, // replaces chillersPerHall: one chiller per hall's worth of racks (owner's compute-first economy)
@@ -102,7 +104,7 @@ export const DEFAULT_CONFIG2 = {
     // burn = base doubling every `doubling` seconds + upkeep x infrastructure built + wages x techs.
     // Infrastructure (switchboards, coolant units, chillers, pumps) costs upkeep and earns nothing, so
     // backups are a mid-game purchase. Starting values for the scripted checks to settle.
-    burn: { base: 3, doubling: 140, upkeep: 0.25, wages: 0.5 },
+    burn: { base: 3, doubling: 150, upkeep: 0.15, wages: 0.5 }, // M29's checks (was doubling 140, upkeep 0.25)
     debtGrace: 15, // seconds in the red before the run ends: time to recover from a fine or a bad spell
     stability: false, // false: no Stability meter in building mode; outages cost income instead
     ceoFine: 50, // dollars per Stability point a CEO sighting would have cost (15 points: $750)

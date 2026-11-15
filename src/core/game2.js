@@ -14,7 +14,7 @@ import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
 import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit } from './ceo.js';
 import { autoDispatch } from './auto.js';
-import { HALL_IDS, buildingOn, builtCdus, builtMsbs, hallOnline, isBuilt, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
+import { HALL_IDS, buildingOn, builtCdus, builtMsbs, dryCapacity, hallOnline, isBuilt, msbFed, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
 
 const EPS = 1e-9;
 const ROWS = EQUIPMENT.filter((e) => e.type === 'row');
@@ -160,7 +160,8 @@ const halfHasRows = (state, hallId, half) => ROWS.some((r) => r.hall === hallId 
 /** A half with racks and no working switchboard (classic: both of its MSBs tripped) is dark. */
 export function isHalfDark(state, hallId, half) {
   if (!halfHasRows(state, hallId, half)) return false;
-  return builtMsbs(state, hallId, half).every((id) => state.equip[id].tripped);
+  // Building mode: a switchboard whose transformer or RMU is missing (or down, M30) is as good as tripped.
+  return builtMsbs(state, hallId, half).every((id) => state.equip[id].tripped || !msbFed(state, id));
 }
 
 // Worst first. 'single' (building mode): working, but with no backup built (pass 4 spec 2.4).
@@ -172,7 +173,7 @@ export function powerShield(state, hallId) {
   let worst = 'whole';
   for (const half of ['t', 'b']) {
     const built = builtMsbs(state, hallId, half);
-    const tripped = built.filter((id) => state.equip[id].tripped).length;
+    const tripped = built.filter((id) => state.equip[id].tripped || !msbFed(state, id)).length;
     if (built.length === 0) {
       if (isHalfDark(state, hallId, half)) worst = worse(worst, 'broken'); // racks with no switchboard
     } else if (tripped === built.length) worst = worse(worst, isHalfDark(state, hallId, half) ? 'broken' : 'cracked');
@@ -223,7 +224,13 @@ export function chillersNeeded(state) {
 
 /** Chillers running: built, not tripped, at a plant with a pump (pass 4 spec 2.3). */
 export function runningChillers(state) {
-  return CHILLERS.filter((c) => isOnline(state, c) && state.equip[c.id].running && plantHasPump(state, c.plant)).length;
+  let n = 0;
+  for (const plant of ['A', 'B']) {
+    const here = CHILLERS.filter((c) => c.plant === plant && isOnline(state, c) && state.equip[c.id].running && plantHasPump(state, c.plant)).length;
+    // Building mode: each dry cooler unit lets two chillers run (pass 4 spec 7.2).
+    n += Math.min(here, dryCapacity(state, plant));
+  }
+  return n;
 }
 
 /** Running chillers beyond those needed (negative when short). */
