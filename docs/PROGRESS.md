@@ -61,10 +61,14 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | M26. Hiring and upgrades for money | `m26` | Done |
 | M27. New tutorial and balance | `m27` | Done (balance waits for the owner's runs) |
 | M28. The yard on the map; black pipes | `m28` | Done |
-| M29. Building the yard | `m29` | Proposed (spec 7.2) |
-| M30. Yard failures | `m30` | Proposed (spec 7.3) |
+| M29. Building the yard | `m29` | Specified (spec 7.2) |
+| M30. Yard failures | `m30` | Specified (spec 7.3) |
 
 ## Log
+
+### After M28: concrete under the yard
+
+At the owner's request: one long piece of concrete along the whole north wall, from the wall out past the RMUs, and one along the south (`drawYardGround` in `src/render/outdoor.js`). The east and west ends stay dirt. The owner also answered on M30: transformers short rather than trip, and a short must be disconnected at the RMU before the transformer is fixed; an RMU fault takes out both sides (spec 7.3).
 
 ### M28. The yard outside the building, and black pipes
 

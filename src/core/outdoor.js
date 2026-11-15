@@ -21,6 +21,12 @@ export const LINE_Y = -232; // the north power line; the south one mirrors it
 export const DRY = { x1: -290, x2: -50, y1: 170, y2: 610, cols: 2, rows: 4 }; // Plant A's block
 export const POLE_EVERY = 280;
 
+/**
+ * The concrete yard along each long wall (owner, 15 Nov): one piece the whole length of the building,
+ * from the wall out past the RMUs. The ends stay dirt. North side: y from YARD_PAD.y1 to 0.
+ */
+export const YARD_PAD = { y1: RMU.y - RMU.h / 2 - 18 };
+
 /** How far past the walls the yard reaches, for the camera (x: past the ends, y: past the sides). */
 export const YARD = { x: 330, y: 280 };
 

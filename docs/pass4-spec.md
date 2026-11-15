@@ -221,6 +221,7 @@ Compute first is clearly right: backups early earn 87% less. Mid-game backups an
 - **The yard is wider:** the camera can look 330 units past the ends and 280 past the long sides. The tyre tracks moved out beyond the power lines.
 - **Every pipe is black:** the overhead chilled-water pipes, the dry cooler pipes, the coolant units' stubs and the chillers' nozzles. (The pump gauge's needle stays red: it is a needle.)
 - In building mode a transformer is pale until its switchboard is built, and an RMU until either of its pair is; in the classic game, until its hall is online.
+- **Concrete under the yard** (owner, after M28): one long piece along the whole north wall, from the wall out past the RMUs, and one along the south. The ends (east and west, with the dry coolers) stay dirt, as does the ground beyond the power lines.
 
 ### 7.2 M29. Building the yard (proposed: rules and screen)
 
@@ -232,19 +233,20 @@ Compute first is clearly right: backups early earn 87% less. Mid-game backups an
 - **The start:** the bare minimum grows to match: Hall 1's top RMU and A transformer, and one dry cooler at Plant A. Starting cash $800.
 - **The build card** names the chain ("Feeds Hall 1's top switchboards", "Needs its RMU to work"), and the tutorial's second lesson becomes "The bottom half needs its own RMU, transformer and switchboard first".
 
-### 7.3 M30. Yard failures (proposed: rules and screen)
+### 7.3 M30. Yard failures (owner's answers 15 November; rules and screen)
 
-Three new alarm types, each with its own picture on the bubble and ticket, so eight in all:
+Three new alarm types, each with its own picture on the bubble and ticket, so eight in all. **Transformers do not trip: they short, and a short must be disconnected at the RMU before the transformer can be fixed** (owner).
 
 | Alarm | Fastest trade | When it fires | If ignored | Fix |
 |---|---|---|---|---|
-| Transformer trip | Electrical | Its switchboard loses power at once (the pair's other side carries it, if built) | After 45 s the pair's other transformer overloads and trips | 8 s |
-| RMU fault | Electrical | Both of the pair's transformers lose power: **the half goes dark, backups or not** | Nothing more: it is already the worst | 10 s |
+| Transformer short | Electrical | Its switchboard loses power at once (the pair's other side carries it, if built) | [Recommended] After 45 s, still connected, the short takes out its RMU: an RMU fault | Two places: **disconnect** at the RMU (3 s), then **repair** at the transformer (8 s) |
+| RMU fault | Electrical | Both of the pair's transformers lose power: **the half goes dark, backups or not** (owner: yes) | Nothing more: it is already the worst | 10 s at the RMU |
 | Dry cooler fan failure | Mechanical | That unit stops: its two chillers may stop if there is no spare | After 60 s the next unit at that plant fails | 6 s |
 
-- The RMU is the shared single point of failure: rare (a low weight in the director's mix), but always costly, so it is the alarm to run for.
-- Breaker trips stay as they are; transformer trips are the yard's version, so the backup B side protects against both.
-- The CEO only cares about outages, as now, so an RMU fault on the route is always a sighting until a tech is on it.
+- **The short's two-step fix:** one tech does both. Sent to a short, they walk to the RMU first, disconnect it (a pip on the fix ring), then walk to the transformer and repair it. Once disconnected the short can no longer spread, so its clock stops for good; the switchboard stays off until the repair is done. A tech pulled off between the steps leaves it disconnected, and the next tech goes straight to the transformer. Auto-dispatch and the ticket's walk time count both legs.
+- The RMU is the shared single point of failure: rare (a low weight in the director's mix), but always costly, so it is the alarm to run for. An ignored short is the other way to get one.
+- Breaker trips stay as they are.
+- The CEO only cares about outages, as now: an RMU fault, or a short on a switchboard with no backup, is a sighting until a tech is on it.
 - Scripted checks re-run with the new alarms and prices.
 
 ### 7.4 Milestones
@@ -253,7 +255,7 @@ Three new alarm types, each with its own picture on the bubble and ticket, so ei
 |---|---|---|
 | M28 | The yard on the map, black pipes (7.1) | Medium (built) |
 | M29 | Building the yard: spots, prices, the power chain, dry coolers, the start, card and tutorial text (7.2) | Large |
-| M30 | Yard failures: transformer trip, RMU fault, dry cooler fan failure, with pictures; scripted checks (7.3) | Large |
+| M30 | Yard failures: transformer short (disconnect at the RMU, then repair), RMU fault, dry cooler fan failure, with pictures; scripted checks (7.3) | Large |
 
 ## 5. Open questions for the owner
 

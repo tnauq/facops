@@ -7,7 +7,7 @@ import { DOORS, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, LANES, PLANTS, WORLD } from '
 import { ICON_SIZE, drawChiller, drawCdu, drawLabel, drawMsb, drawPump, drawRack } from './icons.js';
 import { drawApron, drawJoints, drawTyreTracks, fillConcrete, fillDirt, fillTiles } from './floors.js';
 import { drawPipeShadows, drawPipes } from './pipes.js';
-import { drawYard } from './outdoor.js';
+import { drawYard, drawYardGround } from './outdoor.js';
 
 const COLOR = {
   building: '#E7EBF0',
@@ -149,6 +149,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   fillDirt(ctx, v, screen);
   drawTyreTracks(ctx, v, WORLD);
   drawApron(ctx, v, WORLD);
+  drawYardGround(ctx, v);
   // Floors (M19): smoothed concrete with control joints, the plants' pads, walkways, then the
   // halls' white raised-floor tiles with their aisles.
   fillConcrete(ctx, v, 0, 0, WORLD.width, WORLD.height);

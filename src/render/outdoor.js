@@ -3,7 +3,9 @@
 // lines on poles, and the dry cooler blocks piped to the plants' pumps. Seen from above, in the
 // style of the equipment inside. Positions come from src/core/outdoor.js.
 
-import { DRY_COOLERS, DRY_PIPES, POLES, POWER_LINES, RMU, RMUS, TRANSFORMER, TRANSFORMERS } from '../core/outdoor.js';
+import { WORLD } from '../core/layout2.js';
+import { DRY_COOLERS, DRY_PIPES, POLES, POWER_LINES, RMU, RMUS, TRANSFORMER, TRANSFORMERS, YARD_PAD } from '../core/outdoor.js';
+import { drawJoints, fillConcrete } from './floors.js';
 
 const C = {
   tank: '#76837A', tankDark: '#5A665E', fin: '#4E5952', bushing: '#E9ECEF', bushingEdge: '#4A4F55',
@@ -172,6 +174,23 @@ function groundPipe(ctx, v, points) {
   polyline(ctx, v, points, 10, C.pipeEdge);
   polyline(ctx, v, points, 7.5, C.pipe);
   polyline(ctx, v, points.map((p) => ({ x: p.x - 1.5, y: p.y - 1.5 })), 2, C.pipeShine);
+}
+
+/**
+ * The yard's ground, drawn before the building's walls: concrete under the transformers and RMUs,
+ * one piece along the whole north wall and one along the south (owner, 15 Nov). The ends stay dirt.
+ */
+export function drawYardGround(ctx, v) {
+  const depth = -YARD_PAD.y1;
+  ctx.save();
+  for (const [y, h] of [[YARD_PAD.y1, depth], [WORLD.height, depth]]) {
+    fillConcrete(ctx, v, 0, y, WORLD.width, h);
+    drawJoints(ctx, v, 0, y, WORLD.width, h);
+    ctx.strokeStyle = C.padEdge;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx(v, 0), sy(v, y), WORLD.width * v.scale, h * v.scale);
+  }
+  ctx.restore();
 }
 
 /**
