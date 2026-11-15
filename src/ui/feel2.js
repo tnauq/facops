@@ -50,6 +50,12 @@ export function feelEvents2(feel, events, state) {
     if (f) feel.floats.push({ ...f, born: e.t });
     if (e.type === 'band' && e.to === 'red') feel.flashUntil = e.t + FLASH_TIME;
     if (e.type === 'delivery') feel.celebrations.push({ hall: e.hall, born: e.t, mw: hallMw(state) });
+    // Building mode (pass 4): a hall the player brought online, and a device a contractor finished.
+    if (e.type === 'hallOnline') feel.celebrations.push({ hall: e.hall, born: e.t, mw: null });
+    if (e.type === 'buildStart') {
+      const eq = EQUIPMENT_BY_ID[e.equipId];
+      feel.floats.push({ text: `-$${e.price}`, x: eq.x, y: eq.y, born: e.t });
+    }
   }
 }
 
@@ -61,6 +67,6 @@ export function liveCelebrations(feel, t) {
   return feel.celebrations.map((c) => ({
     hall: c.hall,
     k: Math.max(0, (t - c.born) / CELEBRATE_TIME),
-    text: `Hall ${c.hall} online · +${Math.round(c.mw)} MW`,
+    text: c.mw === null ? `Hall ${c.hall} online` : `Hall ${c.hall} online · +${Math.round(c.mw)} MW`,
   }));
 }

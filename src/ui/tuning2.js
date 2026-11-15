@@ -3,11 +3,12 @@
 // interval": pass 2 starts each phase from the table in spec 4.7 instead. Then the new controls
 // from spec section 9, including Skip tutorial.
 
-import { DEFAULT_CONFIG2 } from '../core/index2.js';
+import { gameDefaults2 } from '../core/index2.js';
 import { createTuning } from './tuning.js';
 
 export const TUNING2_KEY = 'facops.tuning.v2';
-const D = DEFAULT_CONFIG2;
+// The drawer starts from the game's settings: building mode on (pass 4 M25).
+const D = gameDefaults2();
 
 export const TUNING2_FIELDS = [
   { id: 'tighten', label: 'Tightening per 10 s (%)', kind: 'range', min: 0, max: 10, step: 0.5,
@@ -43,6 +44,8 @@ export const TUNING2_FIELDS = [
   { id: 'darkDrain', label: 'Drain per dark half-hall', kind: 'range', min: 0, max: 3, step: 0.25,
     get: (c) => c.meter.darkDrain, set: (o, v) => { o.meter = { ...(o.meter ?? {}), darkDrain: v }; } },
   // New in pass 4 (spec 2.6, 3.4).
+  { id: 'building', label: 'Building mode (off: the classic game)', kind: 'toggle',
+    get: (c) => c.building.enabled, set: (o, v) => { o.building = { ...(o.building ?? {}), enabled: v }; } },
   { id: 'autoDispatch', label: 'Techs pick their own jobs', kind: 'toggle',
     get: (c) => c.autoDispatch.enabled, set: (o, v) => { o.autoDispatch = { ...(o.autoDispatch ?? {}), enabled: v }; } },
   { id: 'realtime', label: 'Real-time mode (no hold or speed buttons)', kind: 'toggle',

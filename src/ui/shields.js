@@ -2,7 +2,7 @@
 // The states come from the rules engine; this module only adds the ring: on a cracked shield, how
 // much clock is left on the alarm that will break it.
 
-import { alarmInfo, coolingShield, getAlarm, liquidShield, powerShield, spareChillers } from '../core/index2.js';
+import { alarmInfo, coolingShield, getAlarm, liquidShield, powerShield, spareChillers, onlineHallIds } from '../core/index2.js';
 
 // Fraction of clock left on the alarm open on this piece of equipment, or null if none (or spent).
 function clockOn(state, equipId) {
@@ -49,7 +49,7 @@ function coolingRing(state) {
  */
 export function shieldsModel(state) {
   const halls = [];
-  for (let hall = 1; hall <= state.halls; hall++) {
+  for (const hall of onlineHallIds(state)) {
     const p = powerShield(state, hall);
     const l = liquidShield(state, hall);
     halls.push({

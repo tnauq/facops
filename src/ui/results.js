@@ -59,8 +59,13 @@ export function resultsPanel(r, record, formatClock) {
     ['Matching hat', cleared ? `${pct(r.matchedShare)} of fixes` : 'no fixes'],
   ];
   if (r.halls !== undefined) addPass2(r, big, lines);
+  // Pass 4 (spec 2.5): in building mode the score is money earned; it takes the middle headline.
+  if (r.building) {
+    big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
+    lines.splice(0, 0, ['Money', `$${Math.round(r.spent).toLocaleString('en-US')} spent building, $${Math.round(r.burned).toLocaleString('en-US')} burned · ${r.energyGwh.toFixed(2)} GWh`]);
+  }
   const bestLine = record.isNew ? 'New best!' : `Best: ${record.best.energyGwh.toFixed(2)} GWh in ${formatClock(record.best.seconds)}`;
   // The card's heading: who ended the run.
-  const title = r.firedByCeo ? 'Fired by the CEO' : 'Round over';
+  const title = r.firedByCeo ? 'Fired by the CEO' : r.bankrupt ? 'Went broke' : 'Round over';
   return { big, lines, bestLine, title };
 }

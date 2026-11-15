@@ -4,7 +4,7 @@
 // alarm and tech as a dot, and a frame for what the map shows. Tapping or dragging on it moves
 // the view there.
 
-import { EQUIPMENT_BY_ID, HALLS, PLANTS, WORLD, plantBOnline } from '../core/index2.js';
+import { EQUIPMENT_BY_ID, HALLS, PLANTS, WORLD, hallOnline, plantBOnline } from '../core/index2.js';
 import { regions } from './regions.js';
 import { shieldsModel } from './shields.js';
 import { alarmCost } from './cost.js';
@@ -55,7 +55,7 @@ export function stripModel(state, strip, cam) {
   const box = (o) => ({ x: stripX(strip, o.x), w: (o.w / WORLD.width) * strip.w });
   const halls = Object.values(HALLS).map((h) => {
     const s = byHall.get(h.id);
-    return { id: h.id, ...box(h), online: h.id <= state.halls, power: s ? s.power.status : null, liquid: s ? s.liquid.status : null };
+    return { id: h.id, ...box(h), online: hallOnline(state, h.id), power: s ? s.power.status : null, liquid: s ? s.liquid.status : null };
   });
   const plants = Object.values(PLANTS).map((p) => ({ id: p.id, ...box(p), online: p.id === 'A' || plantBOnline(state) }));
   const alarms = state.alarms.map((a) => {

@@ -132,11 +132,14 @@ const EXTENT = { row: [24, 75], chiller: [52, 40], pump: [42, 34], cdu: [26, 30]
  * screen: { w, h } of the canvas, for culling. opts.online: halls online (1 to 8);
  * opts.plantB: whether Plant B is online; opts.status(e): icon options for one piece of equipment.
  */
-export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, status = () => ({}), pipes = 'all' } = {}) {
+export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, status = () => ({}), pipes = 'all', hallUp = null, spot = null, offlineTitle = 'under construction', pipeSpan = null } = {}) {
   // pipes: 'all' draws the pipes here; 'shadows' only their shadows, when the caller draws the
   // overhead pipes itself over the crew (src/render/map2.js).
+  // Building mode (pass 4 spec 3.1): hallUp(h) says which halls are online (they need not be in
+  // order), and spot(e) gives { state: 'empty' | 'building', progress } for a device not built yet.
   const v = view;
-  const live = (e) => (e.hall ? e.hall <= online : e.plant === 'A' || plantB);
+  const isUp = hallUp ?? ((h) => h <= online);
+  const live = (e) => (e.hall ? isUp(e.hall) : e.plant === 'A' || plantB);
   const labelPx = Math.max(9, Math.min(13, 19 * v.scale));
   const titlePx = Math.max(10, Math.min(15, 22 * v.scale));
 
@@ -161,7 +164,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   for (const lane of LANES) if (!/^h\d|^door/.test(lane.id) || lane.id.endsWith('-outer')) walkway(ctx, v, lane);
   for (const h of Object.values(HALLS)) {
     if (!onScreen(v, screen, h.cx, h.y + h.h / 2, h.w / 2 + 10, h.h / 2 + 10)) continue;
-    ctx.globalAlpha = h.id <= online ? 1 : OFFLINE_ALPHA;
+    ctx.globalAlpha = isUp(h.id) ? 1 : OFFLINE_ALPHA;
     fillTiles(ctx, v, h.x, h.y, h.w, h.h);
     for (const lane of LANES) if (lane.id.startsWith(`h${h.id}-`)) laneStrip(ctx, v, clipToHall(lane, h), COLOR.aisle);
   }
@@ -173,7 +176,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   wall(ctx, v, 0, 0, 0, WORLD.height, [], 8);
   wall(ctx, v, WORLD.width, 0, WORLD.width, WORLD.height, [], 8);
   for (const h of Object.values(HALLS)) {
-    ctx.globalAlpha = h.id <= online ? 1 : OFFLINE_ALPHA;
+    ctx.globalAlpha = isUp(h.id) ? 1 : OFFLINE_ALPHA;
     const doors = DOORS;
     wall(ctx, v, h.x, h.y, h.x + h.w, h.y, doors, 6);
     wall(ctx, v, h.x, h.y + h.h, h.x + h.w, h.y + h.h, doors, 6);
@@ -183,24 +186,35 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   ctx.globalAlpha = 1;
 
   // Chilled-water pipes: their shadows on the floor, and (for previews) the pipes themselves.
-  if (pipes === 'all') drawPipes(ctx, v, { online, plantB });
-  else drawPipeShadows(ctx, v, { online, plantB });
+  const span = pipeSpan ?? { online, plantB };
+  if (pipes === 'all') drawPipes(ctx, v, span);
+  else drawPipeShadows(ctx, v, span);
 
   // Titles.
   for (const h of Object.values(HALLS)) {
     if (!onScreen(v, screen, h.cx, h.y + 20, 120, 20)) continue;
-    const up = h.id <= online;
-    drawLabel(ctx, up ? `Hall ${h.id}` : `Hall ${h.id} · under construction`, sx(v, h.cx), sy(v, h.y + 8), up ? titlePx : labelPx, COLOR.muted);
+    const up = isUp(h.id);
+    drawLabel(ctx, up ? `Hall ${h.id}` : `Hall ${h.id} · ${offlineTitle}`, sx(v, h.cx), sy(v, h.y + 8), up ? titlePx : labelPx, COLOR.muted);
   }
   for (const p of Object.values(PLANTS)) {
     const up = p.id === 'A' || plantB;
-    drawLabel(ctx, up ? `Plant ${p.id}` : `Plant ${p.id} · under construction`, sx(v, p.x + p.w / 2), sy(v, p.y - 26), up ? titlePx : labelPx, COLOR.plantInk);
+    drawLabel(ctx, up ? `Plant ${p.id}` : `Plant ${p.id} · ${offlineTitle}`, sx(v, p.x + p.w / 2), sy(v, p.y - 26), up ? titlePx : labelPx, COLOR.plantInk);
   }
 
   // Equipment.
   for (const e of EQUIPMENT) {
     const [hw, hh] = EXTENT[e.type];
     if (!onScreen(v, screen, e.x, e.y, hw, hh + 20)) continue;
+    const sp = spot ? spot(e) : null;
+    if (sp) {
+      // Not built yet: a faint ghost of the device, filling in while a contractor builds it.
+      ctx.globalAlpha = sp.state === 'building' ? 0.3 + 0.6 * sp.progress : 0.2;
+      drawOne(ctx, v, e, {});
+      ctx.globalAlpha = 1;
+      if (sp.state === 'empty') drawEmptySpot(ctx, v, e);
+      else drawBuildRing(ctx, v, e, sp.progress);
+      continue;
+    }
     const up = live(e);
     ctx.globalAlpha = up ? 1 : OFFLINE_ALPHA;
     // No captions (pass 3 spec 4b.3): the tutorial introduces each device; a switchboard's side
@@ -208,6 +222,60 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
     drawOne(ctx, v, e, up ? status(e) : {});
   }
   ctx.globalAlpha = 1;
+}
+
+const SPOT_INK = '#1F3A5F';
+
+// An empty spot (pass 4 spec 3.1): a dashed outline round the device's footprint and a "+" badge.
+function drawEmptySpot(ctx, v, e) {
+  const [hw, hh] = EXTENT[e.type];
+  ctx.save();
+  ctx.strokeStyle = 'rgba(31, 58, 95, 0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.roundRect(sx(v, e.x - hw), sy(v, e.y - hh), 2 * hw * v.scale, 2 * hh * v.scale, 6);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const r = Math.max(8, 11 * v.scale);
+  const cx = sx(v, e.x);
+  const cy = sy(v, e.y);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = SPOT_INK;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.lineWidth = Math.max(2, r * 0.22);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.5, cy);
+  ctx.lineTo(cx + r * 0.5, cy);
+  ctx.moveTo(cx, cy - r * 0.5);
+  ctx.lineTo(cx, cy + r * 0.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// A device being built: a ring filling clockwise from the top, ink on a pale track.
+function drawBuildRing(ctx, v, e, progress) {
+  const r = Math.max(9, 13 * v.scale);
+  const cx = sx(v, e.x);
+  const cy = sy(v, e.y);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.fill();
+  ctx.lineWidth = Math.max(2.5, r * 0.28);
+  ctx.strokeStyle = 'rgba(31, 58, 95, 0.18)';
+  ctx.stroke();
+  ctx.strokeStyle = SPOT_INK;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // A hall's aisle strips stop at its walls (the outer aisle runs on out to the corridors, but the

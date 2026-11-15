@@ -81,14 +81,18 @@ test('bubbles and techs are tap targets only while inside the map', () => {
 
 // ---- Pass 2 tuning ----
 
-test('pass 2 tuning has its own key and defaults that give the default rules', () => {
+test('pass 2 tuning has its own key and defaults that give the game\'s rules: building mode since pass 4 M25', () => {
   assert.equal(tuning2.key, 'facops.tuning.v2');
   const v = tuning2.defaultTuning();
   assert.equal(v.walkSpeed, 150);
   assert.equal(v.tighten, 3);
+  assert.equal(v.building, true);
   assert.equal(v.startInterval, undefined);
   const cfg = createGame({ config: tuning2.tuningToConfig(v) }).config;
-  assert.deepEqual(cfg, createGame().config);
+  assert.deepEqual(cfg, createGame({ config: { building: { enabled: true } } }).config);
+  // Switched off, the drawer gives the classic game: the rules engine's own default.
+  const classic = createGame({ config: tuning2.tuningToConfig(tuning2.setTuning(v, 'building', false)) }).config;
+  assert.deepEqual(classic, createGame().config);
 });
 
 // ---- Whole runs through the screen ----

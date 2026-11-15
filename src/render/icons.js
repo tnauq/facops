@@ -333,9 +333,25 @@ export function drawMsb(ctx, x, y, size, options = {}) {
   ctx.restore();
 }
 
-/** Shield for a hall's power or the campus cooling: 'whole' | 'cracked' | 'broken'. */
+/**
+ * Shield for a hall's power or the campus cooling: 'whole' | 'cracked' | 'broken', or 'single'
+ * (pass 4 spec 2.4: working, but with no backup built), drawn hollow with a dashed green edge.
+ */
 export function drawShield(ctx, x, y, size, status) {
   const u = size / 24;
+  if (status === 'single') {
+    ctx.save();
+    ctx.translate(x, y);
+    shieldPath(ctx, u);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    ctx.setLineDash([3 * u, 2.4 * u]);
+    ctx.strokeStyle = '#2E9E6B';
+    ctx.lineWidth = 2.2 * u;
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   const fill = status === 'whole' ? '#5DCAA5' : status === 'cracked' ? '#EF9F27' : '#E24B4A';
   ctx.save();
   ctx.translate(x, y);
@@ -351,6 +367,17 @@ export function drawShield(ctx, x, y, size, status) {
   ctx.fill();
   if (status !== 'whole') line(ctx, [-1 * u, -10 * u, 3 * u, -3 * u, -2 * u, 2 * u, 2 * u, 10 * u], '#FFFFFF', 1.8 * u);
   ctx.restore();
+}
+
+function shieldPath(ctx, u) {
+  ctx.beginPath();
+  ctx.moveTo(0, -12 * u);
+  ctx.lineTo(10 * u, -8 * u);
+  ctx.lineTo(10 * u, 1 * u);
+  ctx.quadraticCurveTo(9 * u, 9 * u, 0, 13 * u);
+  ctx.quadraticCurveTo(-9 * u, 9 * u, -10 * u, 1 * u);
+  ctx.lineTo(-10 * u, -8 * u);
+  ctx.closePath();
 }
 
 /** Small caption under a piece of equipment. */

@@ -104,7 +104,8 @@ test('hall build time is a drawer control', () => {
 });
 
 test('meter fill, chillers per hall and start halls each change their config key', () => {
-  const base = tuning2.defaultTuning();
+  // The classic game (pass 4 M25: the drawer starts in building mode, so switch it off here).
+  const base = tuning2.setTuning(tuning2.defaultTuning(), 'building', false);
   assert.equal(base.meterFill, 1.25);
   assert.equal(base.chillersPerHall, 1.25);
   assert.equal(base.startHalls, 1);

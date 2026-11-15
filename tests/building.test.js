@@ -303,3 +303,16 @@ test('the CEO only cares about outages: a tripped switchboard with its backup ca
   assert.deepEqual(sighted, [costly.id]);
   assert.equal(s.stats.ceoFines, s.config.ceo.ribbon.cost * s.config.building.ceoFine);
 });
+
+test('the round-over card: money earned is the headline, and "Went broke" when the cash ran out', async () => {
+  const { resultsPanel } = await import('../src/ui/results.js');
+  const { formatClock } = await import('../src/core/index2.js');
+  const s = game({ building: { burn: { base: 50, doubling: 1e9, upkeep: 0, wages: 0 } } });
+  advance(s, 60);
+  const r = results(s);
+  assert.equal(r.bankrupt, true);
+  const panel = resultsPanel(r, { isNew: true, best: r }, formatClock);
+  assert.equal(panel.title, 'Went broke');
+  assert.equal(panel.big[1].label, 'earned');
+  assert.match(panel.big[1].value, /^\$/);
+});

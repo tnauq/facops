@@ -20,7 +20,7 @@
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
-import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
+import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
 import { drawStrip } from './render/strip.js';
@@ -34,6 +34,9 @@ import { drawUpgrade } from './render/upgrades.js';
 import { deliveryCard } from './ui/delivery.js';
 import { createTutorial, lessonAlarms, updateTutorial } from './ui/tutorial.js';
 import { createIntros, updateIntros } from './ui/intros.js';
+import { cardLayout, spotAt, spotInfo } from './ui/spots.js';
+import { drawBuildCard } from './render/spots.js';
+import { buildMove } from './core/builder.js';
 import { drawCallout } from './render/callout.js';
 import { cameraView } from './ui/camera.js';
 import { resultsPanel } from './ui/results.js';
@@ -97,6 +100,7 @@ function newRound() {
     feel: createFeel2(),
     tutorial: null,
     intros: null, // device introductions after the tutorial (pass 3 spec 4b.4)
+    card: null, // building mode: { id } of the spot whose build card is open (pass 4 spec 3.2)
     callout: '',
     railFirst: 0, // the rail's scroll position (pass 3 spec 2.3)
     railKnown: new Set(), // alarms already costing something, for sending the rail back to the top
@@ -106,7 +110,11 @@ function newRound() {
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
   const cfg = round.state.config;
-  if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) {
+  // Building mode has no tutorial until M27 rewrites it for building (its lessons need Hall 1's
+  // backups); the build card names each device, and the first network and pump alarms are named.
+  if (buildingOn(round.state)) {
+    if (cfg.tutorial && !round.auto) round.intros = createIntros();
+  } else if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) {
     round.tutorial = createTutorial(promptVerb());
     round.intros = createIntros();
   }
@@ -292,6 +300,8 @@ function draw() {
   // The CEO's banner across the top of the map (pass 3 spec 4.7): one line when the map is narrow.
   drawBanner(ctx, cam.rect, bannerModel(s, cam.rect.w < 560));
   for (const m of markers) if (m.ceo) drawCeoMarker(ctx, m); // never hidden by the banner
+  const open = openCard();
+  if (open) drawBuildCard(ctx, open.layout, open.info);
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow() }));
@@ -324,6 +334,11 @@ function frame(now) {
     if (round.auto && state.pendingPick) choose(state, pickFor(state, 'first'));
     for (let k = 0; k < speed && !state.over; k++) step(state, dt);
     if (round.auto && state.t >= round.nextAuto && greedyMove(state, { reaction: 1 })) round.nextAuto = state.t + AUTO_GAP;
+    // #auto in building mode also builds, compute first (the scripted builder, src/core/builder.js).
+    if (round.auto && buildingOn(state) && state.t >= (round.nextBuild ?? 0)) {
+      buildMove(state, 'builder');
+      round.nextBuild = state.t + 1;
+    }
   }, paused);
   const events = state.events.splice(0); // drained every frame so the list never grows
   feelEvents2(round.feel, events, state);
@@ -339,6 +354,9 @@ function frame(now) {
       if (!isVisible(cam, e.x, e.y, 40)) glideTo(e.x, e.y, 600);
     }
   }
+  if (!round.tutorial && round.intros && mode === 'playing') round.callout = updateIntros(round.intros, state);
+  // A build card closes once its spot is no longer empty.
+  if (round.card && spotState(state, round.card.id) !== 'empty') round.card = null;
   const card = deliveryCard(state, events);
   if (card && mode === 'playing') onDelivery(card);
   if (state.over && mode === 'playing') roundOver();
@@ -463,6 +481,43 @@ function onRailUp(e) {
   if (hit.kind !== 'empty') revealFor(hit);
 }
 
+// The open build card's layout and contents, or null (pass 4 spec 3.2).
+function openCard() {
+  if (!round.card) return null;
+  const e = EQUIPMENT_BY_ID[round.card.id];
+  const v = cameraView(cam);
+  const layout = cardLayout(cam.rect, v.ox + e.x * v.scale, v.oy + e.y * v.scale);
+  return { layout, info: spotInfo(round.state, round.card.id) };
+}
+
+const inside = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+
+function buildSpot(id) {
+  if (build(round.state, id).ok) round.card = null; // the card stays open, saying what is missing, when it cannot
+}
+
+// A tap on the map in building mode: the build card's button, the card itself, or an empty spot.
+// Returns true when the tap was used. Alarms and techs win over spots (pass 4 spec 3.1).
+function buildingTap(tap) {
+  if (!buildingOn(round.state)) return false;
+  const open = openCard();
+  if (open && inside(tap, open.layout.button)) {
+    buildSpot(round.card.id);
+    return true;
+  }
+  if (open && inside(tap, open.layout)) return true;
+  const hit = hitTest(tap, mapTargets2(round.state, cam));
+  const spot = hit.kind === 'empty' ? spotAt(round.state, cam, tap) : null;
+  if (!spot) {
+    round.card = null;
+    return false;
+  }
+  if (round.card && round.card.id === spot.id) buildSpot(spot.id); // a second tap on the spot confirms
+  else round.card = { id: spot.id };
+  round.selection = NOTHING;
+  return true;
+}
+
 function onUp(e) {
   if (stripGesture) {
     stripGesture = false;
@@ -476,6 +531,7 @@ function onUp(e) {
   const tap = endGesture(gesture);
   gesture = null;
   if (e.type === 'pointercancel' || !tap || !canPlay()) return;
+  if (buildingTap(tap)) return;
   const m = markerAt(markers, tap);
   if (m) {
     glideTo(m.target.x, m.target.y);

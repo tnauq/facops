@@ -78,10 +78,10 @@ export const DEFAULT_CONFIG2 = {
     areasMin: 2,
     areasMax: 3,
   },
-  // Building and money (pass 4 spec 2.1 to 2.8). Off until the screen can build (M25). All numbers
-  // are starting values for the scripted checks to settle.
+  // Building and money (pass 4 spec 2.1 to 2.8). All numbers are starting values for the scripted
+  // checks to settle.
   building: {
-    enabled: false,
+    enabled: false, // the rules' default is the classic game; the screen starts in building mode (GAME_CONFIG2)
     buildTime: 8, // seconds for a contractor to build a device
     startCash: 600,
     income: 4, // dollars a second from one rack row at full output
@@ -115,6 +115,14 @@ export const DEFAULT_CONFIG2 = {
   realtime: false, // screen only (pass 4 spec 3.4): true takes away the hold and speed buttons, for experienced players
   timeScale: 60, // plant seconds per real second (1 real second = 1 plant minute)
 };
+
+/**
+ * The game's starting settings, as the screen and its tuning drawer use them: building mode on (pass 4
+ * M25). The rules engine's own default stays the classic game, which its tests check.
+ */
+export function gameDefaults2() {
+  return makeConfig2({ building: { enabled: true } });
+}
 
 /** Deep copy of the defaults with optional overrides merged in (one level of nesting). */
 export function makeConfig2(overrides = {}) {

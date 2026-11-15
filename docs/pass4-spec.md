@@ -124,11 +124,14 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 
 - Tapping an empty spot opens a small card next to it: the device's picture and name, its price, one line on what it does (`Powers the top half of Hall 3`, `Backup: keeps Hall 3's top half lit if A trips`), and **Build** (greyed with `Need $80 more` when short).
 - Tap Build, or tap the same spot again, to confirm. Tap elsewhere to cancel.
-- The card names the device, so the map still needs no captions.
+- The card names the device, so the map still needs no captions. Infrastructure shows its upkeep ("+$0.25/s upkeep"), so a backup is a visible choice. A rack row warns when it would not earn yet: "Needs a switchboard in this half to earn", "Earns once Hall 3 has a switchboard and a coolant unit", "Cooling will run short: build a chiller too".
+- The card sits beside the spot, or above or below it on a narrow map, never over it.
+- In building mode the pipework is drawn complete from the start (the building is being fitted out); halls not yet online are pale, titled "needs power and coolant".
+- **Until M27:** building mode has no tutorial (the classic tutorial's lessons need Hall 1's backups). The device introductions for network and pump alarms still show. The drawer's **Building mode** switch, off, brings back the classic game with its tutorial.
 
 ### 3.3 HUD and crew bar
 
-- The HUD shows cash and income in place of "Hall 3 of 8".
+- The HUD shows **Cash** in place of the Stability meter: the cash, then what it is doing a second (income minus burn, red when falling), and "In the red · 0:12" while the red countdown runs. The note says "3 halls online".
 - The crew bar ends with a **Hire** card (`+ Hire $400`), which opens the hire and upgrade choices as an overlay, like the Delivery card did.
 - Crew cards keep Idle / Walking / Fixing; an auto-dispatched tech is shown the same as a player-sent one.
 
@@ -167,7 +170,7 @@ One per session. Commit titles start with the milestone so the action tags them.
 | M22 | Rail hysteresis (the misclick fix); pause and speed buttons as an option (3.4, 3.5) | Small |
 | M23 | Auto-dispatch with player override, and its drawer switch (2.6, rules only; the crew still arrives as in pass 3) | Medium |
 | M24 | Rules for building: spots, prices, money, the online rule, what works, redundancy without backups, director by rows built, CEO triggers, hiring and upgrades for money (the commands; their screen is M26); scripted builder player and checks (2.1 to 2.8). Behind `building.enabled`, off until M25 can show it | Large |
-| M25 | Building on screen: empty spots, the build card, cash in the HUD, build rings, the no-backup shield (3.1 to 3.3) | Large |
+| M25 | Building on screen: empty spots, the build card, cash in the HUD, build rings, the no-backup shield (3.1 to 3.3). Building mode on by default (drawer switch); `#auto` builds compute first | Large |
 | M26 | Hire card and upgrades for money; Deliveries removed | Medium |
 | M27 | The new tutorial, and a balance pass from the owner's runs (3.6) | Medium |
 

@@ -2,7 +2,8 @@
 // the building with live faults, the crew (walking hats bob), alarm bubbles (new ones pop in),
 // then the off-map arrows. Returns the arrows so taps can find them.
 
-import { plantBOnline } from '../core/index2.js';
+import { buildingOn, hallOnline, plantBOnline } from '../core/index2.js';
+import { spotsModel } from '../ui/spots.js';
 import { drawBuilding } from './campus2.js';
 import { drawCrew } from './campus.js';
 import { drawAlarmBubble } from './icons.js';
@@ -81,7 +82,19 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   ctx.beginPath();
   ctx.rect(cam.rect.x, cam.rect.y, cam.rect.w, cam.rect.h);
   ctx.clip();
-  drawBuilding(ctx, v, screen, { online: state.halls, plantB: plantBOnline(state), status: equipmentStatus(state), pipes: 'shadows' });
+  // Building mode (pass 4 spec 3.1): the pipework is all in place (you are fitting the building out),
+  // halls are online in any order, and devices not built yet show as spots.
+  const building = buildingOn(state);
+  const pipesOnline = building ? { online: 8, plantB: true } : { online: state.halls, plantB: plantBOnline(state) };
+  const spots = building ? new Map(spotsModel(state).map((sp) => [sp.id, sp])) : null;
+  drawBuilding(ctx, v, screen, {
+    online: state.halls,
+    plantB: plantBOnline(state),
+    status: equipmentStatus(state),
+    pipes: 'shadows',
+    pipeSpan: pipesOnline,
+    ...(building ? { hallUp: (h) => hallOnline(state, h), spot: (e) => spots.get(e.id) ?? null, offlineTitle: 'needs power and coolant' } : {}),
+  });
   // Shields are on the overview strip only (pass 3 spec 4b.3): the map stays uncluttered.
   // The bob only moves the drawing; tap targets stay where the rules put each tech.
   const crew = fannedCrew(state.techs, v.scale).map((t) => ({ ...t, y: t.y + bobOffset(t, state.t) / v.scale }));
@@ -89,7 +102,7 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   drawCrew(ctx, v, crew, selection.techId ?? null);
   drawCeoOnFloor(ctx, v, state, fx.ceo?.assistant ?? null);
   // The pipes run overhead, over the crew and the CEO.
-  drawOverheadPipes(ctx, v, { online: state.halls, plantB: plantBOnline(state) });
+  drawOverheadPipes(ctx, v, pipesOnline);
   const list = bubbles2(state, selection.alarmId ?? null);
   for (const b of list) {
     const r = BUBBLE_RADIUS * popScale(b.info.age);

@@ -55,6 +55,31 @@ function drawPauseBars(ctx, cx, cy, r) {
   ctx.fillRect(cx + r * 0.25, cy - r, r * 0.55, r * 2);
 }
 
+const RED = '#D9483B'; // the HUD's red band colour
+
+// Building mode (pass 4 spec 3.3): "Cash" then the cash and its rate, where Stability was; in the red,
+// the cash and the countdown in the red band colour.
+function drawMoney(ctx, layout, money) {
+  const { cy } = layout;
+  ctx.font = `11px ${FONT}`;
+  ctx.fillStyle = MUTED;
+  ctx.fillText('Cash', layout.meterLabel.x + 18, cy);
+  let x = layout.meter.x;
+  ctx.font = `600 15px ${FONT}`;
+  ctx.fillStyle = money.red ? RED : INK;
+  ctx.fillText(money.cash, x, cy);
+  x += ctx.measureText(money.cash).width + 8;
+  ctx.font = `600 12px ${FONT}`;
+  ctx.fillStyle = money.falling ? RED : MUTED;
+  ctx.fillText(money.rate, x, cy);
+  x += ctx.measureText(money.rate).width + 8;
+  if (money.red) {
+    ctx.font = `700 12px ${FONT}`;
+    ctx.fillStyle = RED;
+    ctx.fillText(`In the red · ${money.red}`, x, cy);
+  }
+}
+
 function drawPlay(ctx, cx, cy, r) {
   ctx.fillStyle = INK;
   ctx.beginPath();
@@ -87,25 +112,28 @@ export function drawHud(ctx, W, layout, model, note = '', buttons = { held: fals
   ctx.fillStyle = INK;
   ctx.fillText(model.load, layout.load.x, cy);
 
-  ctx.font = `11px ${FONT}`;
-  ctx.fillStyle = MUTED;
-  ctx.fillText('Stability', layout.meterLabel.x, cy);
-  const m = layout.meter;
-  roundRect(ctx, m.x, m.y, m.w, m.h, m.h / 2);
-  ctx.fillStyle = TRACK;
-  ctx.fill();
-  if (model.meter > 0) {
-    ctx.save();
+  if (model.money) drawMoney(ctx, layout, model.money);
+  else {
+    ctx.font = `11px ${FONT}`;
+    ctx.fillStyle = MUTED;
+    ctx.fillText('Stability', layout.meterLabel.x, cy);
+    const m = layout.meter;
     roundRect(ctx, m.x, m.y, m.w, m.h, m.h / 2);
-    ctx.clip();
-    ctx.fillStyle = BAND_COLOR[model.band];
-    ctx.fillRect(m.x, m.y, (m.w * model.meter) / 100, m.h);
-    ctx.restore();
+    ctx.fillStyle = TRACK;
+    ctx.fill();
+    if (model.meter > 0) {
+      ctx.save();
+      roundRect(ctx, m.x, m.y, m.w, m.h, m.h / 2);
+      ctx.clip();
+      ctx.fillStyle = BAND_COLOR[model.band];
+      ctx.fillRect(m.x, m.y, (m.w * model.meter) / 100, m.h);
+      ctx.restore();
+    }
+    roundRect(ctx, m.x, m.y, m.w, m.h, m.h / 2);
+    ctx.strokeStyle = EDGE;
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
-  roundRect(ctx, m.x, m.y, m.w, m.h, m.h / 2);
-  ctx.strokeStyle = EDGE;
-  ctx.lineWidth = 1;
-  ctx.stroke();
 
   if (note) {
     // `note` may be a list of wordings, longest first: use the first that fits before the buttons.

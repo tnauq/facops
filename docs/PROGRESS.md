@@ -56,12 +56,41 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 |---|---|---|
 | M22. Rail fix; hold and speed buttons | `m22` | Done |
 | M23. Techs pick their own jobs | `m23` | Done |
-| M24. Rules for building | `m24` | Done (behind a switch until M25) |
-| M25. Building on screen | `m25` | |
+| M24. Rules for building | `m24` | Done |
+| M25. Building on screen | `m25` | Done |
 | M26. Hiring and upgrades for money | `m26` | |
 | M27. New tutorial and balance | `m27` | |
 
 ## Log
+
+### M25. Building on screen
+
+Pass 4 spec 3.1 to 3.3. **Building mode is now the game** (the drawer's "Building mode" switch, off, brings back the classic game).
+
+Built:
+
+- **Empty spots** (`src/ui/spots.js`, drawn in `src/render/campus2.js`): every device not built yet is a faint ghost with a dashed outline and a "+"; while a contractor builds it, it fills in with a ring. Every spot is at least a 44 px target; alarms and techs win over spots.
+- **The build card** (`src/render/spots.js`): tap a spot for its name, price and one line on what it does here (a backup says it is one; a rack row says when it will not earn yet: no switchboard in its half, hall not online, cooling short). Infrastructure shows its upkeep. Tap **Build**, or the same spot again; tap elsewhere to close. Short of money, the button says how much more is needed.
+- **Cash in the HUD** in place of the Stability meter: cash, the rate (income minus burn, red when falling), and "In the red · 0:12" while the countdown runs. The note says how many halls are online.
+- **The no-backup shield** on the overview strip: hollow with a dashed green edge, for a hall working with no backup.
+- **Pipework complete from the start** in building mode; halls not online are pale, titled "needs power and coolant". "Hall 3 online" celebrates a hall you bring online; each purchase floats its price.
+- **The round-over card:** money earned is the headline; "Went broke" when the cash ran out.
+- **`#auto`** also builds, compute first.
+- The rules' own default stays the classic game (its tests are unchanged); the screen and drawer start from `gameDefaults2()`, building mode on.
+- 8 new tests (406 in all).
+
+Worth knowing:
+
+- **No tutorial in building mode yet** (M27 rewrites it). The build card names everything, and the first network and pump alarms still get their introductions.
+- **Hiring and upgrades** have no buttons yet: M26. Until then you play with your two starting techs.
+- Your saved drawer settings are kept; Building mode is on unless you switch it off.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: spots and their targets, the card beside and clear of the spot, building by Build and by a second tap, the cash and red countdown in the HUD, "Went broke", and `#auto` building. No console errors.
+
+Owner's checklist:
+
+- Start a run: can you tell what to build first, and does the card tell you enough?
+- Does the money pressure feel right: a tight start, racks keeping you afloat, backups worth it later?
+- Do the spots and "+" badges clutter the map, or read as "room to grow"?
 
 ### After M24: compute first, money as the lifeline
 
