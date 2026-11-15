@@ -319,6 +319,17 @@ export function drawMsb(ctx, x, y, size, options = {}) {
   }
   disc(ctx, 0, 12 * u, 9 * u, tripped ? C.tripped : C.bolt, C.steelLine, 1 * u);
   drawTradeIcon(ctx, 0, 12 * u, 13 * u, 'electrical', tripped ? C.white : C.boltInk);
+  // Pass 3 spec 4b.3: the side, A or B, stencilled on a small white plate on the cabinet's front.
+  if (options.side) {
+    for (const px of [-20]) {
+      fillRound(ctx, (px - 7) * u, 3 * u, 14 * u, 17 * u, 2 * u, C.white, C.steelLine, 1 * u);
+      ctx.font = `800 ${14 * u}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = C.boltInk;
+      ctx.fillText(options.side, px * u, 12.5 * u);
+    }
+  }
   ctx.restore();
 }
 

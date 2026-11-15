@@ -4,6 +4,7 @@
 // Pure apart from the rules commands it issues (raiseAlarm, setScripted).
 //
 // Lessons:
+// Each lesson's callout names its device, since the map has no captions (pass 3 spec 4b.4).
 //   assign   - a breaker trip: "tap the alarm, then a tech". One MSB of a pair down costs nothing.
 //   hat      - a chiller trip: the red dot means the red hat fixes it a little faster.
 //   leak     - a CDU leak: power is lost straight away.
@@ -58,19 +59,19 @@ export function updateTutorial(tut, state, events) {
   switch (tut.step) {
     case 'start':
       setScripted(state, true);
-      begin(tut, state, 'assign', [['breaker', 'msb-1-t-A']], `Alarm! ${v} the alarm, then ${v.toLowerCase()} a tech to send them.`);
+      begin(tut, state, 'assign', [['breaker', 'msb-1-t-A']], `Alarm on a switchboard! ${v} the alarm, then ${v.toLowerCase()} a tech to send them.`);
       break;
     case 'assign':
       if (events.some((e) => e.type === 'assign' && tut.ids.includes(e.alarmId))) {
         tut.callout = 'One switchboard down costs nothing yet: its partner carries the load.';
       }
       if (allCleared(state, tut.ids)) {
-        begin(tut, state, 'hat', [['chiller', 'chiller-A-0']], 'The red dot means the red hat fixes it a little faster. Any hat can fix anything.');
+        begin(tut, state, 'hat', [['chiller', 'chiller-A-0']], 'A chiller tripped: chillers cool the whole building. The red dot means the red hat fixes it a little faster.');
       }
       break;
     case 'hat':
       if (allCleared(state, tut.ids)) {
-        begin(tut, state, 'leak', [['leak', 'cdu-1-t']], 'A leak costs power straight away. Watch the load at the top.');
+        begin(tut, state, 'leak', [['leak', 'cdu-1-t']], 'A coolant unit is leaking. That costs power straight away: watch the load at the top.');
       }
       break;
     case 'leak':

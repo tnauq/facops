@@ -166,3 +166,13 @@ test('a merged arrow is led by its most urgent alarm when ranks are given (pass 
   const [n] = offMapMarkers(pts.map(({ rank, ...p }) => p), c);
   assert.equal(n.type, 'breaker');
 });
+
+test('with a site margin the view can look that far past each wall, and no further (pass 3 spec 4b.3)', async () => {
+  const { SITE_MARGIN, siteOf } = await import('../src/ui/camera.js');
+  const cam = createCamera({ x: 80, y: 36, w: 656, h: 350 }, 0.5, siteOf(WORLD));
+  const v = visibleSize(cam);
+  const farLeft = panBy(cam, 1e6, 1e6);
+  assert.deepEqual([farLeft.x, farLeft.y], [-SITE_MARGIN, -SITE_MARGIN]);
+  const farRight = panBy(cam, -1e6, -1e6);
+  assert.deepEqual([farRight.x, farRight.y], [WORLD.width - v.w + SITE_MARGIN, WORLD.height - v.h + SITE_MARGIN]);
+});

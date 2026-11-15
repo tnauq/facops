@@ -64,6 +64,9 @@ export function stripModel(state, strip, cam) {
   });
   const techs = state.techs.map((t) => ({ id: t.id, x: stripX(strip, t.x), y: stripY(strip, t.y), trade: t.trade }));
   const v = visibleSize(cam);
-  const frame = { x: stripX(strip, cam.x), w: (v.w / WORLD.width) * strip.w };
+  // The view can look a little past the walls (spec 4b.3); the frame stays on the building.
+  const left = Math.max(0, cam.x);
+  const right = Math.min(WORLD.width, cam.x + v.w);
+  const frame = { x: stripX(strip, left), w: (Math.max(0, right - left) / WORLD.width) * strip.w };
   return { halls, plants, cooling: { status: shields.cooling.status, spare: shields.cooling.spare }, alarms, techs, frame };
 }

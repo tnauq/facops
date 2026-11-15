@@ -108,3 +108,128 @@ export function fillTiles(ctx, v, x, y, w, h) {
   ctx.stroke();
   ctx.restore();
 }
+
+// ---- The ground around the building (pass 3 spec 4b.3, owner 14 Nov) ----
+// Bare earth: a seamless brown texture with soft patches, grit and small stones, made once in
+// code. Tyre tracks are drawn on top in world space (drawTyreTracks), so they line up with the walls.
+
+const DIRT = '#A88D6C';
+const DIRT_TEX_WORLD = 300;
+let dirtTex = null;
+let dirtTried = false;
+
+function dirtTexture() {
+  if (dirtTried) return dirtTex;
+  dirtTried = true;
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas');
+  c.width = TEX_PX;
+  c.height = TEX_PX;
+  const g = c.getContext('2d');
+  if (!g) return null;
+  g.fillStyle = DIRT;
+  g.fillRect(0, 0, TEX_PX, TEX_PX);
+  let seed = 23;
+  const rand = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
+  const wrap = (draw) => {
+    for (const dx of [-TEX_PX, 0, TEX_PX]) for (const dy of [-TEX_PX, 0, TEX_PX]) draw(dx, dy);
+  };
+  // Patches: damp darker earth and dry paler earth.
+  for (let i = 0; i < 160; i++) {
+    const x = rand() * TEX_PX;
+    const y = rand() * TEX_PX;
+    const r = 8 + rand() * 26;
+    const color = rand() < 0.55 ? `rgba(70, 50, 30, ${0.03 + rand() * 0.05})` : `rgba(235, 215, 180, ${0.04 + rand() * 0.06})`;
+    wrap((dx, dy) => {
+      g.beginPath();
+      g.ellipse(x + dx, y + dy, r, r * (0.5 + rand() * 0.4), rand() * Math.PI, 0, Math.PI * 2);
+      g.fillStyle = color;
+      g.fill();
+    });
+  }
+  // Grit.
+  for (let i = 0; i < 2200; i++) {
+    g.fillStyle = rand() < 0.6 ? 'rgba(60, 42, 24, 0.18)' : 'rgba(250, 238, 215, 0.22)';
+    g.fillRect(Math.floor(rand() * TEX_PX), Math.floor(rand() * TEX_PX), 1, 1);
+  }
+  // Small stones: a pale pebble with a shadow on its lower right.
+  for (let i = 0; i < 46; i++) {
+    const x = rand() * TEX_PX;
+    const y = rand() * TEX_PX;
+    const r = 1.2 + rand() * 2.6;
+    const shade = 150 + Math.floor(rand() * 60);
+    wrap((dx, dy) => {
+      g.beginPath();
+      g.ellipse(x + dx + 0.8, y + dy + 0.9, r, r * 0.75, 0.4, 0, Math.PI * 2);
+      g.fillStyle = 'rgba(50, 35, 20, 0.35)';
+      g.fill();
+      g.beginPath();
+      g.ellipse(x + dx, y + dy, r, r * 0.75, 0.4, 0, Math.PI * 2);
+      g.fillStyle = `rgb(${shade}, ${shade - 8}, ${shade - 20})`;
+      g.fill();
+    });
+  }
+  dirtTex = c;
+  return dirtTex;
+}
+
+/** Fill the whole canvas with earth, fixed to the world so it moves with the map. */
+export function fillDirt(ctx, v, screen) {
+  const tex = dirtTexture();
+  let fill = DIRT;
+  if (tex) {
+    const pattern = ctx.createPattern(tex, 'repeat');
+    if (pattern && typeof pattern.setTransform === 'function' && typeof DOMMatrix !== 'undefined') {
+      const k = (DIRT_TEX_WORLD / TEX_PX) * v.scale;
+      pattern.setTransform(new DOMMatrix([k, 0, 0, k, v.ox, v.oy]));
+      fill = pattern;
+    }
+  }
+  ctx.fillStyle = fill;
+  ctx.fillRect(0, 0, screen.w, screen.h);
+}
+
+/**
+ * Faint tyre tracks in the earth along the building's long sides: pairs of tread lines, as left by
+ * the delivery trucks. world: { width, height }.
+ */
+export function drawTyreTracks(ctx, v, world) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(70, 50, 30, 0.22)';
+  ctx.lineCap = 'butt';
+  const tread = Math.max(1, 5 * v.scale);
+  ctx.lineWidth = tread;
+  ctx.setLineDash([2 * v.scale, 3 * v.scale]);
+  const sx = (x) => v.ox + x * v.scale;
+  const sy = (y) => v.oy + y * v.scale;
+  // One gentle wave per track, so they read as driven rather than ruled.
+  const track = (y0, amp, phase) => {
+    for (const off of [0, 22]) {
+      ctx.beginPath();
+      for (let x = -120; x <= world.width + 120; x += 40) {
+        const y = y0 + off + amp * Math.sin(x / 520 + phase);
+        if (x === -120) ctx.moveTo(sx(x), sy(y));
+        else ctx.lineTo(sx(x), sy(y));
+      }
+      ctx.stroke();
+    }
+  };
+  track(-62, 8, 0.4);
+  track(world.height + 34, 9, 2.1);
+  ctx.restore();
+}
+
+/** A narrow concrete apron just outside the building's outside wall. */
+export function drawApron(ctx, v, world, width = 16) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(203, 202, 197, 0.92)';
+  const x = v.ox - width * v.scale;
+  const y = v.oy - width * v.scale;
+  const w = (world.width + 2 * width) * v.scale;
+  const h = (world.height + 2 * width) * v.scale;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(80, 64, 44, 0.35)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.restore();
+}

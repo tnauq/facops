@@ -5,11 +5,10 @@
 
 import { DOORS, EQUIPMENT, HALLS, LANES, PLANTS, WORLD } from '../core/layout2.js';
 import { ICON_SIZE, drawChiller, drawCdu, drawLabel, drawMsb, drawPump, drawRack } from './icons.js';
-import { drawJoints, fillConcrete, fillTiles } from './floors.js';
+import { drawApron, drawJoints, drawTyreTracks, fillConcrete, fillDirt, fillTiles } from './floors.js';
 import { drawPipeShadows, drawPipes } from './pipes.js';
 
 const COLOR = {
-  page: '#D5DBE3',
   building: '#E7EBF0',
   hall: '#F3F5F8',
   pad: 'rgba(60, 64, 56, 0.07)', // the plants' equipment pads, a shade darker than the concrete
@@ -111,7 +110,7 @@ function drawOne(ctx, v, e, st) {
   } else if (e.type === 'chiller') drawChiller(ctx, x, y, ICON_SIZE.chiller * s, st);
   else if (e.type === 'pump') drawPump(ctx, x, y, ICON_SIZE.pump * s, { ...st, ...pumpTurn(e) });
   else if (e.type === 'cdu') drawCdu(ctx, x, y, ICON_SIZE.cdu * s, { ...st, ...cduTurn(e) });
-  else if (e.type === 'msb') drawMsb(ctx, x, y, ICON_SIZE.msb * s, st);
+  else if (e.type === 'msb') drawMsb(ctx, x, y, ICON_SIZE.msb * s, { ...st, side: e.side });
 }
 
 // M19: each pump's discharge points along its riser (down for the top pumps, up for the bottom
@@ -128,13 +127,6 @@ function cduTurn(e) {
 // Half sizes in world units, for culling.
 const EXTENT = { row: [24, 75], chiller: [52, 40], pump: [42, 34], cdu: [26, 30], msb: [34, 30] };
 
-// Captions, in world units below the icon centre (above for the bottom-row MSBs, which sit at the edge).
-function captionY(e) {
-  if (e.type === 'msb') return e.half === 't' ? e.y + 30 : e.y - 44;
-  if (e.type === 'chiller') return e.y + 38;
-  return null;
-}
-
 /**
  * Draw the building. view: { scale, ox, oy } (see src/ui/camera.js cameraView).
  * screen: { w, h } of the canvas, for culling. opts.online: halls online (1 to 8);
@@ -148,8 +140,11 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   const labelPx = Math.max(9, Math.min(13, 19 * v.scale));
   const titlePx = Math.max(10, Math.min(15, 22 * v.scale));
 
-  ctx.fillStyle = COLOR.page;
-  ctx.fillRect(0, 0, screen.w, screen.h);
+  // The ground around the building (pass 3 spec 4b.3): earth with tyre tracks, and a narrow
+  // concrete apron along the outside wall.
+  fillDirt(ctx, v, screen);
+  drawTyreTracks(ctx, v, WORLD);
+  drawApron(ctx, v, WORLD);
   // Floors (M19): smoothed concrete with control joints, the plants' pads, walkways, then the
   // halls' white raised-floor tiles with their aisles.
   fillConcrete(ctx, v, 0, 0, WORLD.width, WORLD.height);
@@ -208,9 +203,9 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
     if (!onScreen(v, screen, e.x, e.y, hw, hh + 20)) continue;
     const up = live(e);
     ctx.globalAlpha = up ? 1 : OFFLINE_ALPHA;
+    // No captions (pass 3 spec 4b.3): the tutorial introduces each device; a switchboard's side
+    // is painted on the cabinet itself.
     drawOne(ctx, v, e, up ? status(e) : {});
-    const cy = captionY(e);
-    if (cy !== null && e.label) drawLabel(ctx, e.label, sx(v, e.x), sy(v, cy), labelPx);
   }
   ctx.globalAlpha = 1;
 }

@@ -33,6 +33,7 @@ import { drawTech } from './render/icons.js';
 import { drawUpgrade } from './render/upgrades.js';
 import { deliveryCard } from './ui/delivery.js';
 import { createTutorial, lessonAlarms, updateTutorial } from './ui/tutorial.js';
+import { createIntros, updateIntros } from './ui/intros.js';
 import { drawCallout } from './render/callout.js';
 import { cameraView } from './ui/camera.js';
 import { resultsPanel } from './ui/results.js';
@@ -50,10 +51,12 @@ import { hudModel2 } from './ui/hud2.js';
 import { reduceFlow } from './ui/flow.js';
 import { BEST2_KEY, bestText, defaultStorage, loadBest, recordBest, saveBest } from './ui/best.js';
 import { tuning2 } from './ui/tuning2.js';
-import { centreOn, createCamera, glide, isVisible, panBy, passOneScale } from './ui/camera.js';
+import { centreOn, createCamera, glide, isVisible, panBy, passOneScale, siteOf } from './ui/camera.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
 import { inStripTarget, regions3, stripModel, stripX, stripY, worldXAt } from './ui/strip.js';
 import { markerAt } from './ui/offmap.js';
+
+const SITE = siteOf(WORLD); // the building and the ground around it (pass 3 spec 4b.3)
 
 const INK = '#1F3A5F';
 const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -92,6 +95,7 @@ function newRound() {
     selection: NOTHING,
     feel: createFeel2(),
     tutorial: null,
+    intros: null, // device introductions after the tutorial (pass 3 spec 4b.4)
     callout: '',
     railFirst: 0, // the rail's scroll position (pass 3 spec 2.3)
     railKnown: new Set(), // alarms already costing something, for sending the rail back to the top
@@ -99,7 +103,10 @@ function newRound() {
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
   const cfg = round.state.config;
-  if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) round.tutorial = createTutorial(promptVerb());
+  if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) {
+    round.tutorial = createTutorial(promptVerb());
+    round.intros = createIntros();
+  }
   if (cam) cam = centreOn(cam, START_POINT.x, START_POINT.y);
   gliding = null;
   window.facops = round; // handy in the browser console; the page never reads it back
@@ -193,14 +200,14 @@ function syncCamera() {
   const rect = layout().map;
   const scale = passOneScale(regions(size.w, size.h).map);
   if (!cam) {
-    cam = createCamera(rect, scale, WORLD, START_POINT);
+    cam = createCamera(rect, scale, SITE, START_POINT);
     return;
   }
   const same = cam.rect.x === rect.x && cam.rect.w === rect.w && cam.rect.h === rect.h && cam.scale === scale;
   if (!same) {
     // Keep the same world point in the middle of the view.
     const mid = { x: cam.x + cam.rect.w / cam.scale / 2, y: cam.y + cam.rect.h / cam.scale / 2 };
-    cam = centreOn(createCamera(rect, scale, WORLD), mid.x, mid.y);
+    cam = centreOn(createCamera(rect, scale, SITE), mid.x, mid.y);
     gliding = null;
   }
 }
@@ -277,7 +284,8 @@ function draw() {
   if (round.callout) {
     // Keep the callout away from the alarms the lesson is about.
     const v = cameraView(cam);
-    const ys = lessonAlarms(round.tutorial)
+    const ids = round.tutorial && !round.tutorial.done ? lessonAlarms(round.tutorial) : round.intros?.ids ?? [];
+    const ys = ids
       .map((id) => s.alarms.find((a) => a.id === id))
       .filter(Boolean)
       .map((a) => v.oy + EQUIPMENT_BY_ID[a.equipId].y * v.scale);
@@ -303,6 +311,8 @@ function frame(now) {
   trackCeo(round.ceoView, state);
   if (round.tutorial && mode === 'playing') {
     round.callout = updateTutorial(round.tutorial, state, events);
+    // Once the tutorial is over, the first rack-row and pump alarms are introduced by name.
+    if (round.tutorial.done && round.intros) round.callout = updateIntros(round.intros, state);
     if (round.tutorial.focus) {
       const e = EQUIPMENT_BY_ID[round.tutorial.focus];
       round.tutorial.focus = null;

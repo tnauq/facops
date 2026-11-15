@@ -46,9 +46,32 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 | M18. CEO on screen | `m18` | Done |
 | M19. Graphical pass | `m19` | Done |
 | M20. Gentler escalation; a rail without pages | `m20` | Done |
-| M21. A cleaner map; each device introduced | `m21` | |
+| M21. A cleaner map; each device introduced | `m21` | Done |
 
 ## Log
+
+### M21. A cleaner map, and each device introduced
+
+At the owner's request after playing (pass 3 spec 4b.3, 4b.4).
+
+Built:
+
+- **Shields on the strip only.** The hall and plant shields, their rings and the "5 spare" beside Plant A's title are off the map; the overview strip still shows every shield and the spare count.
+- **No equipment captions.** "MSB A", "Chiller A3", "Pump top" and "CDU" are gone. Hall and plant titles stay.
+- **A and B on the switchboards**: a stencilled letter on a small white plate on the cabinet (`drawMsb` takes `side`). It stays on a tripped one.
+- **Dirt outside the building** (`src/render/floors.js`): bare earth made in code (patches, grit, small stones), two pairs of faint tyre tracks along the long sides, and a narrow concrete apron at the outside wall. The camera can now look 90 world units past each wall (`SITE_MARGIN` in `src/ui/camera.js`); the strip's frame stays on the building.
+- **Devices introduced by name.** The tutorial's callouts now say "switchboard", "chiller" and "coolant unit". After the tutorial, the first rack-row network failure and the first pump overpressure each get a 6-second callout (`src/ui/intros.js`), held back while the CEO is being announced. Only in a run that began with the tutorial.
+- 6 new tests (362 in all); two tutorial tests follow the new first callout.
+
+Worth knowing:
+
+- The tutorial's first lesson still cracks the power shield, but now you see it crack on the strip, not on the hall.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: tiles, plates, the earth at the top, left and bottom edges, the tutorial's first callout and the network introduction. No console errors.
+
+Owner's checklist:
+
+- Does the map read better without the shields and captions? Can you still tell the devices apart?
+- Do the A and B plates and the dirt look right on the phone?
 
 ### M20. Gentler escalation, and a rail without pages
 

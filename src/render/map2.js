@@ -7,7 +7,6 @@ import { drawBuilding } from './campus2.js';
 import { drawCrew } from './campus.js';
 import { drawAlarmBubble } from './icons.js';
 import { drawMarker } from './markers.js';
-import { drawShields } from './shields.js';
 import { drawOverheadPipes } from './pipes.js';
 import { drawCeoMarker, drawCeoOnFloor, drawCeoRoute, drawSpeech } from './ceo.js';
 import { drawFloats } from './map.js';
@@ -18,7 +17,6 @@ import { fannedCrew } from '../ui/crew.js';
 import { bobOffset, popScale } from '../ui/feel.js';
 import { offMapMarkers } from '../ui/offmap.js';
 import { bubbles2, equipmentStatus } from '../ui/view2.js';
-import { shieldsModel } from '../ui/shields.js';
 import { triageOrder } from '../ui/cost.js';
 
 const INK = '#1F3A5F';
@@ -84,7 +82,7 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   ctx.rect(cam.rect.x, cam.rect.y, cam.rect.w, cam.rect.h);
   ctx.clip();
   drawBuilding(ctx, v, screen, { online: state.halls, plantB: plantBOnline(state), status: equipmentStatus(state), pipes: 'shadows' });
-  drawShields(ctx, v, screen, shieldsModel(state), { plantB: plantBOnline(state) });
+  // Shields are on the overview strip only (pass 3 spec 4b.3): the map stays uncluttered.
   // The bob only moves the drawing; tap targets stay where the rules put each tech.
   const crew = fannedCrew(state.techs, v.scale).map((t) => ({ ...t, y: t.y + bobOffset(t, state.t) / v.scale }));
   drawCeoRoute(ctx, v, state);

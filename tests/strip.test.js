@@ -87,3 +87,14 @@ test('the frame shows what the map shows, and follows the camera', () => {
   const mid = worldXAt(strip, f.x + f.w / 2);
   assert.ok(Math.abs(mid - HALLS[6].cx) < 1, `${mid}`);
 });
+
+test('looking past the walls, the strip frame stays on the building (pass 3 spec 4b.3)', async () => {
+  const { createCamera, panBy, siteOf } = await import('../src/ui/camera.js');
+  const { createGame, WORLD } = await import('../src/core/index2.js');
+  const { regions3, stripModel } = await import('../src/ui/strip.js');
+  const regs = regions3(844, 390);
+  const cam = panBy(createCamera(regs.map, 0.5, siteOf(WORLD)), 1e6, 0);
+  const m = stripModel(createGame({ seed: 1 }), regs.strip, cam);
+  assert.equal(m.frame.x, regs.strip.x);
+  assert.ok(m.frame.w > 0 && m.frame.x + m.frame.w <= regs.strip.x + regs.strip.w);
+});

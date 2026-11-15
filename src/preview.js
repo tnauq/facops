@@ -11,7 +11,7 @@ import { drawCrew } from './render/campus.js';
 import { drawAlarmBubble } from './render/icons.js';
 import { drawMarker } from './render/markers.js';
 import { BUBBLE_RADIUS, BUBBLE_RAISE } from './ui/bubbles.js';
-import { cameraView, centreOn, createCamera, glide, panBy, passOneScale } from './ui/camera.js';
+import { cameraView, centreOn, createCamera, glide, panBy, passOneScale, siteOf } from './ui/camera.js';
 import { fannedCrew } from './ui/crew.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
 import { popScale } from './ui/feel.js';
@@ -21,6 +21,8 @@ import { markerAt, offMapMarkers } from './ui/offmap.js';
 import { MAX_HALLS, hallsFromHash, plantBOnline, sampleAlarms, sampleStatus } from './ui/preview.js';
 import { HUD_HEIGHT, regions } from './ui/regions.js';
 import { bubbles2, equipmentStatus } from './ui/view2.js';
+
+const SITE = siteOf(WORLD);
 
 const INK = '#1F3A5F';
 const MUTED = '#56606E';
@@ -58,9 +60,9 @@ function layoutCamera() {
   const scale = passOneScale(regions(size.w, size.h).map); // the zoom the game's map region will use
   if (cam) {
     const mid = { x: cam.x + cam.rect.w / cam.scale / 2, y: cam.y + cam.rect.h / cam.scale / 2 };
-    cam = centreOn(createCamera(rect, scale, WORLD), mid.x, mid.y);
+    cam = centreOn(createCamera(rect, scale, SITE), mid.x, mid.y);
   } else {
-    cam = createCamera(rect, scale, WORLD, START_POINT);
+    cam = createCamera(rect, scale, SITE, START_POINT);
   }
 }
 

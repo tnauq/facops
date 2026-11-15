@@ -45,7 +45,7 @@ test('the lessons come one at a time, in order, then the director takes over', (
   assert.deepEqual(steps.slice(0, 7), ['assign', 'hat', 'leak', 'choose', 'busy', 'redirect', 'free']);
   assert.ok(tut.done, 'the first Delivery ends the tutorial');
   assert.equal(s.halls, 2);
-  assert.match(seen[0].callout, /^Alarm! Tap the alarm, then tap a tech/);
+  assert.match(seen[0].callout, /^Alarm on a switchboard! Tap the alarm, then tap a tech/);
 });
 
 test('while the lessons run the director adds nothing and the meter stays at 80 or below', () => {
@@ -87,7 +87,7 @@ test('prompts say Click with a mouse', () => {
   const s = createGame({ seed: 1 });
   const tut = createTutorial('Click');
   step(s, 0.05);
-  assert.match(updateTutorial(tut, s, s.events.splice(0)), /^Alarm! Click the alarm, then click a tech/);
+  assert.match(updateTutorial(tut, s, s.events.splice(0)), /^Alarm on a switchboard! Click the alarm, then click a tech/);
 });
 
 test('the callouts are one line each, short enough for the phone', () => {
