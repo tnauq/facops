@@ -43,10 +43,10 @@ export const DEFAULT_CONFIG2 = {
   director: {
     enabled: true,
     firstSpawn: 5, // seconds before the first alarm of a run
-    phaseIntervals: [12, 9, 7.5, 6.5, 5.5, 5, 4.5, 4], // seconds between alarms at the start of a phase, by halls online
-    tighten: 0.05, // the interval shrinks by this share...
+    phaseIntervals: [12, 10, 9, 8, 7, 6.5, 6, 5.5], // seconds between alarms at the start of a phase, by halls online (pass 3 spec 4b.1: gentler)
+    tighten: 0.03, // the interval shrinks by this share... (pass 3 spec 4b.1: was 0.05)
     tightenEvery: 10, // ...every this many seconds
-    carryOver: 0.7, // share of the tightening a new phase keeps after a Delivery (pass 3 spec 4.4; 0 = reset as in pass 2)
+    carryOver: 0.5, // share of the tightening a new phase keeps after a Delivery (pass 3 spec 4.4, 4b.1; 0 = reset as in pass 2)
     floor: 1.5, // shortest interval
     jitter: 0.3, // each interval varies by plus or minus this share
     waveEvery: 45, // seconds between waves (0 turns waves off)

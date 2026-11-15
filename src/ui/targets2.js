@@ -41,22 +41,16 @@ function trimAbove(button, tickets) {
 
 /**
  * Targets on the rails and HUD. `regs` is regions(W, H, { crewColumns }); `railFirst` is the rail's
- * scroll position (pass 3 spec 2.3). `chips` are the rail's ▲ and "+N more" chips, ids 'rail-up'
- * and 'rail-down'; `scrolls` says whether the rail overflows (then it acts on finger-up, so a drag
- * can scroll it).
+ * scroll position (pass 3 spec 4b.2). `scrolls` says whether the rail overflows even as tiles
+ * (then it acts on finger-up, so a drag can scroll it). There are no chips any more.
  */
 export function railTargets2(state, regs, crewColumns, railFirst = 0) {
   const rail = railTickets2(state, regs.rail, null, railFirst);
   const tickets = rail.tickets.map(rectOf);
-  const chips = [rail.up, rail.down].filter(Boolean).map(rectOf);
   return {
-    buttons: hudButtonTargets(regs.hud.w).map((b) => trimAbove(b, [...chips, ...tickets])),
+    buttons: hudButtonTargets(regs.hud.w).map((b) => trimAbove(b, tickets)),
     cards: crewCards(state, regs.crew, null, { columns: crewColumns }).map(rectOf),
     tickets,
-    chips,
-    scrolls: chips.length > 0 || rail.first > 0,
+    scrolls: rail.more !== null || rail.first > 0,
   };
 }
-
-/** The rail chip under p, or null. */
-export const chipAt = (targets, p) => (targets.chips ?? []).find((c) => inRect(p, c)) ?? null;

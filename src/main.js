@@ -40,11 +40,11 @@ import { copyLabel, copyText } from './ui/copy.js';
 import { createClock, runFrame } from './ui/loop.js';
 import { hitTest } from './ui/hittest.js';
 import { NOTHING, pruneSelection, reduceTap } from './ui/selection.js';
-import { chipAt, mapTargets2, railTargets2 } from './ui/targets2.js';
+import { mapTargets2, railTargets2 } from './ui/targets2.js';
 import { HUD_HEIGHT, crewColumns, hudLayout, regions } from './ui/regions.js';
 import { createFeel2, feelEvents2, flashAlpha, liveCelebrations, liveFloats } from './ui/feel2.js';
 import { crewCards, techForKey } from './ui/crewbar.js';
-import { autoTop, pageTo, railTickets2, scrollByDrag } from './ui/rail2.js';
+import { autoTop, railTickets2, scrollByDrag } from './ui/rail2.js';
 import { DRAG_PX } from './ui/drag.js';
 import { hudModel2 } from './ui/hud2.js';
 import { reduceFlow } from './ui/flow.js';
@@ -426,11 +426,6 @@ function onRailUp(e) {
   railGesture = null;
   if (e.type === 'pointercancel' || g.dragging || !canPlay()) return;
   const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst);
-  const chip = chipAt(targets, g.start);
-  if (chip) {
-    round.railFirst = pageTo(layout().rail.h, round.state.alarms.length, round.railFirst, chip.id === 'rail-down' ? 1 : -1);
-    return;
-  }
   const hit = hitTest(g.start, { tickets: targets.tickets });
   applyTap(hit); // a ticket, or the gap between tickets (clears the selection)
   if (hit.kind !== 'empty') revealFor(hit);

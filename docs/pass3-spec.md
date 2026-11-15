@@ -1,6 +1,6 @@
 # FacOps pass 3 build spec
 
-Version 0.7, 13 November 2026 (0.7: M19, the graphical pass the owner asked for, section 4a; 0.6: M17's checks set the defaults and the owner turned off the late alarm-cap rise, 4.4 and 4.5; 0.5: the CEO specified in full, section 4; 0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes, now section 4.4). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.8, 14 November 2026 (0.8: M20 and M21 from the owner's play, section 4b; 0.7: M19, the graphical pass the owner asked for, section 4a; 0.6: M17's checks set the defaults and the owner turned off the late alarm-cap rise, 4.4 and 4.5; 0.5: the CEO specified in full, section 4; 0.4: M15 puts the cost on a ticket's first line; 0.2 records the owner's answers on the CEO schedule; 0.3 the CEO's name and the two pacing rule changes, now section 4.4). Drafted from the M13 build review (`FacOps_Build_Review_M13.md` in the owner's project) after the owner asked to start on its recommendations. This is the source of truth for pass 3, as `docs/pass2-spec.md` was for pass 2. Pass 2's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Items marked **[Recommended]** are choices made for the owner, kept unless the owner changes them. Milestones M14 to M18 are specified in full.
 
@@ -259,6 +259,62 @@ The owner asked for a graphical pass after playing the CEO build. This is also t
 
 Owner's checklist: do the pipes make the plant read as one system? Do the halls and the concrete look right on the phone? Do the chillers read as chillers, and is a tripped one still obvious?
 
+## 4b. M20 and M21. After the owner's play (owner, 14 November)
+
+The owner played the CEO and graphics build and asked for five things: escalation that builds more gradually, no pages of alarms to tab through, shields only on the bar below the map, no equipment captions (each device is introduced in the tutorial instead), A and B painted on the switchboards themselves, and dirt around the outside of the building. Asking for slower escalation is the owner's agreement to the director changes in 4b.1.
+
+### 4b.1 M20. Gentler escalation (rules)
+
+"It gets unmanageable pretty quickly." The scripted player that comes closest to a person (reacts in 4 s, one command every 3 s) had more alarms waiting than free techs 35% of the time by hall 5 and 57% by hall 6. The new defaults keep that player comfortable through about hall 8 and let pressure climb steadily after it:
+
+| Director setting | Was | Now |
+|---|---|---|
+| Interval at the start of each phase, by halls online | 12, 9, 7.5, 6.5, 5.5, 5, 4.5, 4 s | 12, 10, 9, 8, 7, 6.5, 6, 5.5 s |
+| Tightening | 5% every 10 s | 3% every 10 s |
+| Tightening kept between halls (`carryOver`) | 70% | 50% |
+
+Alarms started a minute, for that player: about 6 in minute 1, 10 at hall 3, 12 at hall 5, 15 at hall 8, then about 19 and 22 in the two minutes after. The GDD's original tightening was 3%; pass 1's 5% was for a four-minute round.
+
+- Nothing else in the rules changes. Every value stays in the Tuning drawer.
+- The section 4.5 targets were set against scripted players who see the whole building at once. The owner's play outranks them; `scripts/profile.mjs` prints the minute-by-minute picture used here.
+- Expect strong players' runs to last longer (scripted good players about 14 to 16 minutes, most ended by zero tolerance). If runs feel too long, zero tolerance can move to the second walkthrough (`ceo.walks`).
+
+### 4b.2 M20. A rail without pages (screen)
+
+- While every alarm fits as a full ticket, the rail is as before.
+- When they do not, every ticket shrinks to a **tile**, 44 x 44, two across, in the same triage order (left to right, top to bottom). Twice as many fit: 14 on the iPhone, 10 at 660 x 300, more than the director's cap of crew + 2 in almost every run.
+- A tile is the alarm's bubble (fault picture, clock ring or fix progress, hat dot, assigned hat or queued ring) with its cost underneath (`−6`) when it costs something. A selected tile is outlined, as a ticket is.
+- The `▲ N` and `+N more` chips are gone. If tiles still do not fit, the rail can be dragged and a `+N` note sits over a fade at the bottom; it is not a button.
+- Tapping a tile does what tapping a ticket does.
+
+### 4b.3 M21. A cleaner map
+
+- **Shields** are drawn only on the overview strip. The hall and plant shields and their rings come off the map. The strip already shows each hall's two shields and the cooling shield with the spare count.
+- **No equipment captions** ("MSB A", "Chiller A3", "Pump top", "CDU"). Hall and plant titles stay; the CEO's banner and the strip use them.
+- **A and B on the switchboards**, as part of the drawing: a stencilled letter on a small white plate on the cabinet's front, readable on the iPhone. It stays on a tripped switchboard.
+- **Dirt outside the building.** The site around the building is bare earth: a brown ground texture made in code with grit, small stones and a few faint tyre tracks. The camera can pan about 90 world units past each wall so it shows; the building's outside wall gets a narrow concrete apron.
+
+### 4b.4 M21. Each device is introduced
+
+With the captions gone, the game names each device the first time it matters. Callouts as in the tutorial (one line, kept clear of the alarm):
+
+| When | Callout |
+|---|---|
+| Tutorial, first breaker trip | `Alarm on a switchboard! Tap the alarm, then tap a tech to send them.` |
+| Tutorial, the chiller lesson | `A chiller tripped: chillers cool the whole building. The red dot means the red hat fixes it a little faster.` |
+| Tutorial, the first leak | `A coolant unit is leaking. That costs power straight away: watch the load at the top.` |
+| First Network Failure of the run | `A rack row lost its network. Racks are the computers: down racks deliver nothing.` |
+| First Pump Overpressure of the run | `A pump's pressure is climbing. Fix it before the pipe bursts and floods two halls' coolant units.` |
+
+- The first two rows' wording replaces the old callouts; the rest of the tutorial is unchanged.
+- The Network and Pump callouts show for 6 s, only in a run that began with the tutorial (the drawer's Skip tutorial switch off), and never over a CEO banner's warning: they wait until it ends.
+
+### 4b.5 Owner's checklists
+
+M20: play two runs. Does the pressure build gradually, with a calm start and a busy end? Late in a run, can you see every alarm on the rail without tabbing?
+
+M21: does the map read better without the shields and captions? Can you still tell the devices apart? Do the A and B plates and the dirt look right on the phone?
+
 ## 5. Later
 
 In the order the review recommends, each to be specified when reached: staging and tech locations on the crew cards; puddles; the rest of the tutorial (the second side, Network and Pump introductions, the off-map arrows, cooling); sound; a run-over screen worth a screenshot; a Settings card (one-tap, sound, reduce flashing, text size, replay tutorial, glossary); small polish (Home Screen icon, full-screen button, delivery truck, step pips).
@@ -284,3 +340,5 @@ One per session, as before. Commit titles start with the milestone (`M14: ...`) 
 | M17 | CEO rules, the pacing changes and the scripted checks (4.1 to 4.6) |
 | M18 | CEO on screen, with the lines (4.7, 4.8) |
 | M19 | Graphical pass: pipes, floors, centrifugal chillers (4a) |
+| M20 | Gentler escalation; a rail without pages (4b.1, 4b.2) |
+| M21 | A cleaner map: shields on the strip only, no captions, A and B plates, dirt; each device introduced (4b.3, 4b.4) |

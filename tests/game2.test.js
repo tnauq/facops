@@ -392,10 +392,10 @@ test('mercy: never the second MSB of a pair, never a leak beside a leak, chiller
   assert.deepEqual(eligibleEquipment(s, 'chiller'), []); // 0 spare
 });
 
-test('phase intervals follow the table and tighten 5% every 10 s', () => {
+test('phase intervals follow the table and tighten 3% every 10 s (pass 3 spec 4b.1)', () => {
   const cfg = createGame().config;
-  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8].map((h) => spawnInterval(cfg, h, 0)), [12, 9, 7.5, 6.5, 5.5, 5, 4.5, 4]);
-  assert.ok(near(spawnInterval(cfg, 1, 10), 12 * 0.95));
+  assert.deepEqual([1, 2, 3, 4, 5, 6, 7, 8].map((h) => spawnInterval(cfg, h, 0)), [12, 10, 9, 8, 7, 6.5, 6, 5.5]);
+  assert.ok(near(spawnInterval(cfg, 1, 10), 12 * 0.97));
   assert.equal(spawnInterval(cfg, 8, 10000), 1.5);
 });
 
@@ -430,7 +430,8 @@ test('results and the Copy text include halls, Deliveries, crew and picks', () =
   assert.match(text, /Picks: /);
 });
 
-test('pacing (spec 4.6, 4.7): hall 2 within 90 s, hall 8 at about 6 to 9 minutes, runs of 6 to 13 minutes', () => {
+// Pass 3 spec 4b.1 (owner, 14 Nov): gentler escalation, so a strong scripted player's runs last longer.
+test('pacing (spec 4.6, 4.7; pass 3 4b.1): hall 2 within 90 s, hall 8 at about 6 to 9 minutes, runs of 6 to 19 minutes', () => {
   const runs = [1, 2, 3, 4, 5, 6].map((seed) => playRun({ seed, maxSeconds: 1500 }));
   for (const r of runs) {
     assert.ok(r.deliveries[0].t <= 90.1, `hall 2 at ${r.deliveries[0].t.toFixed(0)} s`);
@@ -439,7 +440,7 @@ test('pacing (spec 4.6, 4.7): hall 2 within 90 s, hall 8 at about 6 to 9 minutes
     if (h8) assert.ok(h8.t >= 360 && h8.t <= 560, `hall 8 at ${h8.t.toFixed(0)} s`);
   }
   const avgLen = runs.reduce((x, r) => x + r.seconds, 0) / runs.length;
-  assert.ok(avgLen >= 360 && avgLen <= 780, `runs last ${avgLen.toFixed(0)} s on average`);
+  assert.ok(avgLen >= 360 && avgLen <= 1140, `runs last ${avgLen.toFixed(0)} s on average`);
   assert.ok(runs.every((r) => r.halls === 8), 'a good scripted player reaches hall 8');
 });
 

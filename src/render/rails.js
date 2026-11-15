@@ -1,7 +1,7 @@
 // Draws the crew bar (spec 6.5) and the alarm rail (6.6). What each card and ticket shows comes
 // from src/ui/crewbar.js and src/ui/rail.js; this file only paints it.
 
-import { drawFaultGlyph, drawHatDot, drawTech } from './icons.js';
+import { drawAlarmBubble, drawFaultGlyph, drawHatDot, drawTech } from './icons.js';
 
 const PANEL = '#FFFFFF';
 const EDGE = '#C9D1DB';
@@ -106,27 +106,43 @@ export function drawRail(ctx, rail) {
   }
 }
 
-function chip2(ctx, c) {
-  ctx.beginPath();
-  ctx.roundRect(c.x, c.y + 4, c.w, c.h - 8, (c.h - 8) / 2);
-  ctx.fillStyle = PANEL;
-  ctx.fill();
-  ctx.strokeStyle = EDGE;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  text(ctx, c.text, c.x + c.w / 2, c.y + c.h / 2, { weight: 600, color: INK, align: 'center' });
+// A tile (pass 3 spec 4b.2): the alarm's bubble, with its cost underneath when it costs something.
+function drawTile(ctx, t) {
+  panel(ctx, t, t.selected);
+  const costly = t.cost > 0;
+  const cy = costly ? t.y + 17 : t.y + t.h / 2;
+  drawAlarmBubble(ctx, t.x + t.w / 2, cy, costly ? 12 : 14, t.info, { assignedTrade: t.assignedTrade, queued: t.queued });
+  if (costly) {
+    ctx.font = `700 10px ${FONT}`;
+    ctx.fillStyle = INK;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`−${t.cost}`, t.x + t.w / 2, t.y + t.h - 7);
+  }
+}
+
+// "+N" over a fade at the bottom of an overflowing rail: a note, not a button.
+function drawMore(ctx, m) {
+  const g = ctx.createLinearGradient(0, m.y - 10, 0, m.y + m.h);
+  g.addColorStop(0, 'rgba(255, 255, 255, 0)');
+  g.addColorStop(0.5, 'rgba(255, 255, 255, 0.9)');
+  g.addColorStop(1, 'rgba(255, 255, 255, 0.95)');
+  ctx.fillStyle = g;
+  ctx.fillRect(m.x - 2, m.y - 10, m.w + 4, m.h + 10);
+  text(ctx, m.text, m.x + m.w / 2, m.y + m.h / 2 + 1, { weight: 700, color: INK, align: 'center' });
 }
 
 /**
- * The pass 3 rail (railTickets2 in src/ui/rail2.js). As drawRail, except that a ticket whose alarm
- * costs something shows the cost ("−34 MW") in bold on its first line in place of the alarm's name:
- * the fault picture still says what it is, and the rail reads as a list of what is being lost.
- * The ▲ and "+N more" chips are drawn inside their 44 px tap targets.
+ * The pass 3 rail (railTickets2 in src/ui/rail2.js). Full tickets are as drawRail, except that a
+ * ticket whose alarm costs something shows the cost ("−34 MW") in bold on its first line in place
+ * of the alarm's name: the fault picture still says what it is. When the rail is full, every ticket
+ * is a tile instead (spec 4b.2), and a "+N" note shows if even the tiles overflow.
  */
 export function drawRail2(ctx, rail) {
-  drawRail(ctx, {
-    tickets: rail.tickets.map((t) => ({ ...t, name: t.costText || t.name })),
-    chip: null,
-  });
-  for (const c of [rail.up, rail.down]) if (c) chip2(ctx, c);
+  if (!rail.compact) {
+    drawRail(ctx, { tickets: rail.tickets.map((t) => ({ ...t, name: t.costText || t.name })), chip: null });
+    return;
+  }
+  for (const t of rail.tickets) drawTile(ctx, t);
+  if (rail.more) drawMore(ctx, rail.more);
 }

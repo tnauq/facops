@@ -1,87 +1,89 @@
-// The pass 3 alarm rail (pass 3 spec, section 2). Pure.
+// The pass 3 alarm rail (pass 3 spec, sections 2 and 4b.2). Pure.
 // Tickets in triage order (costly first, see cost.js), each showing what its alarm costs now.
-// When they do not all fit, the rail scrolls a ticket at a time: `first` is the index of the top
-// ticket shown. A "+N more" chip at the bottom pages down, a "▲ N" chip at the top pages up; both
-// are 44 px tap targets and take one ticket slot each.
+// While every alarm fits as a full ticket, the rail is a column of tickets. When they do not, every
+// ticket shrinks to a 44 x 44 tile, two across, so twice as many fit and nothing hides on a second
+// page (owner, 14 Nov: no pages to tab through). Only if even the tiles overflow can the rail be
+// dragged, a row of tiles at a time; a "+N" note (not a button) then says how many are below.
 
 import { alarmInfo, getTech, locationTag } from '../core/index2.js';
 import { triageOrder } from './cost.js';
 import { ALARM_SHORT, GAP, TICKET_HEIGHT, TICKET_WIDTH, ticketBar } from './rail.js';
 
 export const SLOT = TICKET_HEIGHT + GAP;
-export const CHIP2_HEIGHT = TICKET_HEIGHT; // a full 44 px tap target
+export const TILE = 44; // a full tap target
+export const TILE_SLOT = TILE + GAP;
+export const TILES_ACROSS = 2;
 
 /** Ticket slots in a rail this tall. */
 export const slotsIn = (railHeight) => Math.max(1, Math.floor((railHeight - GAP) / SLOT));
 
-/** The furthest the rail can scroll for `count` alarms: the last page shows the up chip and the rest. */
-export function maxFirst(railHeight, count) {
+/** Rows of tiles in a rail this tall. */
+export const tileRowsIn = (railHeight) => Math.max(1, Math.floor((railHeight - GAP) / TILE_SLOT));
+
+/** How the rail shows `count` alarms: { compact, rows, capacity } (rows of tiles or tickets). */
+export function railMode(railHeight, count) {
   const slots = slotsIn(railHeight);
-  return count <= slots ? 0 : Math.max(0, count - (slots - 1));
+  if (count <= slots) return { compact: false, rows: slots, capacity: slots };
+  const rows = tileRowsIn(railHeight);
+  return { compact: true, rows, capacity: rows * TILES_ACROSS };
+}
+
+/** The furthest the rail can scroll, in rows of tiles (0 unless even the tiles overflow). */
+export function maxFirst(railHeight, count) {
+  const m = railMode(railHeight, count);
+  if (!m.compact || count <= m.capacity) return 0;
+  return Math.ceil((count - m.capacity) / TILES_ACROSS);
 }
 
 export const clampFirst = (first, railHeight, count) => Math.max(0, Math.min(Math.round(first), maxFirst(railHeight, count)));
 
-/** { up, shown, down }: whether each chip shows and how many tickets fit between them. */
-export function railPage(railHeight, count, first) {
-  const slots = slotsIn(railHeight);
-  if (count <= slots) return { up: false, shown: count, down: false };
-  const f = clampFirst(first, railHeight, count);
-  const up = f > 0;
-  const room = slots - (up ? 1 : 0);
-  const down = count - f > room;
-  const shown = down ? room - 1 : count - f;
-  return { up, shown: Math.max(0, shown), down };
-}
-
-/** Where the rail goes when a chip is tapped: down one page, or up one page. */
-export function pageTo(railHeight, count, first, direction) {
-  const page = railPage(railHeight, count, first);
-  const step = Math.max(1, direction > 0 ? page.shown : slotsIn(railHeight) - 2);
-  return clampFirst(first + direction * step, railHeight, count);
+function ticketOf(state, alarm, cost, selectedAlarmId, box) {
+  const info = alarmInfo(state, alarm);
+  const tech = info.techId !== null ? getTech(state, info.techId) : null;
+  return {
+    id: alarm.id,
+    ...box,
+    type: info.type,
+    name: ALARM_SHORT[info.type],
+    place: locationTag(info.equipId),
+    cost,
+    costText: cost > 0 ? `−${cost} MW` : '',
+    trade: info.trade,
+    bar: ticketBar(info),
+    assignedTrade: tech ? tech.trade : null,
+    queued: info.queued && !tech,
+    selected: alarm.id === selectedAlarmId,
+    info, // for drawing a tile as the alarm's bubble
+  };
 }
 
 /**
- * { tickets, up, down, first }. Tickets as in rail.js, plus `cost` (whole MW, 0 when free) and
- * `costText` ("−6 MW" or ""). up and down are chips { id: 'rail-up' | 'rail-down', x, y, w, h, text }
- * or null. `first` is the scroll position after clamping.
+ * { tickets, compact, more, first }. Tickets as in rail.js, plus `cost` (whole MW, 0 when free),
+ * `costText` ("−6 MW" or "") and `info`. compact: whether they are tiles. more: null, or the note
+ * { x, y, w, h, text: "+N" } over the bottom of the rail when tiles are hidden below. first: the
+ * scroll position (rows of tiles) after clamping.
  */
 export function railTickets2(state, rect, selectedAlarmId = null, first = 0) {
   const order = triageOrder(state);
+  const mode = railMode(rect.h, order.length);
   const f = clampFirst(first, rect.h, order.length);
-  const page = railPage(rect.h, order.length, f);
-  const x = rect.x + (rect.w - TICKET_WIDTH) / 2;
-  const slotY = (i) => rect.y + GAP + i * SLOT;
-  const top = page.up ? 1 : 0;
-  const tickets = order.slice(f, f + page.shown).map(({ alarm, cost }, i) => {
-    const info = alarmInfo(state, alarm);
-    const tech = info.techId !== null ? getTech(state, info.techId) : null;
-    return {
-      id: alarm.id,
-      x,
-      y: slotY(top + i),
-      w: TICKET_WIDTH,
-      h: TICKET_HEIGHT,
-      type: info.type,
-      name: ALARM_SHORT[info.type],
-      place: locationTag(info.equipId),
-      cost,
-      costText: cost > 0 ? `−${cost} MW` : '',
-      trade: info.trade,
-      bar: ticketBar(info),
-      assignedTrade: tech ? tech.trade : null,
-      queued: info.queued && !tech,
-      selected: alarm.id === selectedAlarmId,
-    };
+  const left = rect.x + (rect.w - TICKET_WIDTH) / 2;
+  if (!mode.compact) {
+    const tickets = order.map(({ alarm, cost }, i) =>
+      ticketOf(state, alarm, cost, selectedAlarmId, { x: left, y: rect.y + GAP + i * SLOT, w: TICKET_WIDTH, h: TICKET_HEIGHT }));
+    return { tickets, compact: false, more: null, first: 0 };
+  }
+  const across = TILES_ACROSS * TILE + (TILES_ACROSS - 1) * GAP;
+  const tx = rect.x + (rect.w - across) / 2;
+  const start = f * TILES_ACROSS;
+  const tickets = order.slice(start, start + mode.capacity).map(({ alarm, cost }, i) => {
+    const row = Math.floor(i / TILES_ACROSS);
+    const col = i % TILES_ACROSS;
+    return ticketOf(state, alarm, cost, selectedAlarmId, { x: tx + col * TILE_SLOT, y: rect.y + GAP + row * TILE_SLOT, w: TILE, h: TILE });
   });
-  const chip = (id, slot, text) => ({ id, x, y: slotY(slot), w: TICKET_WIDTH, h: CHIP2_HEIGHT, text });
-  const below = order.length - f - page.shown;
-  return {
-    tickets,
-    up: page.up ? chip('rail-up', 0, `▲ ${f}`) : null,
-    down: page.down ? chip('rail-down', top + page.shown, `+${below} more`) : null,
-    first: f,
-  };
+  const below = order.length - start - tickets.length;
+  const more = below > 0 ? { x: tx, y: rect.y + GAP + mode.rows * TILE_SLOT - 18, w: across, h: 18, text: `+${below}` } : null;
+  return { tickets, compact: true, more, first: f };
 }
 
 /**
@@ -93,8 +95,8 @@ export function autoTop(state, rect, first, known) {
   const now = new Set(order.filter((x) => x.cost > 0).map((x) => x.alarm.id));
   let f = clampFirst(first, rect.h, order.length);
   if (f > 0) {
-    const page = railPage(rect.h, order.length, f);
-    const inView = order.slice(f, f + page.shown);
+    const mode = railMode(rect.h, order.length);
+    const inView = order.slice(f * TILES_ACROSS, f * TILES_ACROSS + mode.capacity);
     const best = Math.max(0, ...inView.map((x) => x.cost));
     const fresh = order.some((x) => x.cost > best && !known.has(x.alarm.id) && now.has(x.alarm.id));
     if (fresh) f = 0;
@@ -103,4 +105,4 @@ export function autoTop(state, rect, first, known) {
 }
 
 /** Rail scroll from a vertical drag of `dy` px (finger up = positive = further down the list). */
-export const scrollByDrag = (first, dy, railHeight, count) => clampFirst(first + dy / SLOT, railHeight, count);
+export const scrollByDrag = (first, dy, railHeight, count) => clampFirst(first + dy / TILE_SLOT, railHeight, count);

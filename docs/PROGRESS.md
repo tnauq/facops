@@ -45,8 +45,55 @@ The owner asked to start on the M13 build review's recommendations on 13 Novembe
 | M17. CEO rules and pacing changes | `m17` | Done |
 | M18. CEO on screen | `m18` | Done |
 | M19. Graphical pass | `m19` | Done |
+| M20. Gentler escalation; a rail without pages | `m20` | Done |
+| M21. A cleaner map; each device introduced | `m21` | |
 
 ## Log
+
+### M20. Gentler escalation, and a rail without pages
+
+The owner played the CEO build on 14 November: "it gets unmanageable pretty quickly", and the pages of alarms were a chore (pass 3 spec 4b.1, 4b.2).
+
+Built:
+
+- **Gentler escalation** (owner's agreement to a rules change, `src/core/config2.js`): each new hall starts at 12, 10, 9, 8, 7, 6.5, 6, 5.5 s between alarms (was 12, 9, 7.5, 6.5, 5.5, 5, 4.5, 4); tightening 3% every 10 s (was 5%); 50% of it kept between halls (was 70%). Tuning drawer controls unchanged.
+- **A rail without pages** (`src/ui/rail2.js`, `src/render/rails.js`): while alarms fit as tickets, nothing changes. Past that, every ticket becomes a 44 x 44 tile, two across: the alarm's bubble (picture, clock ring, hat dot, who is on it) with its cost under it. 14 fit on the iPhone, 10 at 660 x 300. The ▲ and "+N more" chips are gone; only if even the tiles overflow does a "+N" note show and the rail drag.
+- `scripts/profile.mjs`: a minute-by-minute picture of a run (alarms started, alarms open, how often the crew is short-handed).
+- Tests: the rail tests rewritten for tiles; three tests that pinned the old director defaults updated. 356 tests.
+
+The scripted player closest to a person (reacts in 4 s, one command every 3 s), 12 seeds, before and after:
+
+| Minute | Hall | Alarms a minute, before | Short-handed, before | Alarms a minute, now | Short-handed, now |
+|---|---|---|---|---|---|
+| 2–3 | 3 | 14 | 11% | 10 | 3% |
+| 4–5 | 5 | 20 | 35% | 12 | 0% |
+| 5–6 | 6 | 21 | 57% | 14 | 0% |
+| 7–8 | 8 | 20 | 82% | 15 | 0% |
+| 9–10 | 8 | 15 | 99% | 22 | 2% |
+| 10–11 | 8 | (most runs over) | | 23 | 68% |
+
+Spec 4.5 checks with the new defaults:
+
+| Player | Run length (range) | GWh | Hall 8 reached | Hall 8 at | Ended by zero tolerance / CEO hit / meter | Sightings |
+|---|---|---|---|---|---|---|
+| careful, ready for the CEO | 14:39 (12:01 to 19:07) | 3.16 | 12/12 | 7:03 | 7 / 1 / 4 | 0.9 |
+| good, ready for the CEO | 16:08 (12:02 to 24:37) | 3.56 | 12/12 | 7:04 | 7 / 1 / 4 | 0.8 |
+| good, CEO-blind | 14:01 (11:59 to 16:36) | 2.99 | 12/12 | 7:04 | 9 / 2 / 1 | 1.2 |
+| slow, ready for the CEO | 13:56 (11:56 to 17:58) | 2.95 | 12/12 | 7:05 | 6 / 2 / 4 | 1.1 |
+| very slow, ready for the CEO | 13:08 (11:13 to 15:43) | 2.68 | 12/12 | 7:09 | 4 / 1 / 7 | 0.8 |
+| random | 11:43 (8:28 to 13:45) | 2.28 | 12/12 | 7:12 | 3 / 3 / 6 | 2.3 |
+
+Blind vs ready: 128 s shorter, 16% less energy. Random: 36% less energy.
+
+Worth knowing:
+
+- Zero tolerance now ends most strong runs, and getting ready for the CEO matters more than before. But runs are longer: 13 to 16 minutes for scripted players, longer than the GDD's 10. A person who has to find each alarm will go under sooner. If runs drag, the quickest levers are zero tolerance from the second walkthrough, or the drawer's "Extra alarm after full campus".
+- Pressure still rises fastest after hall 8, where no new hands arrive; that is when the CEO takes over.
+
+Owner's checklist:
+
+- Play two runs. Does the pressure build gradually, with a calm start and a busy end?
+- Late in a run, can you see every alarm on the rail without tabbing?
 
 ### After M19: overhead pipes
 

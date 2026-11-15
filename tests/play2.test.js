@@ -85,7 +85,7 @@ test('pass 2 tuning has its own key and defaults that give the default rules', (
   assert.equal(tuning2.key, 'facops.tuning.v2');
   const v = tuning2.defaultTuning();
   assert.equal(v.walkSpeed, 150);
-  assert.equal(v.tighten, 5);
+  assert.equal(v.tighten, 3);
   assert.equal(v.startInterval, undefined);
   const cfg = createGame({ config: tuning2.tuningToConfig(v) }).config;
   assert.deepEqual(cfg, createGame().config);
