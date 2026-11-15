@@ -31,7 +31,8 @@ const dollars = (n) => `$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
  * the red countdown. { cash: "$1,240", rate: "+$85/s", falling, red: "0:12" or null }.
  */
 export function moneyModel(state) {
-  const net = incomeRate(state) - burnRate(state);
+  // Nothing burns while the tutorial's lessons run (pass 4 M27), so the rate shows income only.
+  const net = incomeRate(state) - (state.scripted ? 0 : burnRate(state));
   const left = redSecondsLeft(state);
   return {
     cash: `${state.cash < 0 ? '−' : ''}${dollars(state.cash)}`,

@@ -34,6 +34,7 @@ import { drawUpgrade } from './render/upgrades.js';
 import { deliveryCard } from './ui/delivery.js';
 import { createTutorial, lessonAlarms, updateTutorial } from './ui/tutorial.js';
 import { createIntros, updateIntros } from './ui/intros.js';
+import { createTutorial4, lessonAlarms4, updateTutorial4 } from './ui/tutorial4.js';
 import { cardLayout, spotAt, spotInfo } from './ui/spots.js';
 import { hireCardText, shopModel } from './ui/shop.js';
 import { drawBuildCard } from './render/spots.js';
@@ -53,7 +54,7 @@ import { autoTop, railTapCounts, railTickets2, scrollByDrag } from './ui/rail2.j
 import { DRAG_PX } from './ui/drag.js';
 import { hudModel2 } from './ui/hud2.js';
 import { reduceFlow } from './ui/flow.js';
-import { BEST2_KEY, bestText, defaultStorage, loadBest, recordBest, saveBest } from './ui/best.js';
+import { BEST2_KEY, BEST4_KEY, bestText, defaultStorage, loadBest, recordBest, saveBest } from './ui/best.js';
 import { tuning2 } from './ui/tuning2.js';
 import { centreOn, createCamera, glide, isVisible, panBy, passOneScale, siteOf } from './ui/camera.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
@@ -81,7 +82,9 @@ let stripGesture = false; // a finger on the overview strip: the view follows it
 let railGesture = null; // a touch on a rail that overflows: { start, startFirst, dragging }
 let markers = [];
 let mode = 'start'; // see src/ui/flow.js
-let best = loadBest(defaultStorage(), BEST2_KEY);
+// Building mode keeps its own best, in money (pass 4 M27); the classic game keeps pass 2's.
+const bests = { classic: loadBest(defaultStorage(), BEST2_KEY), building: loadBest(defaultStorage(), BEST4_KEY) };
+const bestKind = () => (tuning.building ? 'building' : 'classic');
 let tuning = tuning2.loadTuning(defaultStorage());
 let tuningBack = null;
 
@@ -111,10 +114,12 @@ function newRound() {
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
   const cfg = round.state.config;
-  // Building mode has no tutorial until M27 rewrites it for building (its lessons need Hall 1's
-  // backups); the build card names each device, and the first network and pump alarms are named.
+  // Building mode has its own tutorial (pass 4 M27): the build order, a trip with no backup, growing.
   if (buildingOn(round.state)) {
-    if (cfg.tutorial && !round.auto) round.intros = createIntros();
+    if (cfg.tutorial && !round.auto) {
+      round.tutorial = createTutorial4(promptVerb());
+      round.intros = createIntros();
+    }
   } else if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) {
     round.tutorial = createTutorial(promptVerb());
     round.intros = createIntros();
@@ -141,7 +146,7 @@ function markTutorialSeen() {
 }
 
 function showStart() {
-  showOverlay('start', { best: bestText(best, formatClock) });
+  showOverlay('start', { best: bestText(bests[bestKind()], formatClock) });
 }
 
 // Hold and speed (pass 4 spec 3.4). While held nothing moves, but taps still select, assign and
@@ -210,9 +215,10 @@ function changeTuning(values) {
 
 function roundOver() {
   const r = results(round.state);
-  const record = recordBest(best, r);
-  best = record.best;
-  if (record.isNew) saveBest(best, defaultStorage(), BEST2_KEY);
+  const kind = r.building ? 'building' : 'classic';
+  const record = recordBest(bests[kind], r);
+  bests[kind] = record.best;
+  if (record.isNew) saveBest(record.best, defaultStorage(), kind === 'building' ? BEST4_KEY : BEST2_KEY);
   mode = reduceFlow(mode, 'over').mode;
   // When the CEO ended the run, the card carries the CEO's parting line (spec 4.7).
   const panel = resultsPanel(r, record, formatClock);
@@ -330,7 +336,8 @@ function draw() {
   if (round.callout) {
     // Keep the callout away from the alarms the lesson is about.
     const v = cameraView(cam);
-    const ids = round.tutorial && !round.tutorial.done ? lessonAlarms(round.tutorial) : round.intros?.ids ?? [];
+    const lesson = (t) => (t.building ? lessonAlarms4(t) : lessonAlarms(t));
+    const ids = round.tutorial && !round.tutorial.done ? lesson(round.tutorial) : round.intros?.ids ?? [];
     const ys = ids
       .map((id) => s.alarms.find((a) => a.id === id))
       .filter(Boolean)
@@ -362,7 +369,7 @@ function frame(now) {
   ceoEvents(round.ceoView, events, state, round.feel);
   trackCeo(round.ceoView, state);
   if (round.tutorial && mode === 'playing') {
-    round.callout = updateTutorial(round.tutorial, state, events);
+    round.callout = round.tutorial.building ? updateTutorial4(round.tutorial, state, events) : updateTutorial(round.tutorial, state, events);
     // Once the tutorial is over, the first rack-row and pump alarms are introduced by name.
     if (round.tutorial.done && round.intros) round.callout = updateIntros(round.intros, state);
     if (round.tutorial.focus) {

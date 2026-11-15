@@ -148,18 +148,23 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 - **Fix for the misclicks:** the rail only switches from tickets to tiles when it would overflow, and only switches back when the alarms fit with 3 slots to spare (hysteresis), so it no longer flips back and forth under a finger.
 - With auto-dispatch, the rail is mostly for watching and overriding.
 
-### 3.6 Tutorial
+### 3.6 Tutorial (built in M27)
 
-Rewritten for building, one step at a time, on Hall 1 and Plant A. It must teach **the build order** (owner, 15 Nov), since the map no longer says it: a hall needs a switchboard and a coolant unit, the plant needs a pump and a chiller, then racks earn; one chiller per hall's worth of racks; backups once the compute is running.
+Seamless, on Hall 1 and Plant A, one lesson at a time with one-line callouts, teaching **the build order** (owner, 15 Nov). While the lessons run, no director alarms come and **nothing burns**; the burn, the alarm tightening and the 10:00 Handover all count from the hand-over, so a slow reader loses nothing. Techs go to alarms by themselves throughout.
 
-1. Build a pump, then a chiller (`Chillers cool everything. They need a pump.`)
-2. Build a switchboard and a coolant unit in Hall 1 (`A hall needs power and coolant.`); the hall comes online.
-3. Build a rack row; money starts coming in.
-4. A breaker trips with no backup: half the hall goes dark. Build the B switchboard (`Backups cost money but keep the lights on.`)
-5. A leak: watch a tech go by themselves; then redirect one (`Techs go on their own. Tap an alarm, then a tech, to change who goes.`)
-6. Hire a tech. Then the director takes over.
+| Lesson | Callout | Moves on when |
+|---|---|---|
+| Racks | `Your hall has power, coolant and cooling. Racks earn money: tap a + on a rack spot.` | A rack is bought |
+| The other half | `The bottom half needs its own switchboard first. Build Switchboard A there, then a rack.` | Both are bought |
+| No backup | `A switchboard tripped with no backup: that half is dark and earns nothing. A tech goes on their own.` | The trip is fixed |
+| Backups | `Switchboard B would have kept it lit. Backups cost upkeep: buy them once your racks earn.` | 9 s |
+| A new hall | `For a new hall: switchboard and coolant unit first, then racks. One chiller cools a hall's racks.` | 9 s |
+| Hand-over | `Now your cash burns, faster and faster. Keep adding racks, and hire techs from the crew bar.` | 9 s; the game is on |
 
-The pass 3 device introductions (network, pump) stay.
+- A lesson nobody answers for 60 s moves on, so nothing stalls.
+- After the tutorial, the first network failure and pump overpressure are introduced as in pass 3.
+- After the first finished run, Skip tutorial turns on by itself, as before.
+- Building mode keeps its own best score, in money earned.
 
 ## 4. Milestones
 
@@ -172,7 +177,7 @@ One per session. Commit titles start with the milestone so the action tags them.
 | M24 | Rules for building: spots, prices, money, the online rule, what works, redundancy without backups, director by rows built, CEO triggers, hiring and upgrades for money (the commands; their screen is M26); scripted builder player and checks (2.1 to 2.8). Behind `building.enabled`, off until M25 can show it | Large |
 | M25 | Building on screen: empty spots, the build card, cash in the HUD, build rings, the no-backup shield (3.1 to 3.3). Building mode on by default (drawer switch); `#auto` builds compute first | Large |
 | M26 | Hire card and upgrades for money (the rules came in M24; Deliveries were already gone in building mode) | Medium |
-| M27 | The new tutorial, and a balance pass from the owner's runs (3.6) | Medium |
+| M27 | The new tutorial (3.6). The balance pass waits for the owner's runs: the only note so far is that the money pressure feels about right | Medium |
 
 M22 and M23 help the current game right away and are worth having whatever comes after. M24 to M27 are the pivot proper: about four to six sessions.
 

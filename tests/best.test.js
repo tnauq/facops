@@ -66,3 +66,16 @@ test('best text', () => {
   assert.equal(bestText({ energyGwh: 1.926, seconds: 252.4 }, formatClock), '1.93 GWh in 4:12');
   assert.equal(bestText(null, formatClock), 'None yet');
 });
+
+test('building mode: the best is money earned, and says so (pass 4 M27)', async () => {
+  const { bestText, recordBest } = await import('../src/ui/best.js');
+  const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  let r = recordBest(null, { building: true, energyGwh: 1, seconds: 300, earned: 5000 });
+  assert.equal(r.isNew, true);
+  // More energy but less money is not better.
+  r = recordBest(r.best, { building: true, energyGwh: 2, seconds: 400, earned: 4000 });
+  assert.equal(r.isNew, false);
+  r = recordBest(r.best, { building: true, energyGwh: 0.5, seconds: 200, earned: 6000 });
+  assert.equal(r.isNew, true);
+  assert.equal(bestText(r.best, clock), '$6,000 in 3:20');
+});

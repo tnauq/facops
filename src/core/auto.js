@@ -6,13 +6,14 @@
 //   2. then the triage order of the rail (src/core/cost.js): costing most, then least clock left,
 //      then oldest.
 // It never pulls a busy tech off a job, so a job the player gave is kept until it is done; the
-// player can still redirect anyone with assign(). It holds off while the tutorial's scripted
+// player can still redirect anyone with assign(). It holds off while the classic tutorial's scripted
 // lessons run, since those teach the player to send techs themselves.
 
 import { EQUIPMENT_BY_ID } from './layout2.js';
 import { onCeoRoute } from './ceo.js';
 import { triageOrder } from './cost.js';
 import { assign, fixDuration, walkDistance, walkSpeed } from './game2.js';
+import { buildingOn } from './sites.js';
 
 const finishTime = (state, tech, alarm) => walkDistance(state, tech, alarm) / walkSpeed(state) + fixDuration(state, alarm.type, tech.trade);
 
@@ -42,7 +43,9 @@ export function autoOrder(state) {
 /** Send free techs to waiting alarms. Returns how many it sent. */
 export function autoDispatch(state) {
   const auto = state.config.autoDispatch;
-  if (!auto || !auto.enabled || state.scripted || state.over) return 0;
+  // The classic tutorial teaches sending techs by hand, so its lessons hold auto-dispatch off; the
+  // building tutorial (pass 4 M27) shows techs going by themselves.
+  if (!auto || !auto.enabled || state.over || (state.scripted && !buildingOn(state))) return 0;
   let sent = 0;
   for (const alarm of autoOrder(state)) {
     const idle = state.techs.filter((t) => t.state === 'idle');

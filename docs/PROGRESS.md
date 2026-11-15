@@ -59,9 +59,34 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | M24. Rules for building | `m24` | Done |
 | M25. Building on screen | `m25` | Done |
 | M26. Hiring and upgrades for money | `m26` | Done |
-| M27. New tutorial and balance | `m27` | |
+| M27. New tutorial and balance | `m27` | Done (balance waits for the owner's runs) |
 
 ## Log
+
+### M27. The building tutorial
+
+Pass 4 spec 3.6. **Pass 4's planned milestones are complete.**
+
+Built:
+
+- **The building tutorial** (`src/ui/tutorial4.js`): six lessons on Hall 1 teaching the build order: buy a rack; the bottom half needs its own switchboard first; a switchboard trips with no backup and half the hall goes dark while a tech heads there by themselves; backups cost upkeep, so buy them once racks earn; a new hall needs a switchboard and a coolant unit before racks, and a chiller per hall of racks; then the burn starts. A lesson nobody answers moves on after a minute.
+- **Nothing burns during the lessons**, and the burn, the alarm tightening and the 10:00 Handover count from the hand-over (`economyStart`). The HUD rate shows income only meanwhile.
+- **Techs go on their own during this tutorial** (auto-dispatch still holds off in the classic game's tutorial, which teaches sending by hand).
+- **A best score in money** for building mode, kept apart from the classic game's.
+- 8 new tests (418 in all).
+
+Balance: unchanged. The owner's only note so far is that the money pressure feels about right; the next balance pass needs your runs.
+
+Worth knowing:
+
+- To see the tutorial again, switch Skip tutorial off in the drawer.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the first callout, building through the card, the lessons advancing, the trip with a tech going by themselves. No console errors.
+
+Owner's checklist:
+
+- Play the tutorial once. By the end, do you know what a new hall needs, and when to buy backups?
+- Is any callout too long or in the way?
+- Then a few full runs: what kills you, and what felt unfair?
 
 ### M26. Hiring and upgrades for money
 

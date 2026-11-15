@@ -64,7 +64,8 @@ export function resultsPanel(r, record, formatClock) {
     big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
     lines.splice(0, 0, ['Money', `$${Math.round(r.spent).toLocaleString('en-US')} spent building, $${Math.round(r.burned).toLocaleString('en-US')} burned · ${r.energyGwh.toFixed(2)} GWh`]);
   }
-  const bestLine = record.isNew ? 'New best!' : `Best: ${record.best.energyGwh.toFixed(2)} GWh in ${formatClock(record.best.seconds)}`;
+  const bestScore = Number.isFinite(record.best.earned) ? `$${Math.round(record.best.earned).toLocaleString('en-US')}` : `${record.best.energyGwh.toFixed(2)} GWh`;
+  const bestLine = record.isNew ? 'New best!' : `Best: ${bestScore} in ${formatClock(record.best.seconds)}`;
   // The card's heading: who ended the run.
   const title = r.firedByCeo ? 'Fired by the CEO' : r.bankrupt ? 'Went broke' : 'Round over';
   return { big, lines, bestLine, title };

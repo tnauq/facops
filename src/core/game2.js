@@ -121,6 +121,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     hallsUp: null, // hall id -> online (building mode; see sites.js)
     handoverQueued: false,
     redSince: null, // when the cash went below zero (building mode)
+    economyStart: 0, // building mode: when the burn and the alarm tightening started (after the tutorial)
     ribbonQueued: false,
   };
   if (building) {
@@ -540,7 +541,7 @@ export function buildingInterval(state) {
   const halls = Math.ceil(rows / ROWS_PER_HALL - EPS);
   // A campus smaller than one full hall gets fewer alarms still: more equipment, more alarms.
   const stretch = rows >= ROWS_PER_HALL ? 1 : Math.min(b.smallStretch, ROWS_PER_HALL / Math.max(1, rows));
-  return spawnInterval(state.config, halls, state.t, b.tighten) * stretch;
+  return spawnInterval(state.config, halls, economyTime(state), b.tighten) * stretch;
 }
 
 /** Largest number of active alarms at which the director still adds one. */
@@ -586,6 +587,8 @@ export function setScripted(state, on) {
   state.scripted = Boolean(on);
   if (!state.scripted) {
     const d = state.config.director;
+    // Building mode: the burn and the alarm tightening start now, not during the tutorial (M27).
+    if (buildingOn(state)) state.economyStart = state.t;
     state.phaseStart = state.t;
     state.director.nextSpawn = state.t + d.quietAfterDelivery;
     state.director.nextWave = state.t + d.waveEvery;
@@ -735,13 +738,16 @@ function earn(state, deliveredMw, dt) {
   state.stats.earned += dollars;
 }
 
+/** Seconds since the economy started: the run's start, or the end of the tutorial (pass 4 M27). */
+export const economyTime = (state) => Math.max(0, state.t - (state.economyStart ?? 0));
+
 /** Dollars a second the business burns now (pass 4 spec 2.5, owner 15 Nov). */
 export function burnRate(state) {
   const b = state.config.building.burn;
   const infra = EQUIPMENT.filter((e) => e.type !== 'row' && isBuilt(state, e.id)).length;
   // The base doubles every `doubling` seconds: gentle while the campus is small, then the pressure
   // to keep adding compute, and in the end more than a full campus earns, so every run ends.
-  return b.base * Math.pow(2, state.t / b.doubling) + b.upkeep * infra + b.wages * state.techs.length;
+  return b.base * Math.pow(2, economyTime(state) / b.doubling) + b.upkeep * infra + b.wages * state.techs.length;
 }
 
 /** Income now, in dollars a second, from the racks delivering. */
@@ -805,7 +811,7 @@ function buildingStep(state) {
   }
   const b = cfg.building;
   const rowsMw = onlineRows(state).length * cfg.rowMw;
-  if (!state.handoverQueued && state.halls > 0 && (rowsMw >= b.handoverMw - EPS || state.t >= b.handoverAt - EPS)) {
+  if (!state.handoverQueued && state.halls > 0 && (rowsMw >= b.handoverMw - EPS || economyTime(state) >= b.handoverAt - EPS)) {
     state.handoverQueued = true;
     queueCeo(state, 'handover');
   }
