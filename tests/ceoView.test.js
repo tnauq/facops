@@ -5,7 +5,8 @@ import { choose, createGame, raiseAlarm, step } from '../src/core/index2.js';
 import { createFeel2 } from '../src/ui/feel2.js';
 import { LINES, areasLeft, assistantAt, bannerModel, ceoEvents, createCeoView, liveSay, liveShakes, pickLine, sightingLine, trackCeo } from '../src/ui/ceoView.js';
 
-const quiet = (config = {}) => createGame({ seed: 1, config: { tutorial: false, ...config, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}) => createGame({ seed: 1, config: { autoDispatch: { enabled: false }, tutorial: false, ...config, director: { enabled: false } } });
 function deliverNow(s) {
   s.build = s.config.build.every;
   step(s, 0.05);

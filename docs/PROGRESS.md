@@ -55,13 +55,47 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | Milestone | Tag | Status |
 |---|---|---|
 | M22. Rail fix; hold and speed buttons | `m22` | Done |
-| M23. Techs pick their own jobs | `m23` | |
+| M23. Techs pick their own jobs | `m23` | Done |
 | M24. Rules for building | `m24` | |
 | M25. Building on screen | `m25` | |
 | M26. Hiring and upgrades for money | `m26` | |
 | M27. New tutorial and balance | `m27` | |
 
 ## Log
+
+### M23. Techs pick their own jobs
+
+Pass 4 spec 2.6. A rules change the owner approved with the pass 4 spec.
+
+Built:
+
+- **Auto-dispatch** (`src/core/auto.js`, called every step): once an alarm has had nobody on it for 1 s, the alarm that matters most goes to the free tech who would finish it soonest. "Matters most" is the rail's order: costing most, then least clock left, then oldest; while the CEO is announced or walking, alarms the CEO will see come first. A busy tech is never pulled off a job, so a job you gave is kept. You can still tap an alarm, then any tech, to send or redirect.
+- It holds off during the tutorial's lessons, which still teach sending techs by hand.
+- **Drawer switch:** Techs pick their own jobs (on by default).
+- The alarm cost and triage order moved into the rules (`src/core/cost.js`); the screen imports them as before.
+- The scripted players can now play as "nobody" (`policy: 'none'`): the crew runs itself.
+- Tests: 9 new (375 in all). The rules tests that stage a fault and leave it ignored on purpose (escalations, shields, bubbles) now turn auto-dispatch off in their set-up, as do the "nobody playing" and "play by tapping" runs.
+
+Scripted checks, 12 seeds, tutorial off, auto-dispatch on:
+
+| Player | Run length (range) | GWh | Ended by zero tolerance / CEO hit / meter |
+|---|---|---|---|
+| good, ready for the CEO | 15:02 (12:01 to 17:56) | 3.26 | 6 / 1 / 5 |
+| very slow, ready for the CEO | 15:42 (12:01 to 21:35) | 3.45 | 8 / 1 / 3 |
+| nobody (techs on their own) | 14:06 (12:01 to 16:46) | 3.02 | 9 / 1 / 2 |
+
+With auto-dispatch off, nobody playing lasts 1:14.
+
+Worth knowing:
+
+- **For now the game nearly plays itself.** With nobody giving orders a run lasts about as long as a good player's; your orders add about 8%, mostly by getting ready for the CEO. That is expected: in pass 4 the skill moves to what you build (M24, M25). Until then, the switch in the drawer brings back the old game.
+- A slow player now does as well as a quick one, since the crew never waits for you.
+
+Owner's checklist:
+
+- Play a run without sending anyone. Do the techs make sensible choices?
+- When you disagree, redirect a tech. Is it easy, and does the tech stick to the job you gave?
+- Watch the CEO's visits: do techs head for the alarms on the route?
 
 ### M22. Rail fix, and hold and speed buttons
 

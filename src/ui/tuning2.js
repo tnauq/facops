@@ -42,7 +42,9 @@ export const TUNING2_FIELDS = [
     get: (c) => c.director.capGrowEvery, set: (o, v) => { o.director.capGrowEvery = v; } },
   { id: 'darkDrain', label: 'Drain per dark half-hall', kind: 'range', min: 0, max: 3, step: 0.25,
     get: (c) => c.meter.darkDrain, set: (o, v) => { o.meter = { ...(o.meter ?? {}), darkDrain: v }; } },
-  // New in pass 4 (spec 3.4): no hold or speed buttons.
+  // New in pass 4 (spec 2.6, 3.4).
+  { id: 'autoDispatch', label: 'Techs pick their own jobs', kind: 'toggle',
+    get: (c) => c.autoDispatch.enabled, set: (o, v) => { o.autoDispatch = { ...(o.autoDispatch ?? {}), enabled: v }; } },
   { id: 'realtime', label: 'Real-time mode (no hold or speed buttons)', kind: 'toggle',
     get: (c) => c.realtime, set: (o, v) => { o.realtime = v; } },
   { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',

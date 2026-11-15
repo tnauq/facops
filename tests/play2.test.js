@@ -127,7 +127,7 @@ for (const [W, H] of SIZES) {
 
 test('a run can be played by tapping bubbles and techs on the scrolling map', () => {
   const [W, H] = [844, 390];
-  const state = createGame({ seed: 5 });
+  const state = createGame({ seed: 5, config: { autoDispatch: { enabled: false } } }); // every tech sent by tapping
   let selection = NOTHING;
   let sent = 0;
   let next = 0;

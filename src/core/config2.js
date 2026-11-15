@@ -79,6 +79,9 @@ export const DEFAULT_CONFIG2 = {
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free
+  // Techs pick their own jobs (pass 4 spec 2.6): a free tech takes an alarm nobody is on once it has
+  // been up this long. The player can still send or redirect anyone.
+  autoDispatch: { enabled: true, delay: 1 },
   realtime: false, // screen only (pass 4 spec 3.4): true takes away the hold and speed buttons, for experienced players
   timeScale: 60, // plant seconds per real second (1 real second = 1 plant minute)
 };

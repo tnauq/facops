@@ -6,7 +6,8 @@ import { centreOn, createCamera, passOneScale } from '../src/ui/camera.js';
 import { regions } from '../src/ui/regions.js';
 import { STRIP_HEIGHT, inStripTarget, regions3, stripModel, stripTarget, stripX, worldXAt } from '../src/ui/strip.js';
 
-const quiet = (config = {}) => createGame({ seed: 1, config: { ...config, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}) => createGame({ seed: 1, config: { autoDispatch: { enabled: false }, ...config, director: { enabled: false } } });
 const camFor = (W, H) => {
   const r = regions3(W, H);
   return createCamera(r.map, passOneScale(regions(W, H).map), WORLD, START_POINT);

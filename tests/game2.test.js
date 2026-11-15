@@ -32,7 +32,8 @@ import {
 } from '../src/core/index2.js';
 
 const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
-const quiet = (config = {}, seed = 1) => createGame({ seed, config: { ...config, director: { enabled: false, ...(config.director ?? {}) } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}, seed = 1) => createGame({ seed, config: { autoDispatch: { enabled: false }, ...config, director: { enabled: false, ...(config.director ?? {}) } } });
 const tick = (s, seconds) => advance(s, seconds, 0.05);
 const lost = (s, f) => {
   const full = load(s).deliveredMw;
@@ -329,8 +330,9 @@ test('by default the cap no longer rises after Full campus (owner, 13 November)'
 
 test('the run cannot be lost before the first Delivery, and the first Delivery always comes', () => {
   // The owner found that a meter-driven Delivery could stall hall 1 for ever. Now nobody playing
-  // still gets hall 2 on the timer, and the run then ends.
-  const s = createGame({ seed: 4 });
+  // still gets hall 2 on the timer, and the run then ends. (Nobody at all: no techs heading off on
+  // their own either, pass 4 M23.)
+  const s = createGame({ seed: 4, config: { autoDispatch: { enabled: false } } });
   let lowest = Infinity;
   while (s.halls < 2 && s.t < 600) {
     step(s, 0.05);

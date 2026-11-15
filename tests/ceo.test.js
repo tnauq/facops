@@ -18,7 +18,8 @@ import {
 } from '../src/core/index2.js';
 import { pickRoute } from '../src/core/ceo.js';
 
-const quiet = (config = {}, seed = 1) => createGame({ seed, config: { tutorial: false, ...config, director: { enabled: false, ...(config.director ?? {}) } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}, seed = 1) => createGame({ seed, config: { autoDispatch: { enabled: false }, tutorial: false, ...config, director: { enabled: false, ...(config.director ?? {}) } } });
 
 // Finish building the next hall now, taking the first card if there is a pick.
 function deliverNow(s) {

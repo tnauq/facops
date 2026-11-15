@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { advance, createGame, load, raiseAlarm } from '../src/core/index2.js';
 import { alarmCost, triageOrder } from '../src/ui/cost.js';
 
-const quiet = (config = {}) => createGame({ seed: 1, config: { ...config, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}) => createGame({ seed: 1, config: { autoDispatch: { enabled: false }, ...config, director: { enabled: false } } });
 
 // Raise these alarms, let the rows settle, and return the game.
 function withFaults(faults, config = {}) {

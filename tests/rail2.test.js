@@ -5,7 +5,8 @@ import { advance, createGame, raiseAlarm } from '../src/core/index2.js';
 import { regions } from '../src/ui/regions.js';
 import { TILE, TILE_SLOT, autoTop, maxFirst, railMode, railTickets2, scrollByDrag, slotsIn, tileRowsIn } from '../src/ui/rail2.js';
 
-const quiet = (config = {}) => createGame({ seed: 1, config: { ...config, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}) => createGame({ seed: 1, config: { autoDispatch: { enabled: false }, ...config, director: { enabled: false } } });
 const inside = (r, box) => r.x >= box.x && r.y >= box.y && r.x + r.w <= box.x + box.w && r.y + r.h <= box.y + box.h;
 
 // A full campus with n free breaker alarms (one per MSB pair, so none costs anything).

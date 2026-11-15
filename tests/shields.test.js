@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { advance, assign, createGame, raiseAlarm } from '../src/core/index2.js';
 import { shieldsModel, spareText } from '../src/ui/shields.js';
 
-const quiet = (config = {}) => createGame({ seed: 1, config: { ...config, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}) => createGame({ seed: 1, config: { autoDispatch: { enabled: false }, ...config, director: { enabled: false } } });
 
 test('one shield pair per online hall, all whole at the start', () => {
   const s = quiet({ startHalls: 3 });

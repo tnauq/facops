@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { EQUIPMENT_BY_ID, advance, assign, createGame, raiseAlarm } from '../src/core/index2.js';
 import { bubbles2, equipmentStatus } from '../src/ui/view2.js';
 
-const quiet = (config = {}) => createGame({ seed: 1, config: { ...config, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}) => createGame({ seed: 1, config: { autoDispatch: { enabled: false }, ...config, director: { enabled: false } } });
 
 test('icons show the live faults', () => {
   const s = quiet();

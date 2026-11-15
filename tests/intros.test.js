@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { advance, createGame, raiseAlarm } from '../src/core/index2.js';
 import { INTRO_SECONDS, INTRO_TEXT, createIntros, updateIntros } from '../src/ui/intros.js';
 
-const quiet = () => createGame({ seed: 1, config: { startHalls: 2, tutorial: false, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = () => createGame({ seed: 1, config: { autoDispatch: { enabled: false }, startHalls: 2, tutorial: false, director: { enabled: false } } });
 
 test('the first network failure gets its callout for a few seconds, then it goes', () => {
   const s = quiet();

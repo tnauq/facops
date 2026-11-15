@@ -13,6 +13,7 @@ const PLAYERS = [
   ['slow, ready for the CEO', { reaction: 2, actionGap: 1.5 }],
   ['very slow, ready for the CEO', { reaction: 4, actionGap: 3 }],
   ['random', { reaction: 1, actionGap: 0.8, policy: 'random' }],
+  ['nobody (techs on their own)', { policy: 'none' }],
 ];
 
 const clock = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;

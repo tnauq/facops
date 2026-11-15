@@ -82,7 +82,8 @@ The shields on the strip keep their meaning: a hall with no B switchboards shows
 
 ### 2.6 Techs pick their own jobs  [owner's answer]
 
-- **Auto-dispatch:** whenever a tech is free and an alarm has no tech, the free tech takes the alarm with the highest cost now (pass 3's `alarmCost`), then the shortest clock, choosing the alarm it can reach soonest among equals. This is the scripted player's "good" choice moved into the rules.
+- **Auto-dispatch:** whenever a tech is free and an alarm has had nobody on it for 1 s (`autoDispatch.delay`, so the player sees it arrive), the alarm that matters most goes to the free tech who would finish it soonest (walk plus fix). "Matters most" is the rail's triage order: highest cost now (pass 3's `alarmCost`, moved into the rules as `src/core/cost.js`), then least clock left, then oldest.
+- Auto-dispatch holds off while the tutorial's scripted lessons run, which teach sending techs by hand (until M27 rewrites the tutorial).
 - Auto-dispatch never pulls a busy tech off a job. **The player can:** tap an alarm, then any tech, exactly as now. A job the player gave is kept until it is done.
 - During a CEO warning, auto-dispatch prefers alarms on the CEO's route (the scripted player's CEO rule).
 - A drawer switch turns auto-dispatch off, for comparison.

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { EQUIPMENT_BY_ID, advance, createGame, load, raiseAlarm, step } from '../src/core/index2.js';
 import { CELEBRATE_TIME, createFeel2, feelEvents2, flashAlpha, liveCelebrations, liveFloats, lossFloat2 } from '../src/ui/feel2.js';
 
-const quiet = (config = {}) => createGame({ seed: 1, config: { ...config, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}) => createGame({ seed: 1, config: { autoDispatch: { enabled: false }, ...config, director: { enabled: false } } });
 const drain = (s) => s.events.splice(0);
 
 function floatsFor(s, f) {

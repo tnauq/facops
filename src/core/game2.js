@@ -13,6 +13,7 @@ import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, makeConfig2 } from './con
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
 import { ceoStep, onCeoRoute, queueCeoVisit } from './ceo.js';
+import { autoDispatch } from './auto.js';
 
 const EPS = 1e-9;
 const ROWS = EQUIPMENT.filter((e) => e.type === 'row');
@@ -703,6 +704,7 @@ export function step(state, dt) {
     }
   }
   serviceQueue(state);
+  autoDispatch(state); // techs pick their own jobs (pass 4 spec 2.6)
 
   // Halves of halls going dark or coming back.
   for (let h = 1; h <= state.halls; h++) {

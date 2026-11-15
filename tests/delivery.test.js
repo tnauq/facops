@@ -7,7 +7,8 @@ import { resultsPanel } from '../src/ui/results.js';
 import { recordBest } from '../src/ui/best.js';
 import { tuning2 } from '../src/ui/tuning2.js';
 
-const quiet = (config = {}, seed = 1) => createGame({ seed, config: { ...config, director: { enabled: false } } });
+// Games staged by hand: no director alarms, and (pass 4 M23) no techs heading off on their own.
+const quiet = (config = {}, seed = 1) => createGame({ seed, config: { autoDispatch: { enabled: false }, ...config, director: { enabled: false } } });
 function deliverNow(s) {
   s.build = s.config.build.every - 0.01;
   step(s, 0.05);

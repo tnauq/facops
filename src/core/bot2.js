@@ -111,10 +111,11 @@ export function pickFor(state, policy = 'first') {
  * `actionGap` is the shortest time between two commands; `maxSeconds` stops a run that never ends.
  */
 export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
-  // policy: 'greedy' (gets ready for the CEO), 'blind' (ignores the CEO) or 'random'.
+  // policy: 'greedy' (gets ready for the CEO), 'blind' (ignores the CEO), 'random', or 'none' (never
+  // gives an order: with auto-dispatch on, the crew runs itself; pass 4 M23).
   const state = createGame({ seed, config });
   const rng = createRng((seed * 31 + 7) >>> 0);
-  const move = policy === 'random'
+  const move = policy === 'none' ? () => false : policy === 'random'
     ? () => randomMove(state, rng, { reaction })
     : () => greedyMove(state, { reaction, ceo: policy !== 'blind' });
   let nextAction = 0;
