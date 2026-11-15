@@ -85,7 +85,11 @@ test('a dry cooler fan failure can stop chillers; left 60 s, the next unit at th
 test('yard failures only happen in building mode; the director picks them there', () => {
   const classic = createGame({ seed: 1 });
   for (const t of ['short', 'rmu', 'fan']) assert.deepEqual(eligibleEquipment(classic, t), []);
-  const s = game();
+  // Mercy: with fewer halls online than building.yardFromHalls, no yard failures yet.
+  const early = game();
+  buildAll(early, ['xfmr-1-t-B', 'msb-1-t-B', 'dry-A-1']);
+  for (const t of ['short', 'rmu', 'fan']) assert.deepEqual(eligibleEquipment(early, t), [], `${t} waits`);
+  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, building: { enabled: true, startCash: 10000, burn: NO_BURN, yardFromHalls: 1 } } });
   buildAll(s, ['xfmr-1-t-B', 'msb-1-t-B', 'dry-A-1']);
   assert.ok(eligibleEquipment(s, 'short').length > 0);
   assert.ok(eligibleEquipment(s, 'rmu').length > 0);
