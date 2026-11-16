@@ -46,10 +46,8 @@ function twoLines(ctx, text, width) {
   return rest ? [first, fitText(ctx, rest, width)] : [first];
 }
 
-/** layout: cardLayout(...). info: spotInfo(...). */
-export function drawBuildCard(ctx, layout, info) {
-  const { x, y, w, h, button } = layout;
-  ctx.save();
+// The card's white frame with its soft shadow (the build card's; the inspect card uses it too).
+function frame(ctx, x, y, w, h) {
   ctx.shadowColor = 'rgba(20, 30, 45, 0.25)';
   ctx.shadowBlur = 10;
   ctx.shadowOffsetY = 2;
@@ -61,6 +59,13 @@ export function drawBuildCard(ctx, layout, info) {
   ctx.strokeStyle = EDGE;
   ctx.lineWidth = 1;
   ctx.stroke();
+}
+
+/** layout: cardLayout(...). info: spotInfo(...). */
+export function drawBuildCard(ctx, layout, info) {
+  const { x, y, w, h, button } = layout;
+  ctx.save();
+  frame(ctx, x, y, w, h);
 
   picture(ctx, info.type, x + 30, y + 30, info.name.endsWith(' A') ? 'A' : info.name.endsWith(' B') ? 'B' : 'A');
   const tx = x + 58;
@@ -90,5 +95,40 @@ export function drawBuildCard(ctx, layout, info) {
   ctx.textAlign = 'center';
   ctx.fillStyle = info.canBuild ? '#FFFFFF' : MUTED;
   ctx.fillText(fitText(ctx, info.button, button.w - 8), button.x + button.w / 2, button.y + button.h / 2);
+  ctx.restore();
+}
+
+/**
+ * The inspect card (pass 5 spec 7.1), in the build card's frame: the picture and name, the earning
+ * or the state at the top right, then up to three short lines. layout: cardLayout(...) (its button
+ * is not used). info: inspectInfo(...) from src/ui/inspect.js.
+ */
+export function drawInspectCard(ctx, layout, info) {
+  const { x, y, w, h } = layout;
+  ctx.save();
+  frame(ctx, x, y, w, h);
+  picture(ctx, info.type, x + 30, y + 30, info.side);
+  const tx = x + 58;
+  const tw = w - 58 - 10;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = `700 14px ${FONT}`;
+  ctx.fillStyle = INK;
+  ctx.fillText(info.name, tx, y + 17);
+  ctx.textAlign = 'right';
+  ctx.font = `700 12px ${FONT}`;
+  ctx.fillStyle = info.warn ? WARN : INK;
+  const nameW = (() => { ctx.font = `700 14px ${FONT}`; const m = ctx.measureText(info.name).width; ctx.font = `700 12px ${FONT}`; return m; })();
+  ctx.fillText(fitText(ctx, info.headline, w - 10 - (tx - x) - nameW - 8), x + w - 10, y + 17);
+  ctx.textAlign = 'left';
+  ctx.font = `11px ${FONT}`;
+  // The first line can take two rows beside the picture; the rest run full width underneath.
+  const first = twoLines(ctx, info.lines[0] ?? '', tw);
+  ctx.fillStyle = info.lineWarn ? WARN : MUTED;
+  first.forEach((line, i) => ctx.fillText(line, tx, y + 36 + i * 14));
+  ctx.fillStyle = MUTED;
+  (info.lines.slice(1)).forEach((line, i) => {
+    twoLines(ctx, line, w - 20).forEach((l, j) => ctx.fillText(l, x + 10, y + 70 + (i + j) * 14));
+  });
   ctx.restore();
 }

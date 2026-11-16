@@ -39,7 +39,8 @@ import { createIntros, updateIntros } from './ui/intros.js';
 import { createTutorial4, hireCardOpened, lessonAlarms4, updateTutorial4 } from './ui/tutorial4.js';
 import { cardLayout, spotAt, spotInfo } from './ui/spots.js';
 import { hireCardText, shopModel } from './ui/shop.js';
-import { drawBuildCard } from './render/spots.js';
+import { drawBuildCard, drawInspectCard } from './render/spots.js';
+import { deviceAt, inspectInfo } from './ui/inspect.js';
 import { buildMove } from './core/builder.js';
 import { drawCallout } from './render/callout.js';
 import { cameraView } from './ui/camera.js';
@@ -117,6 +118,7 @@ function newRound() {
     railCompact: false, // whether the rail showed tiles last frame (pass 4 spec 3.5)
     railSwitchedAt: null, // when it last changed between tickets and tiles (ms), to ignore stray taps
     ceoView: createCeoView(), // the CEO's lines, the assistant's trail, shaken bubbles
+    inspect: null, // pass 5: { id } of the built device whose inspect card is open (spec 7.1)
     commissionCardAt: null, // pass 5: game time the Commissioned card opens, after the celebration
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
@@ -368,6 +370,8 @@ function draw() {
   for (const m of markers) if (m.ceo) drawCeoMarker(ctx, m); // never hidden by the banner
   const open = openCard();
   if (open) drawBuildCard(ctx, open.layout, open.info);
+  const look = inspectCard();
+  if (look) drawInspectCard(ctx, look.layout, look.info);
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   const hireCard = buildingOn(s);
@@ -578,6 +582,14 @@ function openCard() {
   return { layout, info: spotInfo(round.state, round.card.id) };
 }
 
+// The open inspect card's layout and contents, or null (pass 5 spec 7.1).
+function inspectCard() {
+  if (!round.inspect) return null;
+  const e = EQUIPMENT_BY_ID[round.inspect.id];
+  const v = cameraView(cam);
+  return { layout: cardLayout(cam.rect, v.ox + e.x * v.scale, v.oy + e.y * v.scale), info: inspectInfo(round.state, round.inspect.id) };
+}
+
 const inside = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 
 function buildSpot(id) {
@@ -594,11 +606,19 @@ function buildingTap(tap) {
     return true;
   }
   if (open && inside(tap, open.layout)) return true;
+  const look = inspectCard();
+  if (look && inside(tap, look.layout)) return true;
   const hit = hitTest(tap, mapTargets2(round.state, cam));
   const spot = hit.kind === 'empty' ? spotAt(round.state, cam, tap) : null;
+  round.inspect = null;
   if (!spot) {
     round.card = null;
-    return false;
+    // Pass 5 (spec 7.1): a built device opens the inspect card; alarms and techs still win.
+    const device = hit.kind === 'empty' ? deviceAt(round.state, cam, tap) : null;
+    if (!device) return false;
+    round.inspect = { id: device };
+    round.selection = NOTHING;
+    return true;
   }
   if (round.card && round.card.id === spot.id) buildSpot(spot.id); // a second tap on the spot confirms
   else round.card = { id: spot.id };

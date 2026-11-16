@@ -75,9 +75,36 @@ The owner approved `docs/pass5-spec.md` (version 0.2, manage) on 16 November 202
 | M33. The CEO's strikes | `m33` | Done |
 | M34. Commissioned and selling the campus | `m34` | Done |
 | M35. Crew guidance | `m35` | Done |
-| M36. Inspect card, plus marks, runway | | Next |
+| M36. Inspect card, plus marks, runway | `m36` | Done |
 
 ## Log
+
+### M36. Inspect card, plus marks, runway
+
+Pass 5 spec 7. Screen only; no rule changes.
+
+Built:
+
+- **Inspect card** (`src/ui/inspect.js`, drawn in the build card's frame): tap a built device and a card opens beside it; tap elsewhere to close. Alarms and techs still win where they overlap a device.
+  - **A rack row** shows what it earns now ("$4.00/s") and, when it is not earning in full, the one reason, in the order the rules check: "Hall 2 is not online: it needs a switchboard and a coolant unit", "No power: the RMU outside has a fault", "No power: transformer A shorted, no backup", "No power: switchboard A tripped, no backup", "Coolant units down: the hall is shut", "Network failure", "Coolant unit leaking: hall at 90%", "Cooling short: a chiller is down (83%)" or "Cooling short: build a chiller (83%)", "Powering up".
+  - **Infrastructure** shows its state top right ("Working", "Tripped", "Fault: the half is dark"...), what it feeds and what feeds it ("Feeds Hall 1's top half · fed by transformer B outside"; an RMU is "fed by the north power line"), whether it is the only one or one of two, and its upkeep. A chiller says how many are running against how many are needed; a dry cooler how many chillers its plant has room for.
+- **Plus marks:** the "+" on an empty spot is solid ink when the cash covers its price, and hollow when it does not. Hold the game and the map shows what the cash will buy.
+- **Runway:** while the cash is falling, the HUD adds how long it lasts at this rate, in red: "$1,240 · −$32/s · 0:38". Hidden when the rate is rising, when it is more than 5:00 away, and in the red (the red countdown takes over).
+- 13 new tests (490 in all), one for each rack-row reason.
+
+Worth knowing:
+
+- The order of the rack reasons follows the rules: the half's power first, then a shut hall, then the row's own network, then a leak, then cooling. A row with a network failure in a leaking hall says "Network failure", since that is what stops it.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: solid and hollow marks with $300, the runway counting down, a B switchboard's card ("One of two switchboards: the other is the backup · Upkeep $0.15/s") and a dark rack's ("No power: the RMU outside has a fault"); no console errors.
+
+This finishes the first part of pass 5 (M32 to M36). The rest of pass 5 waits for the next version of the spec, after you have played these.
+
+Owner's checklist:
+
+- Tap a dark rack: the card says why in a few words.
+- Tap a B switchboard: it says it is the backup and what it costs.
+- Hold the game with $300: the plus marks show what you can afford.
+- When money falls, the runway says how long you have.
 
 ### M35. Crew guidance
 

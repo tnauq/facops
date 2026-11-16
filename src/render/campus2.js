@@ -227,7 +227,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
     const sp = spot ? spot(e) : null;
     if (YARD_TYPES.has(e.type)) {
       // The yard draws the device itself (outdoor.js); a spot here only adds its "+" or build ring.
-      if (sp && sp.state === 'empty') drawEmptySpot(ctx, v, e);
+      if (sp && sp.state === 'empty') drawEmptySpot(ctx, v, e, sp.affordable);
       else if (sp) drawBuildRing(ctx, v, e, sp.progress);
       continue;
     }
@@ -236,7 +236,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
       ctx.globalAlpha = sp.state === 'building' ? 0.3 + 0.6 * sp.progress : 0.2;
       drawOne(ctx, v, e, {});
       ctx.globalAlpha = 1;
-      if (sp.state === 'empty') drawEmptySpot(ctx, v, e);
+      if (sp.state === 'empty') drawEmptySpot(ctx, v, e, sp.affordable);
       else drawBuildRing(ctx, v, e, sp.progress);
       continue;
     }
@@ -252,7 +252,9 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
 const SPOT_INK = '#1F3A5F';
 
 // An empty spot (pass 4 spec 3.1): a dashed outline round the device's footprint and a "+" badge.
-function drawEmptySpot(ctx, v, e) {
+// Pass 5 (spec 7.2): the badge is solid ink with a white "+" when the cash covers the price, and
+// hollow (white with an ink "+") when it does not, so the map shows what the cash will buy.
+function drawEmptySpot(ctx, v, e, affordable = false) {
   const [hw, hh] = extentOf(e);
   ctx.save();
   ctx.strokeStyle = 'rgba(31, 58, 95, 0.55)';
@@ -267,11 +269,12 @@ function drawEmptySpot(ctx, v, e) {
   const cy = sy(v, e.y);
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = affordable ? SPOT_INK : '#FFFFFF';
   ctx.fill();
   ctx.strokeStyle = SPOT_INK;
   ctx.lineWidth = 1.5;
   ctx.stroke();
+  ctx.strokeStyle = affordable ? '#FFFFFF' : SPOT_INK;
   ctx.lineWidth = Math.max(2, r * 0.22);
   ctx.lineCap = 'round';
   ctx.beginPath();

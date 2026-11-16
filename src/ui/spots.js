@@ -19,7 +19,10 @@ export const SPOT_MIN = 44; // px: every spot is at least a 44 x 44 tap target
 const HALF = { t: 'top', b: 'bottom' };
 const other = (id, a, b) => (id.endsWith(a) ? id.slice(0, -a.length) + b : id.slice(0, -b.length) + a);
 
-/** Spots not built yet: [{ id, type, x, y, state: 'empty' | 'building', progress }]. */
+/**
+ * Spots not built yet: [{ id, type, x, y, state: 'empty' | 'building', progress, affordable }].
+ * affordable (pass 5 spec 7.2): the cash covers the price, so the "+" is drawn solid.
+ */
 export function spotsModel(state) {
   if (!buildingOn(state)) return [];
   const out = [];
@@ -27,7 +30,7 @@ export function spotsModel(state) {
     const st = spotState(state, e.id);
     if (st === 'built') continue;
     const progress = st === 'building' ? 1 - Math.max(0, state.equip[e.id].buildEnd - state.t) / state.config.building.buildTime : 0;
-    out.push({ id: e.id, type: e.type, x: e.x, y: e.y, state: st, progress: Math.min(1, progress) });
+    out.push({ id: e.id, type: e.type, x: e.x, y: e.y, state: st, progress: Math.min(1, progress), affordable: state.cash + 1e-9 >= priceOf(state, e.id) });
   }
   return out;
 }

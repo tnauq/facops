@@ -26,12 +26,14 @@ export function ceoNote(state) {
   };
 }
 
+export const RUNWAY_MAX = 300; // seconds: a runway longer than 5:00 is not shown (spec 7.3)
+
 const dollars = (n) => `$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
 
 /**
  * Building mode (pass 4 spec 2.5, 3.3): the cash, what it is doing a second (income minus burn), and
  * the red countdown. { cash: "$1,240", rate: "+$85/s", falling, red: "0:12" or null, loan: "Loan $940"
- * or null, loanShare: 0..1 still owed }.
+ * or null, loanShare: 0..1 still owed, runway: "0:38" or null }.
  */
 export function moneyModel(state) {
   // Nothing burns while the tutorial's lessons run (pass 4 M27), so the rate shows income only.
@@ -46,6 +48,9 @@ export function moneyModel(state) {
     // Pass 5 spec 3.2: what is left on the construction loan, and the share still owed (for the bar).
     loan: owed > 0 ? `Loan ${dollars(Math.ceil(owed))}` : null,
     loanShare: owed > 0 ? owed / state.config.building.burn.loan : 0,
+    // Pass 5 spec 7.3: while the cash is falling, how long it lasts at this rate ("0:38"); none when
+    // rising, already in the red (the red countdown says it), or more than RUNWAY_MAX away.
+    runway: net < 0 && state.cash > 0 && state.cash / -net <= RUNWAY_MAX ? formatClock(Math.floor(state.cash / -net)) : null,
   };
 }
 
