@@ -14,6 +14,7 @@ import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
 import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
+import { alarmCost } from './cost.js';
 import { HALL_IDS, buildingOn, builtCdus, builtMsbs, dryCapacity, hallOnline, isBuilt, msbFed, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
 
 const EPS = 1e-9;
@@ -129,6 +130,8 @@ export function createGame({ seed = 1, config = {} } = {}) {
     economyStart: 0, // building mode: when the burn and the alarm tightening started (after the tutorial)
     loanPaidAt: null, // building mode: when the construction loan was paid off (pass 5 spec 3.1)
     ribbonQueued: false,
+    commissionedAt: null, // pass 5 spec 5.1: when every rack row first delivered full output at once
+    sold: null, // { price, t } once the player handed over the keys
   };
   if (building) {
     state.stats.earned = 0;
@@ -940,6 +943,64 @@ function buildingStep(state) {
   }
 }
 
+// ---------------------------------------------------------------- the win (pass 5 spec 5, M34)
+
+// Commissioned: the first moment every rack row delivers full output at once. Kept for good.
+function checkCommissioned(state, deliveredMw) {
+  if (state.commissionedAt !== null || state.scripted) return;
+  if (deliveredMw < ROWS.length * state.config.rowMw - 1e-6) return;
+  state.commissionedAt = state.t;
+  emit(state, 'commissioned', { price: salePrice(state) });
+}
+
+/** Has the campus been Commissioned? */
+export const commissioned = (state) => state.commissionedAt !== null && state.commissionedAt !== undefined;
+
+/** What the campus sells for now: the price of everything built, half as much again if Commissioned. */
+export function salePrice(state) {
+  if (!buildingOn(state)) return 0;
+  let total = 0;
+  for (const e of EQUIPMENT) if (isBuilt(state, e.id)) total += priceOf(state, e.id);
+  return Math.round(total * (commissioned(state) ? 1 + state.config.building.sale.commissionedBonus : 1));
+}
+
+/**
+ * Why the campus cannot be sold now, or null if it can: 'off' (classic game), 'over', 'early' (before
+ * the Handover), 'ceo' (a visit or its warning) or 'outage' (an alarm costing power is open).
+ */
+export function cannotSell(state) {
+  if (!buildingOn(state)) return 'off';
+  if (state.over) return 'over';
+  if (state.config.building.sale.fromHandover && !state.handoverQueued) return 'early';
+  if (state.ceo) return 'ceo';
+  if (state.alarms.some((a) => alarmCost(state, a) > 0)) return 'outage';
+  return null;
+}
+
+/** Hand over the keys: the run ends by choice and the sale price joins the score. */
+export function sell(state) {
+  const reason = cannotSell(state);
+  if (reason) return { ok: false, reason };
+  const price = salePrice(state);
+  state.sold = { price, t: state.t };
+  state.over = true;
+  state.overReason = 'sold';
+  emit(state, 'sold', { price });
+  emit(state, 'over', { reason: 'sold' });
+  return { ok: true, price };
+}
+
+/** The score: money earned, plus the sale price if sold (going broke or fired: no sale). */
+export const score = (state) => (buildingOn(state) ? state.stats.earned + (state.sold ? state.sold.price : 0) : 0);
+
+/** The highest milestone reached: 'commissioned', 'handover', 'ribbon' or null. */
+export function milestone(state) {
+  if (commissioned(state)) return 'commissioned';
+  if (state.handoverQueued) return 'handover';
+  if (state.ribbonQueued) return 'ribbon';
+  return null;
+}
+
 // ---------------------------------------------------------------- commands
 
 /** Two-tap dispatch and redirect, as in pass 1. Returns { ok } or { ok: false, reason }. */
@@ -1138,6 +1199,7 @@ export function step(state, dt) {
   state.stats.lowestFraction = Math.min(state.stats.lowestFraction, now.fraction);
   if (buildingOn(state)) {
     earn(state, now.deliveredMw, dt);
+    checkCommissioned(state, now.deliveredMw);
     if (!state.scripted) burn(state, dt);
   }
 
@@ -1235,6 +1297,13 @@ export function results(state) {
     // Pass 5 spec 3.2: when the construction loan was paid off, in economy time; null if not (or none).
     loanPaidAt: buildingOn(state) && state.loanPaidAt !== null ? state.loanPaidAt - (state.economyStart ?? 0) : null,
     hasLoan: buildingOn(state) && state.config.building.burn.loan > 0 && state.config.building.burn.loanRate > 0,
+    // Pass 5 spec 5.1: the win.
+    sold: state.overReason === 'sold',
+    salePrice: state.sold ? state.sold.price : 0,
+    commissioned: commissioned(state),
+    commissionedAt: commissioned(state) ? state.commissionedAt - (buildingOn(state) ? state.economyStart ?? 0 : 0) : null,
+    milestone: milestone(state),
+    score: score(state),
   };
 }
 
@@ -1266,6 +1335,7 @@ export function resultsText(state) {
     `Alarms: ${r.raised} raised, ${r.cleared} cleared, average ${r.averageClear.toFixed(1)} s to clear, longest ${Math.round(r.longestAlarm)} s, peak ${r.peakAlarms} at once`,
     `Escalations: ${r.halfDark} half-halls dark, ${r.leakSpreads} leaks spread, ${r.spreads} network spreads, ${r.bursts} pump bursts, ${r.secondChillers} second chillers`,
     `Redirects: ${r.redirects} | Matching-hat fixes: ${pct(r.matchedShare)} | Lowest load: ${pct(r.lowestFraction)}`,
+    ...(r.building ? [`Score: $${Math.round(r.score).toLocaleString('en-US')}${r.sold ? ` | Sold for $${r.salePrice.toLocaleString('en-US')}` : ''} | Reached: ${r.milestone ?? 'none'}${r.commissioned ? ` (Commissioned at ${formatClock(r.commissionedAt)})` : ''}`] : []),
     ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.bankrupt ? ' | Went broke' : ''} | Devices built: ${r.built}${loanText(r) ? ` | ${loanText(r)}` : ''}`] : []),
     `Tuning: ${r.tuning.length > 0 ? r.tuning.join(', ') : 'defaults'}`,
   ].join('\n');

@@ -73,11 +73,45 @@ The owner approved `docs/pass5-spec.md` (version 0.2, manage) on 16 November 202
 |---|---|---|
 | M32. The construction loan | `m32` | Done |
 | M33. The CEO's strikes | `m33` | Done |
-| M34. Commissioned and selling the campus | | Next |
-| M35. Crew guidance | | |
+| M34. Commissioned and selling the campus | `m34` | Done |
+| M35. Crew guidance | | Next |
 | M36. Inspect card, plus marks, runway | | |
 
 ## Log
+
+### M34. Commissioned and selling the campus
+
+Pass 5 spec 5: the ways to win.
+
+Built:
+
+- **Rules** (`src/core/game2.js`, `building.sale` in `src/core/config2.js`):
+  - **Commissioned:** the first moment all 48 rack rows deliver full output at once (300 MW). Recorded once and kept, with a `commissioned` event.
+  - **Selling** (`sell`, `cannotSell`): from the Handover on, never during a CEO visit or its warning, and never with an outage open. The run ends by choice (`sold`).
+  - **Sale price** (`salePrice`): the price of everything built, half as much again once Commissioned. A full campus is $28,000, or $42,000 Commissioned.
+  - **Score** (`score`): money earned, plus the sale price if sold. Going broke or being fired gives no sale.
+  - **Milestone** (`milestone`): the highest reached, ribbon-cutting, Handover or Commissioned.
+- **Commissioned on screen:** every hall lights up in turn with "Commissioned". About 3.5 s later a card opens and waits: the CEO's "Fine. It's finished. Don't touch anything.", the sale price, **Keep running** or **Hand over the keys · $42,000**. If the sale isn't allowed that moment (the CEO is visiting, or an outage is open), the button is greyed and the card says to sell from the menu later. Under `#auto` no card opens.
+- **The menu** (the gear, or pause) has **Hand over the keys · $14,250** under the usual buttons. Before the Handover, during a visit or with an outage open, it is greyed with the reason underneath. Tapping it opens a confirm card with the sale price and the score it would give; **Back** returns to the menu.
+- **Results** lead with how the run ended (**Sold**, **Commissioned and sold**, **Fired by the CEO: three strikes**, **Went broke**), then the score, the highest milestone reached, and how long the run lasted. A sold run has a Sale line. The Copy text gains a Score line.
+- **Best score:** the new score, under its own key (`facops.best.v5`). Until you finish a pass 5 run, the start card shows your old best as "$90,000 in 14:20 (older rules: money earned)". The old best is never changed.
+- **Drawer:** none added; `building.sale.fromHandover: false` (selling at any time) is there for the scripted checks.
+- `scripts/pacing4.mjs` now reports how many runs are Commissioned and when.
+- 12 new tests (471 in all). The results-card test for going broke now checks that the score leads.
+
+Scripted checks (12 seeds): the rules of play are unchanged, so the table is M33's (median run 17:52). The scripted players never sell. Commissioned is rare: 2 of 12 for the compute-first builder and for the one that gets ready for the CEO, at about 10 minutes; never for the builder without backups. All 48 rows must be at full output with nothing down, which is hard with alarms always open.
+
+Worth knowing:
+
+- Selling is worth less than it might sound: a full campus sells for $28,000 ($42,000 Commissioned), against about $110,000 earned in a typical 18-minute run. So selling early ends your earning, and selling late risks being fired with nothing. Say if you want the price higher.
+- At 660 x 300 the results card is taller than the screen when sold; it scrolls, as the tuning card does. At 844 x 390 it fits.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the menu greyed before the Handover with its reason, offered after it, the confirm card, the Sold results, the halls lighting up and the Commissioned card (greyed during the Handover's warning); no console errors.
+
+Owner's checklist:
+
+- After the Handover, the menu offers the sale, and refuses it during a visit or an outage, saying why.
+- Selling ends the run with a score that includes the price.
+- If you reach all 300 MW, the game makes a fuss and asks whether to sell.
 
 ### M33 follow-up. The alarm cap rises late (owner, 16 Nov)
 

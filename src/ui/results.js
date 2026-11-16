@@ -40,6 +40,10 @@ function addPass2(r, big, lines) {
   lines.push(['Upgrades', ups.length > 0 ? ups.join(', ') : 'none']);
 }
 
+const dollars = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
+// The highest milestone reached (pass 5 spec 5.2).
+export const MILESTONE = { ribbon: 'Ribbon-cutting', handover: 'Handover', commissioned: 'Commissioned' };
+
 const NUMBER = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
 
 /** "Fired by the CEO: three strikes" when strikes did it (pass 5 spec 4.2), else "Fired by the CEO". */
@@ -70,16 +74,23 @@ export function resultsPanel(r, record, formatClock) {
   ];
   if (r.halls !== undefined) addPass2(r, big, lines);
   // Pass 4 (spec 2.5): in building mode the score is money earned; it takes the middle headline.
-  if (r.building) {
-    big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
-    lines.splice(0, 0, ['Money', `$${Math.round(r.spent).toLocaleString('en-US')} spent building, $${Math.round(r.burned).toLocaleString('en-US')} burned · ${r.energyGwh.toFixed(2)} GWh`]);
-    if (loanText(r)) lines.splice(1, 0, ['Loan', loanText(r).replace(/^Loan /, '')]); // pass 5 spec 3.2
+  if (r.building && Number.isFinite(r.score)) {
+    // Pass 5 (spec 5.2): how the run ended (the title), then the score, then the highest milestone.
+    big[0] = { value: dollars(r.score), label: r.sold ? 'score · earned + sale' : 'score · earned' };
+    big[1] = { value: MILESTONE[r.milestone] ?? 'None', label: 'reached' };
+    big[2] = { value: formatClock(r.seconds), label: `survived · ${r.halls} of 8 halls` };
+    if (r.sold) lines.splice(0, 0, ['Sale', `${dollars(r.salePrice)}${r.commissioned ? ', Commissioned: half as much again' : ''}`]);
   }
-  const bestScore = Number.isFinite(record.best.earned) ? `$${Math.round(record.best.earned).toLocaleString('en-US')}` : `${record.best.energyGwh.toFixed(2)} GWh`;
+  if (r.building) {
+    if (!Number.isFinite(r.score)) big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
+    lines.splice(r.sold ? 1 : 0, 0, ['Money', `$${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent building, $${Math.round(r.burned).toLocaleString('en-US')} burned · ${r.energyGwh.toFixed(2)} GWh`]);
+    if (loanText(r)) lines.splice(r.sold ? 2 : 1, 0, ['Loan', loanText(r).replace(/^Loan /, '')]); // pass 5 spec 3.2
+  }
+  const bestScore = Number.isFinite(record.best.score) ? dollars(record.best.score) : Number.isFinite(record.best.earned) ? `$${Math.round(record.best.earned).toLocaleString('en-US')}` : `${record.best.energyGwh.toFixed(2)} GWh`;
   const bestLine = record.isNew ? 'New best!' : `Best: ${bestScore} in ${formatClock(record.best.seconds)}`;
   // Pass 5 spec 4.2: the minute of each strike.
   if (r.strikes > 0) lines.splice(r.building ? 1 : 0, 0, ['Strikes', `${r.strikes} of ${r.strikesToFire} · ${r.strikeTimes.map(formatClock).join(', ')}`]);
   // The card's heading: who ended the run.
-  const title = r.firedByCeo ? firedTitle(r) : r.bankrupt ? 'Went broke' : 'Round over';
+  const title = r.sold ? (r.commissioned ? 'Commissioned and sold' : 'Sold') : r.firedByCeo ? firedTitle(r) : r.bankrupt ? 'Went broke' : 'Round over';
   return { big, lines, bestLine, title };
 }

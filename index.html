@@ -42,6 +42,8 @@
     .card .quote { margin: -6px 0 10px; font-style: italic; color: #1F3A5F; }
     .card a { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 8px; color: #1F3A5F; font-weight: 600; }
     .buttons { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+    .buttons.sell { margin-top: 8px; }
+    .buttons button:disabled { opacity: 0.45; cursor: default; }
     .buttons button {
       min-width: 110px; min-height: 44px; padding: 0 18px; border-radius: 8px; font: 600 15px system-ui, -apple-system, 'Segoe UI', sans-serif;
       border: 1px solid #1F3A5F; background: #FFFFFF; color: #1F3A5F; cursor: pointer;
@@ -123,6 +125,29 @@
         <button class="primary" data-action="resume">Resume</button>
         <button data-action="restart">Restart</button>
         <button data-action="tuning">Tuning</button>
+      </div>
+      <div class="buttons sell" id="sell-row" hidden>
+        <button data-action="sellAsk" id="sell-button">Hand over the keys</button>
+      </div>
+      <p class="muted" data-field="sellWhy" hidden></p>
+    </div>
+    <div class="card" data-overlay="sell" hidden>
+      <h1 data-field="title">Hand over the keys?</h1>
+      <p data-field="price"></p>
+      <p data-field="score"></p>
+      <p class="muted" data-field="note"></p>
+      <div class="buttons">
+        <button data-action="back">Back</button>
+        <button class="primary" data-action="sell">Sell</button>
+      </div>
+    </div>
+    <div class="card" data-overlay="commissioned" hidden>
+      <h1 data-field="title">Commissioned</h1>
+      <p class="quote" data-field="quote"></p>
+      <p data-field="price"></p>
+      <div class="buttons">
+        <button data-action="keep">Keep running</button>
+        <button class="primary" data-action="sell" data-field="sell">Hand over the keys</button>
       </div>
     </div>
     <div class="card results" data-overlay="over" hidden>

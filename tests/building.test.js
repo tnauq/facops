@@ -342,7 +342,7 @@ test('the CEO only cares about outages: a tripped switchboard with its backup ca
   assert.equal(s.stats.ceoFines, s.config.ceo.ribbon.cost * s.config.building.ceoFine);
 });
 
-test('the round-over card: money earned is the headline, and "Went broke" when the cash ran out', async () => {
+test('the round-over card: the score leads, and "Went broke" when the cash ran out', async () => {
   const { resultsPanel } = await import('../src/ui/results.js');
   const { formatClock } = await import('../src/core/index2.js');
   const s = game({ building: { burn: { base: 50, doubling: 1e9, upkeep: 0, wages: 0 } } });
@@ -351,6 +351,8 @@ test('the round-over card: money earned is the headline, and "Went broke" when t
   assert.equal(r.bankrupt, true);
   const panel = resultsPanel(r, { isNew: true, best: r }, formatClock);
   assert.equal(panel.title, 'Went broke');
-  assert.equal(panel.big[1].label, 'earned');
-  assert.match(panel.big[1].value, /^\$/);
+  // Pass 5 spec 5.2: the score (money earned, no sale when broke) leads, then the highest milestone.
+  assert.equal(panel.big[0].label, 'score · earned');
+  assert.equal(panel.big[0].value, `$${Math.round(r.earned).toLocaleString('en-US')}`);
+  assert.equal(panel.big[1].label, 'reached');
 });

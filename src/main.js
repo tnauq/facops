@@ -20,7 +20,8 @@
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
-import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, step } from './core/index2.js';
+import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, sell, step } from './core/index2.js';
+import { COMMISSION_CARD_DELAY, commissionedCard, sellButton, sellConfirm } from './ui/sale.js';
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
 import { drawStrip } from './render/strip.js';
@@ -55,7 +56,7 @@ import { autoTop, railTapCounts, railTickets2, scrollByDrag } from './ui/rail2.j
 import { DRAG_PX } from './ui/drag.js';
 import { hudModel2 } from './ui/hud2.js';
 import { reduceFlow } from './ui/flow.js';
-import { BEST2_KEY, BEST4_KEY, bestText, defaultStorage, loadBest, recordBest, saveBest } from './ui/best.js';
+import { BEST2_KEY, BEST4_KEY, BEST5_KEY, bestText, buildingBestText, defaultStorage, loadBest, recordBest, saveBest } from './ui/best.js';
 import { tuning2 } from './ui/tuning2.js';
 import { centreOn, createCamera, glide, isVisible, panBy, passOneScale, siteOf } from './ui/camera.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
@@ -84,7 +85,10 @@ let railGesture = null; // a touch on a rail that overflows: { start, startFirst
 let markers = [];
 let mode = 'start'; // see src/ui/flow.js
 // Building mode keeps its own best, in money (pass 4 M27); the classic game keeps pass 2's.
-const bests = { classic: loadBest(defaultStorage(), BEST2_KEY), building: loadBest(defaultStorage(), BEST4_KEY) };
+// Pass 5 (M34): building mode's best is the new score, under its own key; pass 4's best stays as it
+// was and shows, labelled, until a pass 5 run sets one.
+const bests = { classic: loadBest(defaultStorage(), BEST2_KEY), building: loadBest(defaultStorage(), BEST5_KEY) };
+const olderBest = loadBest(defaultStorage(), BEST4_KEY);
 const bestKind = () => (tuning.building ? 'building' : 'classic');
 let tuning = tuning2.loadTuning(defaultStorage());
 let tuningBack = null;
@@ -112,6 +116,7 @@ function newRound() {
     railCompact: false, // whether the rail showed tiles last frame (pass 4 spec 3.5)
     railSwitchedAt: null, // when it last changed between tickets and tiles (ms), to ignore stray taps
     ceoView: createCeoView(), // the CEO's lines, the assistant's trail, shaken bubbles
+    commissionCardAt: null, // pass 5: game time the Commissioned card opens, after the celebration
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
   const cfg = round.state.config;
@@ -148,8 +153,34 @@ function markTutorialSeen() {
   if (!tuning.skipTutorial) changeTuning(tuning2.setTuning(tuning, 'skipTutorial', true));
 }
 
+// The menu (pass 5 spec 5.2): after the Handover it offers the sale, greyed with the reason when it
+// cannot be done now.
+function showPaused() {
+  const b = round ? sellButton(round.state) : null;
+  const row = document.getElementById('sell-row');
+  const button = document.getElementById('sell-button');
+  const why = document.querySelector('[data-overlay="paused"] [data-field="sellWhy"]');
+  row.hidden = !b;
+  why.hidden = !b || b.enabled;
+  if (b) {
+    button.textContent = b.label;
+    button.disabled = !b.enabled;
+    why.textContent = b.why;
+  }
+  showOverlay('paused');
+}
+
+// The Commissioned card (spec 5.2): it waits for the player. The run is paused while it shows.
+function showCommissioned() {
+  const card = commissionedCard(round.state);
+  mode = reduceFlow(mode, 'commissioned').mode;
+  showOverlay('commissioned', { title: card.title, quote: card.quote, price: card.price, sell: card.sell });
+  document.querySelector('[data-overlay="commissioned"] [data-action="sell"]').disabled = !card.enabled;
+}
+
 function showStart() {
-  showOverlay('start', { best: bestText(bests[bestKind()], formatClock) });
+  const kind = bestKind();
+  showOverlay('start', { best: kind === 'building' ? buildingBestText(bests.building, olderBest, formatClock) : bestText(bests.classic, formatClock) });
 }
 
 // Hold and speed (pass 4 spec 3.4). While held nothing moves, but taps still select, assign and
@@ -180,6 +211,12 @@ function act(action) {
     draw();
     return;
   }
+  // Pass 5 (spec 5.2): hand over the keys, from the confirm card or the Commissioned card.
+  if (action === 'sell') {
+    if (mode !== 'sell' && mode !== 'commissioned') return;
+    if (sell(round.state).ok) roundOver();
+    return;
+  }
   if (action === 'shop') {
     if (mode !== 'playing') return;
     setShop(shopModel(round.state), drawChoice);
@@ -202,6 +239,8 @@ function act(action) {
   mode = next.mode;
   if (mode === 'start') showStart();
   else if (mode === 'over') showOverlay('over');
+  else if (mode === 'paused') showPaused();
+  else if (mode === 'sell') showOverlay('sell', sellConfirm(round.state));
   else if (mode === 'tuning') {
     setTuningControls(tuning, tuning2.tuningLabel);
     showOverlay('tuning');
@@ -221,7 +260,7 @@ function roundOver() {
   const kind = r.building ? 'building' : 'classic';
   const record = recordBest(bests[kind], r);
   bests[kind] = record.best;
-  if (record.isNew) saveBest(record.best, defaultStorage(), kind === 'building' ? BEST4_KEY : BEST2_KEY);
+  if (record.isNew) saveBest(record.best, defaultStorage(), kind === 'building' ? BEST5_KEY : BEST2_KEY);
   mode = reduceFlow(mode, 'over').mode;
   // When the CEO ended the run, the card carries the CEO's parting line (spec 4.7).
   const panel = resultsPanel(r, record, formatClock);
@@ -386,6 +425,12 @@ function frame(now) {
   if (round.card && spotState(state, round.card.id) !== 'empty') round.card = null;
   const card = deliveryCard(state, events);
   if (card && mode === 'playing') onDelivery(card);
+  // Pass 5: once the halls have lit up, the Commissioned card asks whether to sell (never under #auto).
+  if (!round.auto && events.some((e) => e.type === 'commissioned')) round.commissionCardAt = state.t + COMMISSION_CARD_DELAY;
+  if (round.commissionCardAt !== null && mode === 'playing' && !state.over && state.t >= round.commissionCardAt) {
+    round.commissionCardAt = null;
+    showCommissioned();
+  }
   if (state.over && mode === 'playing') roundOver();
   round.selection = pruneSelection(round.selection, state);
   if (!railGesture) {

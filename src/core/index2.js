@@ -62,6 +62,13 @@ export {
   stepDuration,
   walkDistance,
   walkSpeed,
+  // Pass 5 spec 5 (M34): the win.
+  cannotSell,
+  commissioned,
+  milestone,
+  salePrice,
+  score,
+  sell,
 } from './game2.js';
 export { greedyMove, pickFor, playRun } from './bot2.js';
 export { autoDispatch, autoOrder } from './auto.js';

@@ -2,7 +2,7 @@
 // the tuning drawer, or (pass 2) the Delivery card. Pure reducer. The rules only run while the
 // mode is 'playing'.
 
-export const MODES = ['start', 'playing', 'paused', 'over', 'tuning', 'delivery', 'shop'];
+export const MODES = ['start', 'playing', 'paused', 'over', 'tuning', 'delivery', 'shop', 'sell', 'commissioned'];
 
 // The tuning drawer opens from the start, pause and round-over cards, and from the HUD's settings
 // button during play. Done goes back to the card it came from; from play it goes to the pause card
@@ -18,7 +18,12 @@ const TABLE = {
     over: { mode: 'over', newRound: false },
     delivery: { mode: 'delivery', newRound: false }, // pass 2: a hall came online
     shop: { mode: 'shop', newRound: false }, // pass 4: the hire and upgrade card
+    commissioned: { mode: 'commissioned', newRound: false }, // pass 5: the Commissioned card
   },
+  // Pass 5 (spec 5.2): the Commissioned card waits for the player: sell (the run ends) or keep running.
+  commissioned: { keep: { mode: 'playing', newRound: false }, over: { mode: 'over', newRound: false } },
+  // The menu's sale asks first: Back returns to the menu; selling ends the run.
+  sell: { back: { mode: 'paused', newRound: false }, over: { mode: 'over', newRound: false } },
   // The hire and upgrade card closes with Close; the run carries on.
   shop: { continue: { mode: 'playing', newRound: false }, togglePause: { mode: 'playing', newRound: false } },
   // The Delivery card closes with Continue or by taking a card; the run carries on.
@@ -27,6 +32,7 @@ const TABLE = {
     resume: { mode: 'playing', newRound: false },
     togglePause: { mode: 'playing', newRound: false },
     restart: { mode: 'playing', newRound: true },
+    sellAsk: { mode: 'sell', newRound: false }, // pass 5: Hand over the keys
   },
   over: { again: { mode: 'playing', newRound: true } },
 };

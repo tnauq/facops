@@ -130,6 +130,10 @@ export const DEFAULT_CONFIG2 = {
     debtGrace: 15, // seconds in the red before the run ends: time to recover from a fine or a bad spell
     stability: false, // false: no Stability meter in building mode; outages cost income instead
     ceoFine: 50, // dollars per Stability point a CEO sighting would have cost (15 points: $750)
+    // Pass 5 spec 5.1 (M34): handing over the keys. The sale price is the price of everything built;
+    // a Commissioned campus (all rows at full output at once) sells for `commissionedBonus` more.
+    // fromHandover false: the campus may be sold at any time (for comparison).
+    sale: { fromHandover: true, commissionedBonus: 0.5 },
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free
