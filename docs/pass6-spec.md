@@ -66,7 +66,7 @@ M38 starts with a layout preview the owner approves before any rule moves (3.1).
 
 ### 3.1 Layout (GDD v1.0 additions 1.1)
 
-- **Each plant grows outward**, toward its end of the building. The halls, corridors and yard between the plants keep their shape. *(Built in M38 as a building that runs past x = 0 at the west end, so nothing between the plants moved.)* The building is wider by about 260 world units at each end (*starting value*: the pump rooms about 160, the water pumps about 100). The dry cooler blocks move out with the end walls.
+- **Each plant grows outward**, toward its end of the building. The halls, corridors and yard between the plants keep their shape. *(Built in M38 as a building that runs past x = 0 at the west end, so nothing between the plants moved.)* The building is wider by 200 world units at each end, for the pump rooms (built in M38; the water pumps fitted between the corridor and the chillers without more room). The dry cooler blocks move out with the end walls.
 - **Glycol pump rooms:** two at each plant against the end wall, north and south, each with four glycol pumps in a line from top to bottom. Each pump has a short pipe to the right into the room's header. The two rooms' headers join one glycol main.
 - **Chillers:** as today, eight in two columns of four with the middle aisle open. The glycol header and the water header run down the **outer** side of each column, glycol outermost; each sends a short stub into its half of every chiller: the glycol stub into the chiller drawing's top half, the water stub into its bottom half (the two components of the existing sprite).
 - **Water pumps:** two pairs on the hall side of the chillers, north and south, feeding the water main.
