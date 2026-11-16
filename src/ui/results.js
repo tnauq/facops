@@ -40,6 +40,14 @@ function addPass2(r, big, lines) {
   lines.push(['Upgrades', ups.length > 0 ? ups.join(', ') : 'none']);
 }
 
+/** Pass 6 (M39): "2 CDUs without glycol, 1 hall without water", leaving out a zero. */
+export function pumpsShortText(r) {
+  const parts = [];
+  if (r.cdusEverDry > 0) parts.push(`${plural(r.cdusEverDry, 'CDU', 'CDUs')} without glycol`);
+  if (r.hallsEverDry > 0) parts.push(`${plural(r.hallsEverDry, 'hall', 'halls')} without water`);
+  return parts.join(', ');
+}
+
 const dollars = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 // The highest milestone reached (pass 5 spec 5.2).
 export const MILESTONE = { ribbon: 'Ribbon-cutting', handover: 'Handover', commissioned: 'Commissioned' };
@@ -85,6 +93,8 @@ export function resultsPanel(r, record, formatClock) {
     if (!Number.isFinite(r.score)) big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
     lines.splice(r.sold ? 1 : 0, 0, ['Money', `$${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent building, $${Math.round(r.burned).toLocaleString('en-US')} burned · ${r.energyGwh.toFixed(2)} GWh`]);
     if (loanText(r)) lines.splice(r.sold ? 2 : 1, 0, ['Loan', loanText(r).replace(/^Loan /, '')]); // pass 5 spec 3.2
+    // Pass 6 (M39): only when the pumps ever fell short, so a clean run keeps a short card.
+    if (r.cdusEverDry > 0 || r.hallsEverDry > 0) lines.push(['Pumps short', pumpsShortText(r)]);
   }
   const bestScore = Number.isFinite(record.best.score) ? dollars(record.best.score) : Number.isFinite(record.best.earned) ? `$${Math.round(record.best.earned).toLocaleString('en-US')}` : `${record.best.energyGwh.toFixed(2)} GWh`;
   const bestLine = record.isNew ? 'New best!' : `Best: ${bestScore} in ${formatClock(record.best.seconds)}`;

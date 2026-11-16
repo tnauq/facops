@@ -136,6 +136,9 @@ export const DEFAULT_CONFIG2 = {
     // about one tech per hall).
     crewBase: 2,
     crewPerHall: 1,
+    // Pass 6 spec 4.1 (M39, owner 16 Nov): what a running pump carries. Each loop is one header for the
+    // whole campus; with too few pumps the farthest CDUs (glycol) or halls (water) go without.
+    pumps: { chillersPerGlycolPump: 2, cdusPerGlycolPump: 2, hallsPerWaterPump: 2, noWaterFactor: 0.5 },
     // Pass 5 spec 5.1 (M34): handing over the keys. The sale price is the price of everything built;
     // a Commissioned campus (all rows at full output at once) sells for `commissionedBonus` more.
     // fromHandover false: the campus may be sold at any time (for comparison).

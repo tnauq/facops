@@ -103,6 +103,46 @@ function walkway(ctx, v, lane) {
   ctx.stroke();
 }
 
+// The plate beside a hall's title (pass 6 M39): ink on white, no band colour.
+function titlePlate(ctx, v, h, text, px) {
+  ctx.save();
+  ctx.font = `700 ${px - 2}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+  const w = ctx.measureText(text).width + 10;
+  const x = sx(v, h.cx) + 34 * Math.max(1, px / 13);
+  const y = sy(v, h.y + 8);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.strokeStyle = '#1F3A5F';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(x, y - px / 2 - 2, w, px + 4, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#1F3A5F';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + 5, y + 1);
+  ctx.restore();
+}
+
+// A CDU without glycol (pass 6 M39): greyed, with the red slash a failed yard device has. Not an
+// alarm: nothing to fix there, so it is a mark on the unit, never a bubble.
+function dryMark(ctx, v, e) {
+  const [hw, hh] = extentOf(e);
+  ctx.save();
+  ctx.fillStyle = 'rgba(40, 44, 50, 0.35)';
+  ctx.beginPath();
+  ctx.roundRect(sx(v, e.x - hw), sy(v, e.y - hh), 2 * hw * v.scale, 2 * hh * v.scale, 4 * v.scale);
+  ctx.fill();
+  ctx.strokeStyle = '#D9483B';
+  ctx.lineWidth = Math.max(1.5, 4 * v.scale);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(sx(v, e.x - hw * 0.76), sy(v, e.y + hh * 0.76));
+  ctx.lineTo(sx(v, e.x + hw * 0.76), sy(v, e.y - hh * 0.76));
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** Healthy status for every icon, or what `status(e)` says (for demos and, later, the game state). */
 function drawOne(ctx, v, e, st) {
   const x = sx(v, e.x);
@@ -112,7 +152,10 @@ function drawOne(ctx, v, e, st) {
     for (const ry of e.racks) drawRack(ctx, x, sy(v, ry), ROW_SIZE * s, st);
   } else if (e.type === 'chiller') drawChiller(ctx, x, y, ICON_SIZE.chiller * s, st);
   else if (e.type === 'pump') drawPump(ctx, x, y, ICON_SIZE.pump * s, { ...st, ...pumpTurn(e) });
-  else if (e.type === 'cdu') drawCdu(ctx, x, y, ICON_SIZE.cdu * s, { ...st, ...cduTurn(e) });
+  else if (e.type === 'cdu') {
+    drawCdu(ctx, x, y, ICON_SIZE.cdu * s, { ...st, ...cduTurn(e) });
+    if (st.dry) dryMark(ctx, v, e); // pass 6 M39: no glycol reaches it
+  }
   else if (e.type === 'msb') drawMsb(ctx, x, y, ICON_SIZE.msb * s, { ...st, side: e.side });
 }
 
@@ -139,7 +182,7 @@ const extentOf = (e) => (e.type === 'dry' ? [e.w / 2, e.h / 2] : EXTENT[e.type])
  * screen: { w, h } of the canvas, for culling. opts.online: halls online (1 to 8);
  * opts.plantB: whether Plant B is online; opts.status(e): icon options for one piece of equipment.
  */
-export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, status = () => ({}), pipes = 'all', hallUp = null, spot = null, offlineTitle = 'under construction', pipeSpan = null } = {}) {
+export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, status = () => ({}), pipes = 'all', hallUp = null, spot = null, offlineTitle = 'under construction', pipeSpan = null, hallPlate = null } = {}) {
   // pipes: 'all' draws the pipes here; 'shadows' only their shadows, when the caller draws the
   // overhead pipes itself over the crew (src/render/map2.js).
   // Building mode (pass 4 spec 3.1): hallUp(h) says which halls are online (they need not be in
@@ -227,6 +270,9 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
     const up = isUp(h.id);
     // offlineTitle null (building mode, owner 15 Nov): an offline hall is just pale, with its name.
     drawLabel(ctx, up || offlineTitle === null ? `Hall ${h.id}` : `Hall ${h.id} · ${offlineTitle}`, sx(v, h.cx), sy(v, h.y + 8), up ? titlePx : labelPx, COLOR.muted);
+    // Pass 6 (M39): a small plate beside the title while the hall has no water ("50%").
+    const plate = up && hallPlate ? hallPlate(h.id) : null;
+    if (plate) titlePlate(ctx, v, h, plate, titlePx);
   }
   for (const p of Object.values(PLANTS)) {
     const up = p.id === 'A' || plantB;

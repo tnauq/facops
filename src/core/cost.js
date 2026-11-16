@@ -9,23 +9,29 @@
 import { EQUIPMENT, EQUIPMENT_BY_ID } from './layout2.js';
 import { chillersNeeded, isOnline, runningChillers } from './game2.js';
 import { isBuilt, msbFed } from './sites.js';
+import { supply } from './supply.js';
 
 const ROWS = EQUIPMENT.filter((e) => e.type === 'row');
 
 // A row's level with its hall's faults, as the rules set it (pass 2 spec 4.1; pass 4 spec 2.4 for
 // halls without backups), with one change applied: `fix` is the id of a device treated as healthy.
-function rowLevel(state, row, fix) {
+// Pass 6 (M39): `sup` is the pumps' supply to judge by (this step's, or a what-if): a CDU without
+// glycol does not count, and a hall without water runs at noWaterFactor.
+function rowLevel(state, row, fix, sup = state.supply) {
   const ok = (id) => id === fix;
   const netDown = state.equip[row.id].netDown && !ok(row.id);
   const msbs = ['A', 'B'].map((side) => `msb-${row.hall}-${row.half}-${side}`).filter((id) => isBuilt(state, id));
   // This row is built, so its half has racks. A switchboard without its transformer and RMU is down.
   const dark = msbs.every((id) => (state.equip[id].tripped && !ok(id)) || !msbFed(state, id));
   if (netDown || dark) return 0;
-  const cdus = ['t', 'b'].map((h) => `cdu-${row.hall}-${h}`).filter((id) => isBuilt(state, id));
+  const built = ['t', 'b'].map((h) => `cdu-${row.hall}-${h}`).filter((id) => isBuilt(state, id));
+  const cdus = sup ? built.filter((id) => !sup.dryCdus.has(id)) : built;
+  if (cdus.length === 0 && built.length > 0) return 0; // every CDU dry: the hall is shut
+  const water = sup && sup.dryHalls.has(row.hall) ? state.config.building.pumps.noWaterFactor : 1;
   const leaking = cdus.filter((id) => state.equip[id].leaking && !ok(id));
-  if (leaking.length === 0) return 1;
+  if (leaking.length === 0) return water;
   const shut = leaking.length === cdus.length && (cdus.length >= 2 || leaking.some((id) => state.equip[id].shut));
-  return shut ? 0 : state.config.leakThrottle;
+  return shut ? 0 : state.config.leakThrottle * water;
 }
 
 // Sum of row levels across one hall (the only hall a non-cooling alarm can affect).
@@ -36,10 +42,20 @@ function hallLevels(state, hall, fix) {
 }
 
 // Sum of row levels across every online hall.
-function campusLevels(state) {
+function campusLevels(state, sup = state.supply) {
   let sum = 0;
-  for (const row of ROWS) if (isOnline(state, row)) sum += rowLevel(state, row, null);
+  for (const row of ROWS) if (isOnline(state, row)) sum += rowLevel(state, row, null, sup);
   return sum;
+}
+
+// Pass 6 (M39): what a stopped pump costs. Measured with this step's supply and cooling, then with
+// the pump running again (a what-if: nothing in the state changes).
+function pumpCost(state, alarm) {
+  const target = (chillers) => Math.min(1, chillers / Math.max(1, chillersNeeded(state)));
+  const before = campusLevels(state) * target(runningChillers(state));
+  const fix = { fix: alarm.equipId };
+  const after = campusLevels(state, supply(state, fix)) * target(runningChillers(state, fix));
+  return Math.max(0, Math.round((after - before) * state.config.rowMw + 1e-9));
 }
 
 const coolingTarget = (state, extra) => Math.min(1, (runningChillers(state) + extra) / Math.max(1, chillersNeeded(state)));
@@ -68,6 +84,7 @@ function yardCost(state, alarm) {
 /** MW this alarm is costing now, rounded to whole MW (0 when it costs nothing yet). */
 export function alarmCost(state, alarm) {
   if (YARD_FLAG[alarm.type]) return yardCost(state, alarm);
+  if (alarm.type === 'pump' && state.supply && state.supply.glycol) return pumpCost(state, alarm); // building mode
   const e = EQUIPMENT_BY_ID[alarm.equipId];
   const mw = state.config.rowMw;
   let gain = 0;

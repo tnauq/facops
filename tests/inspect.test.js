@@ -175,16 +175,17 @@ test('runway: while the cash falls, how long it lasts at this rate; hidden when 
   assert.equal(moneyModel(rich).runway, null, 'rising: no runway');
 });
 
-test('the two kinds of pump say what they are (pass 6 M38)', async () => {
+test('the two kinds of pump say what they are (pass 6 M38, lines from M39)', async () => {
   const { spotInfo } = await import('../src/ui/spots.js');
   const s = running();
   const g = inspectInfo(s, 'gpump-A-0');
   assert.equal(g.name, 'Glycol pump');
-  assert.equal(g.lines[1], 'One of 2 glycol pumps at Plant A · Upkeep $0.15/s');
+  // Pass 6 spec section 4 (M39): the line says what one pump carries and how the loop stands.
+  assert.match(g.lines[0], /^Feeds 2 CDUs and 2 of Plant A's chillers · \d+ of \d+ CDUs fed$/);
   const w = inspectInfo(s, 'wpump-A-0');
   assert.equal(w.name, 'Water pump');
-  assert.match(w.lines[1], /^The only water pump at Plant A: no spare/);
-  assert.equal(spotInfo(s, 'gpump-A-2').line, 'Spare glycol pump for Plant A');
-  assert.equal(spotInfo(s, 'gpump-B-0').line, "Glycol pump: runs Plant B's chillers");
+  assert.match(w.lines[0], /^Serves 2 halls · \d+ of \d+ halls served$/);
+  assert.equal(spotInfo(s, 'gpump-A-2').line, 'Lets 2 chillers run and feeds 2 CDUs');
+  assert.equal(spotInfo(s, 'wpump-A-1').line, 'Serves 2 halls');
   assert.equal(spotInfo(s, 'wpump-A-1').name, 'Water pump');
 });

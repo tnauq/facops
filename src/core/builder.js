@@ -12,7 +12,7 @@
 //   'mid', 'late'  'builder' with backups from 6 halls, or only once all 8 are online.
 // Every plan keeps a reserve of `reserveSeconds` of burn, so building never makes it go broke.
 
-import { CHILLERS_ORDER, WATER_PUMPS_ORDER, nextChillerSpot } from './builderSpots.js';
+import { CHILLERS_ORDER, GLYCOL_ORDER, WATER_PUMPS_ORDER, nextChillerSpot } from './builderSpots.js';
 import { build, burnRate, cannotBuild, hire, onlineRows, priceOf, runningChillers } from './game2.js';
 import { spotState } from './sites.js';
 
@@ -55,12 +55,36 @@ function wishList(state, plan) {
   return list;
 }
 
+// Pass 6 (M39): spots started (built or being built) from a list.
+const startedOf = (state, ids) => ids.filter((id) => !empty(state, id)).length;
+const ALL_CDUS = [1, 2, 3, 4, 5, 6, 7, 8].flatMap((h) => [`cdu-${h}-t`, `cdu-${h}-b`]);
+const ALL_GLYCOL = [...GLYCOL_ORDER('A'), ...GLYCOL_ORDER('B')];
+
+// A pump the campus will need (pass 6 M39), or null: a glycol pump before a CDU it could not feed,
+// a water pump before a hall it could not serve; with `spare`, one more of each kind.
+function pumpWanted(state, id, spare) {
+  const per = state.config.building.pumps;
+  const nextGlycol = () => ALL_GLYCOL.find((g) => empty(state, g)) ?? null;
+  const nextWater = () => WATER_PUMPS_ORDER.find((w) => empty(state, w)) ?? null;
+  if (id.startsWith('cdu-')) {
+    const cdus = startedOf(state, ALL_CDUS) + 1;
+    if (startedOf(state, ALL_GLYCOL) < Math.ceil(cdus / per.cdusPerGlycolPump) + spare) return nextGlycol();
+  }
+  if (spare) {
+    const halls = Math.max(1, state.halls);
+    if (startedOf(state, WATER_PUMPS_ORDER) < Math.ceil(halls / per.hallsPerWaterPump) + 1) return nextWater();
+  }
+  return null;
+}
+
 /** The next device this plan wants, or null once the campus is done. */
 export function nextWanted(state, planName = 'builder') {
   const plan = PLANS[planName];
   const spare = plan.early || state.halls >= plan.backupsFrom ? 1 : 0;
   for (const id of wishList(state, plan)) {
     if (!empty(state, id)) continue;
+    const pump = pumpWanted(state, id, spare);
+    if (pump) return pump;
     // Before another rack, make sure the cooling keeps up (with the plan's spare).
     if (id.startsWith('row-')) {
       // Racks already being built count too, or several go up at once and outrun the cooling.

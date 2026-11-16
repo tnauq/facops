@@ -85,10 +85,69 @@ The owner approved `docs/pass6-spec.md` (version 0.1) on 16 November 2026: a blu
 |---|---|---|
 | M37. Main menu, Settings, pause menu | `m37` | Done |
 | M38. The longer plant | `m38` | Done |
-| M39. Pump rules | | Next |
-| M40. Teaching and the balance check | | |
+| M39. Pump rules | `m39` | Done |
+| M40. Teaching and the balance check | | Next |
 
 ## Log
+
+### M39. Pump rules
+
+Pass 6 spec 4: the pumps now matter. Rules from the owner's answers on 16 November (one header for each loop, farthest first, a pump supports two CDUs).
+
+Built:
+
+- **Supply** (`src/core/supply.js`, new). Each loop is one header for the whole campus, so both plants' running pumps count together.
+  - **Glycol:** each running glycol pump feeds 2 CDUs. With more built CDUs than that, the extra ones go **dry**, farthest first. A dry CDU is not an alarm: it counts as not working, so the hall's other CDU carries the hall, and with both dry the hall shuts. It comes back the moment enough pumps run.
+  - **Glycol pumps also run chillers:** a plant runs the fewest of its working chillers, 2 per running glycol pump there, and its dry coolers' capacity.
+  - **Water:** each running water pump serves 2 online halls. Extra halls lose water, farthest first, and deliver **50%**.
+  - **Farthest** means from the hall's centre to the nearest plant with a running pump of that kind. Ties go to the higher-numbered hall, then the bottom CDU before the top. With both plants pumping, Halls 4 and 5 are exactly as far from each plant, so Hall 5 goes first, then Hall 4.
+  - Config `building.pumps`: `chillersPerGlycolPump: 2`, `cdusPerGlycolPump: 2`, `hallsPerWaterPump: 2`, `noWaterFactor: 0.5`.
+- **Overpressure** now stops the pump until it is fixed. Left alone, a glycol pump still bursts (up to two CDU leaks). A water pump's overpressure spreads to the nearest running water pump instead; water never reaches the CDUs.
+- **Director mercy:** it only starts an overpressure on a pump whose loop can spare it (chillers, CDUs and halls all still covered). Only an ignored alarm, or building past what the pumps carry, makes anything go dry.
+- **Events:** `cduDry` / `cduWet`, `hallDry` / `hallWet`. **Helpers:** `glycolFed`, `waterFed`, `pumpNeeds`.
+- **Money:** a dry CDU and a hall without water count in what a row earns and in an overpressure ticket's cost (a spare pump's ticket costs nothing).
+- **Screen:**
+  - A dry CDU is greyed with the yard's red slash.
+  - A hall without water gets a small "50%" plate beside its title, ink on white.
+  - **Inspect cards:** a coolant unit says "No glycol" with the line "No glycol: too few glycol pumps". (The full sentence did not fit as the headline, so it sits on the first line in the warning colour.)
+  - Rack rows say "No water: too few water pumps (50%)" or "Coolant units dry: too few glycol pumps".
+  - A glycol pump says "Feeds 2 CDUs and 2 of Plant A's chillers · 4 of 5 CDUs fed"; a water pump says "Serves 2 halls · 2 of 3 halls served", with how many run and how many are needed.
+  - **Build cards:** "Lets 2 chillers run and feeds 2 CDUs"; "Serves 2 halls". A hall's first switchboard or coolant unit warns "A new hall needs a water pump: 4 halls, 2 served" when the water pumps can't serve it.
+  - **Overview strip:** the cooling shield breaks when any CDU is dry or any hall has no water. It cracks when a loop has no spare pump. A dry CDU breaks its hall's coolant shield.
+  - **Results:** a "Pumps short" line ("1 CDU without glycol, 1 hall without water") shows only when it happened; the Copy text always has the counts and the dry time.
+- **Scripted builders:** buy a glycol pump before a CDU it couldn't feed or a chiller it couldn't run. The backup plans also keep one spare of each kind. Water pumps still come with halls 3, 5 and 7.
+- **Tests:** 18 new ones in `tests/supply.test.js`. The M38 pump-text test now checks the M39 wording; the M38 placeholder "serves two halls from the next update" is gone. 512 in all.
+
+Scripted checks (spec 4.4, 12 seeds, tutorial off):
+
+| Player | Run length: median (range) | Earned | 150 MW at | CDUs ever dry / halls ever without water |
+|---|---|---|---|---|
+| Compute first, backups from hall 4 | 22:57 (5:04 to 27:30) | $135,758 | 7:37 (10/12) | 0.3 / 3.3 |
+| The same, getting ready for the CEO | 23:53 (17:34 to 30:00) | $171,907 | 7:38 (12/12) | 0.6 / 3.9 |
+| Backups from hall 6 | 17:37 (5:04 to 26:16) | $89,152 | 6:31 (10/12) | 0.6 / 2.2 |
+| Never a backup | 18:37 (5:04 to 25:18) | $77,981 | 6:31 (10/12) | 0.4 / 1.3 |
+| Never hires | 10:03 (5:04 to 25:59) | $71,302 | 7:30 (10/12) | 0.3 / 3.0 |
+| Slow (decides every 4 s) | 20:57 (17:41 to 25:34) | $123,412 | 8:29 (12/12) | 0.8 / 2.8 |
+| Backups early | 0:40 (0:40 to 4:06) | $751 | - | 0 / 0 |
+
+Against the targets:
+
+- 150 MW at 7:37: **met** (6 to 9 minutes). No lever was needed.
+- A builder with a spare pump of each kind earns $135,758 against $77,981 with none: **met**.
+- Buying everything early goes broke in 12 of 12 runs: **met** (as in M33 and M38).
+- Dry time is **reported**. Halls without water add up to 0.7% of hall-time for the compute-first builder (24 seeds), mostly the few seconds while a hall's water pump finishes after the hall comes online: some, but not most of the run.
+- Median run 22:57: **missed** (target 14 to 20; M38 had 19:11). Over 24 seeds it is 21:19. The likely cause is the mercy rule, since a pump the loop needs never fails, so the crew sees fewer alarms. M40 is the balance check, so nothing was tuned here. The levers are the alarm cap's late steps or the strike gap (both config).
+
+Worth knowing:
+
+- The director can no longer stop a pump the campus needs, so in normal play a CDU goes dry from **building past the pumps**, not from an alarm. The checklist's "let an overpressure sit" step therefore needs a CDU or hall bought while the spare pump is stopped.
+- Checked in headless Chrome at 844 x 390 and 660 x 300 with a dry CDU and a hall without water: the slash, the 50% plate, the strip's broken shields, and the coolant unit, rack row, glycol pump, water pump and switchboard cards. No console errors.
+
+Owner's checklist:
+
+- Build a fourth hall with one water pump: the farthest hall drops to 50% and says why.
+- Let a glycol pump's overpressure sit: the farthest CDU goes dry; fix it and the CDU comes back.
+- With both plants pumping, Halls 4 and 5 are the first to suffer.
 
 ### M38. The longer plant
 

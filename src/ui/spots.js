@@ -5,7 +5,7 @@
 // Build, or the same spot again, to buy it. The card names the device, so the map needs no captions.
 
 import {
-  EQUIPMENT, EQUIPMENT_BY_ID, buildingOn, cannotBuild, chillersNeeded, hallOnline, isBuilt, msbFed, onlineRows, plantHasPump,
+  EQUIPMENT, EQUIPMENT_BY_ID, buildingOn, cannotBuild, chillersNeeded, hallOnline, isBuilt, msbFed, onlineRows, plantHasPump, pumpNeeds,
   priceOf, runningChillers, spotState,
 } from '../core/index2.js';
 import { cameraView } from './camera.js';
@@ -61,7 +61,19 @@ export function spotAt(state, cam, p) {
 const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 
 // One line on what the device would do here, given what is built (spec 3.2).
+// Pass 6 (M39): bringing another hall online needs a water pump to serve it. The warning shows on a
+// hall's first switchboard or coolant unit, while the hall is not online yet.
+function waterWarning(state, e) {
+  if (!buildingOn(state) || !e.hall || hallOnline(state, e.hall) || (e.type !== 'cdu' && e.type !== 'msb')) return null;
+  const n = pumpNeeds(state);
+  const halls = n.water.halls + 1;
+  const served = Math.min(halls, n.water.running * state.config.building.pumps.hallsPerWaterPump);
+  return served < halls ? { line: `A new hall needs a water pump: ${halls} halls, ${served} served`, warn: true } : null;
+}
+
 function whatItDoes(state, e) {
+  const water = waterWarning(state, e);
+  if (water) return water;
   const hallName = e.hall ? `Hall ${e.hall}` : '';
   switch (e.type) {
     case 'row': {
@@ -101,13 +113,10 @@ function whatItDoes(state, e) {
     case 'dry':
       return { line: `Lets ${state.config.building.chillersPerDryCooler} of Plant ${e.plant}'s chillers run`, warn: false };
     case 'pump': {
-      // Pass 6 (M38): two kinds. Glycol pumps run their plant's chillers (in M38, any one does);
-      // water pumps will serve two halls each once M39's rules are in.
-      if (e.loop === 'water') return { line: "Water pump: serves two halls from the next update", warn: false };
-      const others = EQUIPMENT.filter((q) => q.type === 'pump' && q.loop === 'glycol' && q.plant === e.plant && q.id !== e.id && isBuilt(state, q.id));
-      return others.length > 0
-        ? { line: `Spare glycol pump for Plant ${e.plant}`, warn: false }
-        : { line: `Glycol pump: runs Plant ${e.plant}'s chillers`, warn: false };
+      // Pass 6 (M39): what a pump carries (config building.pumps).
+      const per = state.config.building.pumps;
+      if (e.loop === 'water') return { line: `Serves ${per.hallsPerWaterPump} halls`, warn: false };
+      return { line: `Lets ${per.chillersPerGlycolPump} chillers run and feeds ${per.cdusPerGlycolPump} CDUs`, warn: false };
     }
     default:
       return { line: '', warn: false };

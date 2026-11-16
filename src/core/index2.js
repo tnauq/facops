@@ -62,6 +62,7 @@ export {
   stepDuration,
   walkDistance,
   walkSpeed,
+  pumpNeeds,
   // Pass 5 spec 5 (M34): the win.
   cannotSell,
   commissioned,
@@ -74,4 +75,5 @@ export { greedyMove, pickFor, playRun } from './bot2.js';
 export { autoDispatch, autoOrder } from './auto.js';
 export { HALL_IDS, buildingOn, dryCapacity, hallOnline, isBuilt, msbFed, onlineHallIds, plantHasPump, spotState } from './sites.js';
 export { alarmCost, triageOrder } from './cost.js';
+export { glycolFed, pumpRunning, runningPumps, supply, waterFed } from './supply.js';
 export { areaName, areaOf, ceoCone, ceoSees, ceoSeesPoint, entryPoint, inspectPoint, onCeoRoute, onlineAreas, routePoints, strikesToFire } from './ceo.js';

@@ -4,7 +4,7 @@
 // backup, its upkeep and its state.
 
 import {
-  EQUIPMENT_BY_ID, coolantState, chillersNeeded, dryCapacity, getAlarm, hallOnline, isBuilt, msbFed, plantHasPump, runningChillers,
+  EQUIPMENT_BY_ID, coolantState, glycolFed, pumpNeeds, waterFed, chillersNeeded, dryCapacity, getAlarm, hallOnline, isBuilt, msbFed, plantHasPump, runningChillers,
 } from '../core/index2.js';
 import { cameraView } from './camera.js';
 import { extentOf, SPOT_MIN } from './spots.js';
@@ -67,9 +67,13 @@ export function rowStatus(state, id) {
   if (!hallOnline(state, e.hall)) return { earning: 0, reason: `Hall ${e.hall} is not online: it needs a switchboard and a coolant unit` };
   if (state.halfDark[`${e.hall}-${e.half}`]) return { earning, reason: noPowerReason(state, e.hall, e.half) };
   const c = coolantState(state, e.hall);
+  const cdus = ['t', 'b'].map((h) => `cdu-${e.hall}-${h}`).filter((id) => isBuilt(state, id));
+  // Pass 6 (M39): the glycol pumps can leave a hall's coolant units dry.
+  if (c === 'shut' && cdus.length > 0 && cdus.every((id) => !glycolFed(state, id))) return { earning, reason: 'Coolant units dry: too few glycol pumps' };
   if (c === 'shut') return { earning, reason: 'Coolant units down: the hall is shut' };
   if (dyn.netDown) return { earning, reason: 'Network failure' };
   if (c === 'throttled') return { earning, reason: `Coolant unit leaking: hall at ${pct(state.config.leakThrottle)}` };
+  if (!waterFed(state, e.hall)) return { earning, reason: `No water: too few water pumps (${pct(state.config.building.pumps.noWaterFactor)})` };
   if (state.thermal < 1 - 1e-6) {
     const stopped = runningChillers(state) < chillersNeeded(state) && chillerDown(state);
     return { earning, reason: stopped ? `Cooling short: a chiller is down (${pct(state.thermal)})` : `Cooling short: build a chiller (${pct(state.thermal)})` };
@@ -118,8 +122,11 @@ export function infraStatus(state, id) {
     }
     case 'cdu': {
       const partner = `cdu-${e.hall}-${otherHalf(e.half)}`;
+      const role = pairText(state, partner, 'coolant units');
+      // Pass 6 (M39): the headline has room for two words, so the reason goes on the first line.
+      if (!glycolFed(state, id)) return { feeds: 'No glycol: too few glycol pumps', role, state: 'No glycol', warn: true, lineWarn: true };
       const st = d.shut ? 'Shut after a leak' : d.leaking ? 'Leaking' : 'Working';
-      return { feeds: `Cools Hall ${e.hall}'s racks · fed by the plants' chilled water`, role: pairText(state, partner, 'coolant units'), state: st, warn: st !== 'Working' };
+      return { feeds: `Cools Hall ${e.hall}'s racks · fed by the plants' chilled water`, role, state: st, warn: st !== 'Working' };
     }
     case 'chiller': {
       const running = runningChillers(state);
@@ -130,12 +137,19 @@ export function infraStatus(state, id) {
       return { feeds: `Cools a hall's worth of racks · runs on Plant ${e.plant}'s pumps and dry coolers`, role, state: st, warn: st !== 'Working' || spare < 0 };
     }
     case 'pump': {
-      // Pass 6 (M38): glycol pumps run their plant's chillers; water pumps serve halls from M39.
-      const st = d.overpressure ? 'Overpressure' : 'Working';
-      const same = Object.entries(state.equip).filter(([id, q]) => q.built && id !== e.id && EQUIPMENT_BY_ID[id].type === 'pump' && EQUIPMENT_BY_ID[id].loop === e.loop && EQUIPMENT_BY_ID[id].plant === e.plant).length;
-      const role = same > 0 ? `One of ${same + 1} ${e.loop} pumps at Plant ${e.plant}` : `The only ${e.loop} pump at Plant ${e.plant}: no spare`;
-      const feeds = e.loop === 'water' ? 'Feeds the water loop under the halls' : `Runs Plant ${e.plant}'s chillers · fed from its dry coolers`;
-      return { feeds, role, state: st, warn: st !== 'Working' };
+      // Pass 6 (M39): what each kind carries, and how the loop stands.
+      const per = state.config.building.pumps;
+      const st = d.overpressure ? 'Overpressure: stopped' : 'Working';
+      const n = pumpNeeds(state);
+      if (e.loop === 'water') {
+        return { feeds: `Serves ${per.hallsPerWaterPump} halls · ${n.water.served} of ${n.water.halls} halls served`, role: `${n.water.running} water ${n.water.running === 1 ? 'pump' : 'pumps'} running, ${n.water.needed} needed`, state: st, warn: st !== 'Working' || n.water.served < n.water.halls };
+      }
+      return {
+        feeds: `Feeds ${per.cdusPerGlycolPump} CDUs and ${per.chillersPerGlycolPump} of Plant ${e.plant}'s chillers · ${n.glycol.fed} of ${n.glycol.cdus} CDUs fed`,
+        role: `${n.glycol.running} glycol ${n.glycol.running === 1 ? 'pump' : 'pumps'} running, ${Math.max(n.glycol.neededForCdus, n.glycol.neededForChillers)} needed`,
+        state: st,
+        warn: st !== 'Working' || n.glycol.fed < n.glycol.cdus,
+      };
     }
     case 'dry': {
       const per = state.config.building.chillersPerDryCooler;
@@ -165,5 +179,5 @@ export function inspectInfo(state, id) {
   }
   const s = infraStatus(state, id);
   const upkeep = `Upkeep ${dollars(state.config.building.burn.upkeep)}`;
-  return { id, type: e.type, name, side: e.side ?? 'A', headline: s.state, lines: [s.feeds, `${s.role} · ${upkeep}`], warn: s.warn, lineWarn: false };
+  return { id, type: e.type, name, side: e.side ?? 'A', headline: s.state, lines: [s.feeds, `${s.role} · ${upkeep}`], warn: s.warn, lineWarn: Boolean(s.lineWarn) };
 }

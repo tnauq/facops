@@ -15,6 +15,7 @@ import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, 
 import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
 import { alarmCost } from './cost.js';
+import { runningPumps, supply } from './supply.js';
 import { HALL_IDS, buildingOn, builtCdus, builtMsbs, dryCapacity, hallOnline, isBuilt, msbFed, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
 
 const EPS = 1e-9;
@@ -101,6 +102,10 @@ export function createGame({ seed = 1, config = {} } = {}) {
       matchedFixes: 0,
       redirects: 0,
       halfDark: 0, // times half a hall went dark
+      everDryCdus: [], // pass 6 (M39): CDUs that were ever without glycol
+      everDryHalls: [], // ...and halls that were ever without water
+      dryCduSeconds: 0, // CDU-seconds without glycol
+      dryHallSeconds: 0, // hall-seconds without water
       leakSpreads: 0, // a leak reached the hall's other CDU
       spreads: 0, // network failures that spread to the next row
       bursts: 0,
@@ -141,6 +146,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     state.stats.hallsOnline = [];
     for (const h of refreshSites(state)) state.stats.hallsOnline.push({ hall: h, t: 0 });
   }
+  state.supply = supply(state); // pass 6 M39: which CDUs have glycol and which halls water
   return state;
 }
 
@@ -195,9 +201,12 @@ export function powerShield(state, hallId) {
 /**
  * A hall's coolant: 'ok', 'throttled' (some built CDU leaking, rows at leakThrottle) or 'shut' (every
  * built CDU leaking, or a lone CDU's leak ran out of clock). Classic: one leak throttles, two shut.
+ * Pass 6 (M39): a CDU without glycol does not count; with none left the hall shuts.
  */
-export function coolantState(state, hallId) {
-  const built = builtCdus(state, hallId);
+export function coolantState(state, hallId, dryCdus = state.supply ? state.supply.dryCdus : null) {
+  const all = builtCdus(state, hallId);
+  const built = dryCdus ? all.filter((id) => !dryCdus.has(id)) : all;
+  if (built.length === 0 && all.length > 0) return 'shut';
   const leaking = built.filter((id) => state.equip[id].leaking);
   if (leaking.length === 0) return 'ok';
   if (leaking.length === built.length && (built.length >= 2 || leaking.some((id) => state.equip[id].shut))) return 'shut';
@@ -219,6 +228,8 @@ export function liquidShield(state, hallId) {
   const c = coolantState(state, hallId);
   if (c === 'shut') return 'broken';
   if (c === 'throttled') return 'cracked';
+  // Pass 6 spec 4.2 (M39): a CDU without glycol breaks the hall's coolant shield.
+  if (state.supply && builtCdus(state, hallId).some((id) => state.supply.dryCdus.has(id))) return 'broken';
   return builtCdus(state, hallId).length === 1 && buildingOn(state) ? 'single' : 'whole';
 }
 
@@ -231,16 +242,25 @@ export function chillersNeeded(state) {
   return Math.ceil((onlineRows(state).length * perHall) / ROWS_PER_HALL - EPS);
 }
 
-/** Chillers running: built, not tripped, at a plant with a pump (pass 4 spec 2.3). */
-export function runningChillers(state) {
+/**
+ * Chillers running: built, not tripped, at a plant with a pump (pass 4 spec 2.3). Building mode:
+ * no more than each plant's dry coolers (2 each, pass 4 spec 7.2) and running glycol pumps (2 each,
+ * pass 6 M39) allow. `change` tries a pump what-if ({ fix } or { stop }), for costs and mercy.
+ */
+export function runningChillers(state, change = {}) {
   let n = 0;
+  const glycol = buildingOn(state) ? runningPumps(state, 'glycol', change) : null;
   for (const plant of ['A', 'B']) {
-    const here = CHILLERS.filter((c) => c.plant === plant && isOnline(state, c) && state.equip[c.id].running && plantHasPump(state, c.plant)).length;
-    // Building mode: each dry cooler unit lets two chillers run (pass 4 spec 7.2).
-    n += Math.min(here, dryCapacity(state, plant));
+    n += Math.min(chillersUp(state, plant), dryCapacity(state, plant), glycolCapacity(state, plant, glycol));
   }
   return n;
 }
+
+// Chillers built, online and not tripped at a plant; in the classic game, only with a pump there.
+const chillersUp = (state, plant) => CHILLERS.filter((c) => c.plant === plant && isOnline(state, c) && state.equip[c.id].running && (buildingOn(state) || plantHasPump(state, c.plant))).length;
+
+// How many chillers a plant's running glycol pumps let run (no limit in the classic game).
+const glycolCapacity = (state, plant, glycol) => (glycol ? glycol[plant] * state.config.building.pumps.chillersPerGlycolPump : Infinity);
 
 /** Running chillers beyond those needed (negative when short). */
 export const spareChillers = (state) => runningChillers(state) - chillersNeeded(state);
@@ -248,7 +268,12 @@ export const spareChillers = (state) => runningChillers(state) - chillersNeeded(
 /** 'whole' with 2 or more spares, 'cracked' with 1 or 0, 'broken' when short. */
 export function coolingShield(state) {
   const spare = spareChillers(state);
+  // Pass 6 (M39): the pumps count too. A CDU without glycol or a hall without water breaks it; a
+  // loop with no spare pump cracks it.
+  const sup = state.supply;
+  if (sup && sup.glycol && (sup.dryCdus.size > 0 || sup.dryHalls.size > 0)) return 'broken';
   if (spare < 0) return 'broken';
+  if (sup && sup.glycol && (sup.glycol.cap - sup.glycol.built < state.config.building.pumps.cdusPerGlycolPump || sup.water.cap - sup.water.online < state.config.building.pumps.hallsPerWaterPump)) return 'cracked';
   return spare >= 2 ? 'whole' : 'cracked';
 }
 
@@ -257,7 +282,45 @@ function rowTarget(state, row) {
   if (dyn.netDown || state.halfDark[`${row.hall}-${row.half}`]) return 0;
   const c = coolantState(state, row.hall);
   if (c === 'shut') return 0;
-  return c === 'throttled' ? state.config.leakThrottle : 1;
+  // Pass 6 (M39): a hall without water runs at noWaterFactor, on top of any other throttle.
+  const water = state.supply && state.supply.dryHalls.has(row.hall) ? state.config.building.pumps.noWaterFactor : 1;
+  return (c === 'throttled' ? state.config.leakThrottle : 1) * water;
+}
+
+/**
+ * Pass 6 (M39): work out the pumps' supply again, and say what changed: `cduDry` / `cduWet` for each
+ * CDU that lost or got back its glycol, `hallDry` / `hallWet` for each hall and its water.
+ */
+function supplyStep(state) {
+  const before = state.supply;
+  const now = supply(state);
+  state.supply = now;
+  const st = state.stats;
+  for (const id of now.dryCdus) if (!st.everDryCdus.includes(id)) st.everDryCdus.push(id);
+  for (const h of now.dryHalls) if (!st.everDryHalls.includes(h)) st.everDryHalls.push(h);
+  if (!before) return;
+  for (const id of now.dryCdus) if (!before.dryCdus.has(id)) emit(state, 'cduDry', { equipId: id });
+  for (const id of before.dryCdus) if (!now.dryCdus.has(id)) emit(state, 'cduWet', { equipId: id });
+  for (const h of now.dryHalls) if (!before.dryHalls.has(h)) emit(state, 'hallDry', { hall: h });
+  for (const h of before.dryHalls) if (!now.dryHalls.has(h)) emit(state, 'hallWet', { hall: h });
+}
+
+/**
+ * What the pumps need and have (pass 6 spec 4.1), for the screen: { glycol: { running, neededForCdus,
+ * neededForChillers, cdus, fed }, water: { running, needed, halls, served } }. Null in the classic game.
+ */
+export function pumpNeeds(state) {
+  if (!buildingOn(state)) return null;
+  const cfg = state.config.building.pumps;
+  const sup = state.supply ?? supply(state);
+  const g = sup.glycol;
+  const w = sup.water;
+  let forChillers = 0;
+  for (const plant of ['A', 'B']) forChillers += Math.ceil(Math.min(chillersUp(state, plant), dryCapacity(state, plant)) / cfg.chillersPerGlycolPump - EPS);
+  return {
+    glycol: { running: g.A + g.B, neededForCdus: Math.ceil(g.built / cfg.cdusPerGlycolPump - EPS), neededForChillers: forChillers, cdus: g.built, fed: g.built - sup.dryCdus.size },
+    water: { running: w.A + w.B, needed: Math.ceil(w.online / cfg.hallsPerWaterPump - EPS), halls: w.online, served: w.online - sup.dryHalls.size },
+  };
 }
 
 export function bandOf(fraction, config = DEFAULT_CONFIG2) {
@@ -454,7 +517,10 @@ export function eligibleEquipment(state, type) {
       // Mercy: only while a spare is running, so the director alone never makes cooling short.
       return spareChillers(state) >= 1 ? CHILLERS.filter((e) => ok(e) && state.equip[e.id].running) : [];
     case 'pump':
-      return PUMPS.filter(ok);
+      // Pass 6 (M39): a pump in overpressure stops, so in building mode only one whose kind would
+      // still cover everything (chillers, CDUs, halls) with it stopped. Only an ignored first
+      // failure takes the campus below what it needs.
+      return PUMPS.filter((e) => ok(e) && !state.equip[e.id].overpressure && (!buildingOn(state) || pumpIsSpare(state, e)));
     // M30. A short only where its RMU is working (and its switchboard is built, so it matters).
     case 'short':
       return XFMRS.filter((e) => ok(e) && !state.equip[e.id].shorted && !state.equip[e.rmuId].faulted && isBuilt(state, e.msbId));
@@ -468,9 +534,17 @@ export function eligibleEquipment(state, type) {
   }
 }
 
+// Would stopping this pump leave everything it supplies as it is? (Pass 6 M39 mercy.)
+function pumpIsSpare(state, pump) {
+  const now = state.supply ?? supply(state);
+  const without = supply(state, { stop: pump.id });
+  if (without.dryCdus.size > now.dryCdus.size || without.dryHalls.size > now.dryHalls.size) return false;
+  return runningChillers(state, { stop: pump.id }) >= runningChillers(state);
+}
+
 // Chillers that would run at a plant with all its dry coolers working (for the fan mercy).
 function runningAt(state, plant) {
-  return CHILLERS.filter((c) => c.plant === plant && isOnline(state, c) && state.equip[c.id].running && plantHasPump(state, c.plant)).length;
+  return Math.min(chillersUp(state, plant), glycolCapacity(state, plant, buildingOn(state) ? runningPumps(state, 'glycol') : null));
 }
 
 function freeTech(tech) {
@@ -598,6 +672,17 @@ function escalate(state, alarm) {
       break;
     }
     case 'pump': {
+      if (eq.loop === 'water' && buildingOn(state)) {
+        // Pass 6 (M39): a water pump's overpressure spreads to the nearest running water pump.
+        alarm.clockEnd = Infinity;
+        const near = PUMPS.filter((p) => p.loop === 'water' && isBuilt(state, p.id) && !state.equip[p.id].overpressure && state.equip[p.id].alarmId === null)
+          .sort((a, b) => Math.abs(a.x - eq.x) + Math.abs(a.y - eq.y) - (Math.abs(b.x - eq.x) + Math.abs(b.y - eq.y)));
+        if (near.length > 0) {
+          spawnAlarm(state, 'pump', near[0].id, 'escalation');
+          emit(state, 'escalate', { alarmId: alarm.id, alarmType: 'pump', equipId: alarm.equipId, effect: 'nextWaterPump', target: near[0].id });
+        }
+        break;
+      }
       // The loop bursts: leaks on that loop's CDUs, and the pump alarm ends by itself.
       const pool = pumpLoop(state, alarm.equipId).filter((c) => !state.equip[c.id].leaking && state.equip[c.id].alarmId === null).map((c) => c.id);
       const targets = [];
@@ -1147,6 +1232,12 @@ export function step(state, dt) {
 
   // Building mode: devices that contractors finish, and halls coming online (pass 4 spec 2.1).
   if (buildingOn(state)) buildingStep(state);
+  // Pass 6 (M39): what the pumps supply, before the rows take their targets.
+  if (buildingOn(state)) {
+    supplyStep(state);
+    state.stats.dryCduSeconds += state.supply.dryCdus.size * dt;
+    state.stats.dryHallSeconds += state.supply.dryHalls.size * dt;
+  }
 
   // Halves of halls going dark or coming back.
   for (const h of onlineHallIds(state)) {
@@ -1268,6 +1359,10 @@ export function results(state) {
     matchedShare: s.cleared > 0 ? s.matchedFixes / s.cleared : 0,
     redirects: s.redirects,
     halfDark: s.halfDark,
+    cdusEverDry: s.everDryCdus.length,
+    hallsEverDry: s.everDryHalls.length,
+    dryCduSeconds: s.dryCduSeconds,
+    dryHallSeconds: s.dryHallSeconds,
     leakSpreads: s.leakSpreads,
     spreads: s.spreads,
     bursts: s.bursts,
@@ -1334,6 +1429,7 @@ export function resultsText(state) {
     `Time in green / yellow / red: ${pct(r.green)} / ${pct(r.yellow)} / ${pct(r.red)}`,
     `Alarms: ${r.raised} raised, ${r.cleared} cleared, average ${r.averageClear.toFixed(1)} s to clear, longest ${Math.round(r.longestAlarm)} s, peak ${r.peakAlarms} at once`,
     `Escalations: ${r.halfDark} half-halls dark, ${r.leakSpreads} leaks spread, ${r.spreads} network spreads, ${r.bursts} pump bursts, ${r.secondChillers} second chillers`,
+    ...(r.building ? [`Pumps: ${r.cdusEverDry} CDUs ever dry (${Math.round(r.dryCduSeconds)} CDU-s), ${r.hallsEverDry} halls ever without water (${Math.round(r.dryHallSeconds)} hall-s)`] : []),
     `Redirects: ${r.redirects} | Matching-hat fixes: ${pct(r.matchedShare)} | Lowest load: ${pct(r.lowestFraction)}`,
     ...(r.building ? [`Score: $${Math.round(r.score).toLocaleString('en-US')}${r.sold ? ` | Sold for $${r.salePrice.toLocaleString('en-US')}` : ''} | Reached: ${r.milestone ?? 'none'}${r.commissioned ? ` (Commissioned at ${formatClock(r.commissionedAt)})` : ''}`] : []),
     ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.bankrupt ? ' | Went broke' : ''} | Devices built: ${r.built}${loanText(r) ? ` | ${loanText(r)}` : ''}`] : []),

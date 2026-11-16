@@ -17,7 +17,7 @@ import { cameraView } from '../ui/camera.js';
 import { fannedCrew } from '../ui/crew.js';
 import { bobOffset, popScale } from '../ui/feel.js';
 import { offMapMarkers } from '../ui/offmap.js';
-import { bubbles2, equipmentStatus } from '../ui/view2.js';
+import { bubbles2, equipmentStatus, hallPlate } from '../ui/view2.js';
 import { triageOrder } from '../ui/cost.js';
 
 const INK = '#1F3A5F';
@@ -93,7 +93,7 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
     status: equipmentStatus(state),
     pipes: 'shadows',
     pipeSpan: pipesOnline,
-    ...(building ? { hallUp: (h) => hallOnline(state, h), spot: (e) => spots.get(e.id) ?? null, offlineTitle: null } : {}),
+    ...(building ? { hallUp: (h) => hallOnline(state, h), spot: (e) => spots.get(e.id) ?? null, offlineTitle: null, hallPlate: (h) => hallPlate(state, h) } : {}),
   });
   // Shields are on the overview strip only (pass 3 spec 4b.3): the map stays uncluttered.
   // The bob only moves the drawing; tap targets stay where the rules put each tech.
