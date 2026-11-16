@@ -1,19 +1,19 @@
 # FacOps: working rules for the coding agent
 
-You are building pass 4 of FacOps, a small web game (pass 1 is finished and frozen in `pass1/`; passes 2 and 3 are finished). The owner does not write code and tests every build in Safari on an iPhone 17e, in landscape. Work so that each session ends with something the owner can open and try.
+You are building pass 5 of FacOps, a small web game (pass 1 is finished and frozen in `pass1/`; passes 2 to 4 are finished). The owner does not write code and tests every build in Safari on an iPhone 17e, in landscape. Work so that each session ends with something the owner can open and try.
 
 ## Start of every session
 
-1. Read `docs/pass4-spec.md`. It is the source of truth for what to build. `docs/pass3-spec.md` and `docs/pass2-spec.md` describe the finished passes 3 and 2, whose rules and screen carry over where pass 4 says so; `docs/pass1-spec.md` describes pass 1.
+1. Read `docs/pass5-spec.md`. It is the source of truth for what to build. `docs/pass4-spec.md`, `docs/pass3-spec.md` and `docs/pass2-spec.md` describe the finished passes 4, 3 and 2, whose rules and screen carry over where pass 5 says so; `docs/pass1-spec.md` describes pass 1.
 2. Read `docs/PROGRESS.md` to see which milestone is next.
 3. Run `node --test`. If anything fails, fix that before starting new work.
 
 ## Hard rules
 
 - Build exactly one milestone per session, in order. Do not start the next one.
-- Do not change anything in `src/core/`, and do not loosen or delete tests in `tests/`, unless the owner has agreed to a rule change. (The owner agreed to the pass 2 rule changes, see pass 2 spec section 0; to the pass 3 changes, see pass 3 spec sections 0 and 4b; and approved the pass 4 spec, whose rules M23 to M26 build.) Never edit `pass1/`. If a rule looks wrong, or the spec is silent or contradicts itself, stop and ask the owner in plain words.
+- Do not change anything in `src/core/`, and do not loosen or delete tests in `tests/`, unless the owner has agreed to a rule change. (The owner agreed to the pass 2 rule changes, see pass 2 spec section 0; to the pass 3 changes, see pass 3 spec sections 0 and 4b; approved the pass 4 spec, whose rules M23 to M31 build; and approved the pass 5 spec on 16 November, whose rules M32 to M34 build.) Never edit `pass1/`. If a rule looks wrong, or the spec is silent or contradicts itself, stop and ask the owner in plain words.
 - No dependencies, no frameworks, no CDN scripts, no build step, no TypeScript. Plain JavaScript ES modules that run as they are.
-- Every rule number comes from `src/core/config.js`. Never hard-code one anywhere else.
+- Every rule number comes from the config (`src/core/config.js`, and `src/core/config2.js` for passes 2 on). Never hard-code one anywhere else.
 - No `Math.random()` in `src/core/`. No network requests and no analytics anywhere.
 - `localStorage` only inside `try`/`catch`; the game must work when storage is unavailable.
 - Use the supplied drawing code in `src/render/icons.js` and `src/render/campus.js`. Do not redraw the crew or the equipment in a different style. (The owner had the chiller redrawn in M19; that drawing is now the supplied one.) Hat colors mean trade only: never tint an alarm green, yellow or red.
