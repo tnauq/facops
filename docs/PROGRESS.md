@@ -77,6 +77,17 @@ The owner approved `docs/pass5-spec.md` (version 0.2, manage) on 16 November 202
 | M35. Crew guidance | `m35` | Done |
 | M36. Inspect card, plus marks, runway | `m36` | Done |
 
+## Pass 6
+
+The owner approved `docs/pass6-spec.md` (version 0.1) on 16 November 2026: a blueprint main menu, and a plant with a glycol loop and a water loop.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M37. Main menu, Settings, pause menu | | Next |
+| M38. The longer plant | | |
+| M39. Pump rules | | |
+| M40. Teaching and the balance check | | |
+
 ## Log
 
 ### M36. Inspect card, plus marks, runway
