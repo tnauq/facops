@@ -9,6 +9,11 @@
 import { DRY, DRY_LANE_X, YARD_LANE_Y, buildYard } from './outdoor.js';
 
 export const WORLD = { width: 3920, height: 780 };
+// Pass 6 (M38): each plant grows outward to fit its glycol pump rooms, so the building runs past
+// 0 and WORLD.width by PLANT_EXTENSION at each end. WORLD stays the mirror line and the size of
+// everything between the plants; BUILDING is the outside wall.
+export const PLANT_EXTENSION = 200;
+export const BUILDING = { x1: -PLANT_EXTENSION, x2: WORLD.width + PLANT_EXTENSION, y1: 0, y2: WORLD.height };
 export const CENTRE_X = WORLD.width / 2;
 const mx = (x) => WORLD.width - x; // mirror across the centre line
 const my = (y) => WORLD.height - y; // mirror top to bottom
@@ -63,7 +68,17 @@ const INNER_Y = [200, my(200)];
 // cols: the column nearer the halls first.
 const PLANT_A = { id: 'A', x: 90, w: 340, y: 170, h: 440, lane: 260, cols: [370, 150], pumpX: 50 };
 export const CHILLER_Y = [225, 335, 445, 555];
-const PUMP_Y = { t: 40, b: my(40) };
+// Pass 6 (M38, the owner's sketch of 16 Nov): two glycol pump rooms against each end wall, north and
+// south, four pumps in a line from top to bottom, each with a short pipe to the right into the
+// room's header; and two pairs of water pumps on the hall side of the chillers, north and south,
+// between the corridor and the first row of chillers. Techs reach the pump rooms from a lane just
+// inside them (PUMP_LANE_X) and the water pumps from the corridors.
+export const GLYCOL_PUMP_X = -95;
+export const GLYCOL_PUMP_Y = [140, 205, 270, 335, my(335), my(270), my(205), my(140)]; // clear of the dry cooler walkway at MID_Y
+export const PUMP_ROOM_HEADER_X = GLYCOL_PUMP_X + 50; // each pump's short pipe to the right ends here
+export const PUMP_LANE_X = -10;
+export const WATER_PUMP_X = [310, 400];
+export const WATER_PUMP_Y = { t: 140, b: my(140) };
 const MSB_Y = { t: 40, b: my(40) };
 const CDU_Y = { t: 140, b: my(140) };
 const MSB_DX = 60;
@@ -88,10 +103,18 @@ function buildEquipment() {
         i += 1;
       }
     }
-    for (const half of ['t', 'b']) {
-      const sy = half === 't' ? CORRIDOR_TOP : CORRIDOR_BOTTOM;
-      list.push({ id: `pump-${plant.id}-${half}`, type: 'pump', plant: plant.id, half, label: half === 't' ? 'Pump top' : 'Pump bottom', x: plant.pumpX, y: PUMP_Y[half], sx: plant.pumpX, sy });
-    }
+    // Pass 6 (M38): pumps of two kinds, both of type 'pump' (one alarm, one drawing) with a `loop`.
+    const fx = plant.id === 'A' ? (x) => x : mx;
+    GLYCOL_PUMP_Y.forEach((y, k) => {
+      const half = k < 4 ? 't' : 'b';
+      list.push({ id: `gpump-${plant.id}-${k}`, type: 'pump', loop: 'glycol', plant: plant.id, half, index: k, label: 'Glycol pump', x: fx(GLYCOL_PUMP_X), y, sx: fx(PUMP_LANE_X), sy: y });
+    });
+    ['t', 'b'].forEach((half, h) => {
+      WATER_PUMP_X.forEach((x, k) => {
+        const sy = half === 't' ? CORRIDOR_TOP : CORRIDOR_BOTTOM;
+        list.push({ id: `wpump-${plant.id}-${h * 2 + k}`, type: 'pump', loop: 'water', plant: plant.id, half, index: h * 2 + k, label: 'Water pump', x: fx(x), y: WATER_PUMP_Y[half], sx: fx(x), sy });
+      });
+    });
   }
   for (const hall of Object.values(HALLS)) {
     for (const half of ['t', 'b']) {
@@ -118,7 +141,7 @@ const INDOOR = buildEquipment();
 // work on them from the yard's walkways (M30): transformers and RMUs from the walkway between them,
 // dry coolers from the walkway through the middle of their block.
 const laneY = (half) => (half === 't' ? YARD_LANE_Y : my(YARD_LANE_Y));
-export const YARD_LAYOUT = buildYard(INDOOR.filter((e) => e.type === 'msb'), INDOOR.filter((e) => e.type === 'pump'), WORLD);
+export const YARD_LAYOUT = buildYard(INDOOR.filter((e) => e.type === 'msb'), INDOOR.filter((e) => e.type === 'pump' && e.loop === 'glycol' && (e.index === 0 || e.index === 7)), WORLD, PUMP_ROOM_HEADER_X);
 export const { TRANSFORMERS, RMUS, POWER_LINES, POLES, DRY_COOLERS, DRY_PIPES } = YARD_LAYOUT;
 
 function yardEquipment() {
@@ -146,8 +169,11 @@ function buildLanes() {
   const lanes = [];
   const v = (id, x, y1, y2) => lanes.push({ id, x1: x, y1, x2: x, y2 });
   const h = (id, y, x1, x2) => lanes.push({ id, x1, y1: y, x2, y2: y });
-  h('corridor-top', CORRIDOR_TOP, 50, WORLD.width - 50);
-  h('corridor-bottom', CORRIDOR_BOTTOM, 50, WORLD.width - 50);
+  // The corridors run on into the pump rooms (pass 6 M38), to a lane down each room's inner side.
+  h('corridor-top', CORRIDOR_TOP, PUMP_LANE_X, mx(PUMP_LANE_X));
+  h('corridor-bottom', CORRIDOR_BOTTOM, PUMP_LANE_X, mx(PUMP_LANE_X));
+  v('pumps-A', PUMP_LANE_X, CORRIDOR_TOP, CORRIDOR_BOTTOM);
+  v('pumps-B', mx(PUMP_LANE_X), CORRIDOR_TOP, CORRIDOR_BOTTOM);
   for (const plant of Object.values(PLANTS)) v(`plant-${plant.id}`, plant.lane, CORRIDOR_TOP, CORRIDOR_BOTTOM);
   v('centre', CENTRE_X, CORRIDOR_TOP, CORRIDOR_BOTTOM);
   v('gap-left', 1180, CORRIDOR_TOP, CORRIDOR_BOTTOM);
@@ -200,8 +226,8 @@ export const DOORS = (() => {
     out.push({ outside: true, x, y: 0, vertical: false });
     out.push({ outside: true, x, y: WORLD.height, vertical: false });
   }
-  out.push({ outside: true, x: 0, y: MID_Y, vertical: true });
-  out.push({ outside: true, x: WORLD.width, y: MID_Y, vertical: true });
+  out.push({ outside: true, x: BUILDING.x1, y: MID_Y, vertical: true });
+  out.push({ outside: true, x: BUILDING.x2, y: MID_Y, vertical: true });
   return out;
 })();
 

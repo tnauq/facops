@@ -224,7 +224,8 @@ export function drawTyreTracks(ctx, v, world) {
 export function drawApron(ctx, v, world, width = 16) {
   ctx.save();
   ctx.fillStyle = 'rgba(203, 202, 197, 0.92)';
-  const x = v.ox - width * v.scale;
+  // world.x0 (pass 6): the building's west wall, where the plants grew past x = 0.
+  const x = v.ox + ((world.x0 ?? 0) - width) * v.scale;
   const y = v.oy - width * v.scale;
   const w = (world.width + 2 * width) * v.scale;
   const h = (world.height + 2 * width) * v.scale;

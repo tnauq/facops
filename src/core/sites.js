@@ -11,7 +11,8 @@ import { EQUIPMENT, EQUIPMENT_BY_ID, HALLS } from './layout2.js';
 export const HALL_IDS = Object.keys(HALLS).map(Number).sort((a, b) => a - b);
 const BY_HALL = new Map(HALL_IDS.map((h) => [h, EQUIPMENT.filter((e) => e.hall === h)]));
 const CHILLERS = EQUIPMENT.filter((e) => e.type === 'chiller');
-const PUMPS = EQUIPMENT.filter((e) => e.type === 'pump');
+// Pass 6 (M38): only the glycol pumps run the chillers; the water pumps serve halls (M39).
+const PUMPS = EQUIPMENT.filter((e) => e.type === 'pump' && e.loop === 'glycol');
 const DRY = EQUIPMENT.filter((e) => e.type === 'dry');
 
 /**
@@ -80,7 +81,7 @@ export function hallOnline(state, h) {
 /** Online hall ids, in order along the building. */
 export const onlineHallIds = (state) => HALL_IDS.filter((h) => hallOnline(state, h));
 
-/** Does this plant have a built pump? A plant's chillers only run with one (pass 4 spec 2.3). */
+/** Does this plant have a built glycol pump? A plant's chillers only run with one (pass 4 spec 2.3; pass 6 M38). */
 export const plantHasPump = (state, plant) => PUMPS.some((p) => p.plant === plant && isBuilt(state, p.id));
 
 /** Built devices of one type in one half of a hall: the MSB pair, or the hall's CDUs. */

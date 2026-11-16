@@ -105,7 +105,8 @@ export const DEFAULT_CONFIG2 = {
     // The bare minimum for one hall (owner): Plant A's top pump and one chiller; in Hall 1 the top
     // half's A switchboard, the top coolant unit and two rack rows.
     // M29: with the RMU and transformer that feed that switchboard, and one dry cooler at Plant A.
-    start: ['pump-A-t', 'chiller-A-0', 'dry-A-0', 'rmu-1-t', 'xfmr-1-t-A', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1'],
+    // Pass 6 (M38): two glycol pumps and one water pump in place of the one pump.
+    start: ['gpump-A-0', 'gpump-A-1', 'wpump-A-0', 'chiller-A-0', 'dry-A-0', 'rmu-1-t', 'xfmr-1-t-A', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1'],
     chillersPerDryCooler: 2, // each dry cooler unit lets this many of its plant's chillers run
     yardFromHalls: 3, // the director starts yard failures (M30) once this many halls are online
     tighten: 0.015, // the director tightens this much every tightenEvery seconds, with no reset (M24's checks)

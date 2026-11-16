@@ -3,7 +3,7 @@
 // lines on poles, and the dry cooler blocks piped to the plants' pumps. Seen from above, in the
 // style of the equipment inside. Positions come from src/core/outdoor.js.
 
-import { DRY_COOLERS, DRY_PIPES, EQUIPMENT_BY_ID, POLES, POWER_LINES, RMUS, TRANSFORMERS, WORLD } from '../core/layout2.js';
+import { BUILDING, DRY_COOLERS, DRY_PIPES, EQUIPMENT_BY_ID, POLES, POWER_LINES, RMUS, TRANSFORMERS, WORLD } from '../core/layout2.js';
 import { RMU, TRANSFORMER, YARD_PAD } from '../core/outdoor.js';
 import { drawJoints, fillConcrete } from './floors.js';
 
@@ -190,11 +190,13 @@ export function drawYardGround(ctx, v) {
   const depth = -YARD_PAD.y1;
   ctx.save();
   for (const [y, h] of [[YARD_PAD.y1, depth], [WORLD.height, depth]]) {
-    fillConcrete(ctx, v, 0, y, WORLD.width, h);
-    drawJoints(ctx, v, 0, y, WORLD.width, h);
+    // Pass 6 (M38): along the whole of each long wall, which now runs past the plants' pump rooms.
+    const w = BUILDING.x2 - BUILDING.x1;
+    fillConcrete(ctx, v, BUILDING.x1, y, w, h);
+    drawJoints(ctx, v, BUILDING.x1, y, w, h);
     ctx.strokeStyle = C.padEdge;
     ctx.lineWidth = 1;
-    ctx.strokeRect(sx(v, 0), sy(v, y), WORLD.width * v.scale, h * v.scale);
+    ctx.strokeRect(sx(v, BUILDING.x1), sy(v, y), w * v.scale, h * v.scale);
   }
   ctx.restore();
 }

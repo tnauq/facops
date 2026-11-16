@@ -12,7 +12,7 @@
 //   'mid', 'late'  'builder' with backups from 6 halls, or only once all 8 are online.
 // Every plan keeps a reserve of `reserveSeconds` of burn, so building never makes it go broke.
 
-import { CHILLERS_ORDER, nextChillerSpot } from './builderSpots.js';
+import { CHILLERS_ORDER, WATER_PUMPS_ORDER, nextChillerSpot } from './builderSpots.js';
 import { build, burnRate, cannotBuild, hire, onlineRows, priceOf, runningChillers } from './game2.js';
 import { spotState } from './sites.js';
 
@@ -34,6 +34,10 @@ const PLANS = {
 
 const empty = (state, id) => spotState(state, id) === 'empty';
 
+// Pass 6 (M38): a water pump serves two halls, so the third, fifth and seventh halls each start with
+// one (the first comes with the start). Bought now so M39's rules find them in place.
+const waterPumpFor = (h) => (h > 1 && h % 2 === 1 ? [WATER_PUMPS_ORDER[(h - 1) / 2]] : []);
+
 // The plan's order of spots, given how many halls are online now.
 function wishList(state, plan) {
   const list = [];
@@ -41,11 +45,11 @@ function wishList(state, plan) {
     if (plan.early) {
       // Careful: backups once the hall has four racks (as M24's builder did).
       const c = COMPUTE(h);
-      list.push(...c.slice(0, 11), ...BACKUPS(h), ...c.slice(11));
+      list.push(...waterPumpFor(h), ...c.slice(0, 11), ...BACKUPS(h), ...c.slice(11));
     } else {
       // Backups for the halls already up come before the next hall, once there are enough halls.
       if (state.halls >= plan.backupsFrom) for (let k = 1; k < h; k++) list.push(...BACKUPS(k));
-      list.push(...COMPUTE(h));
+      list.push(...waterPumpFor(h), ...COMPUTE(h));
     }
   }
   return list;

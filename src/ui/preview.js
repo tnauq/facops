@@ -21,7 +21,7 @@ const SAMPLES = [
   ['network', 'row-1-t-1'],
   ['leak', 'cdu-1-b'],
   ['chiller', 'chiller-A-5'],
-  ['pump', 'pump-A-t'],
+  ['pump', 'gpump-A-0'],
   ['breaker', 'msb-2-t-A'],
   ['network', 'row-3-b-2'],
   ['leak', 'cdu-4-t'],

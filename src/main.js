@@ -20,7 +20,7 @@
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
-import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, sell, step } from './core/index2.js';
+import { BUILDING, EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, sell, step } from './core/index2.js';
 import { drawFocusFrame } from './render/focus.js';
 import { COMMISSION_CARD_DELAY, commissionedCard, sellButton, sellConfirm } from './ui/sale.js';
 import { PAGE_COLOR } from './render/campus.js';
@@ -60,12 +60,12 @@ import { hudModel2 } from './ui/hud2.js';
 import { reduceFlow } from './ui/flow.js';
 import { BEST2_KEY, BEST4_KEY, BEST5_KEY, bestText, buildingBestText, defaultStorage, loadBest, recordBest, saveBest } from './ui/best.js';
 import { tuning2 } from './ui/tuning2.js';
-import { centreOn, createCamera, glide, isVisible, panBy, passOneScale, siteOf } from './ui/camera.js';
+import { buildingSite, centreOn, createCamera, glide, isVisible, panBy, passOneScale } from './ui/camera.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
 import { inStripTarget, regions3, stripModel, stripX, stripY, worldXAt } from './ui/strip.js';
 import { markerAt } from './ui/offmap.js';
 
-const SITE = siteOf(WORLD); // the building and the ground around it (pass 3 spec 4b.3)
+const SITE = buildingSite(BUILDING); // the building and the ground round it (pass 3 spec 4b.3); pass 6: wall to wall
 
 const INK = '#1F3A5F';
 const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";

@@ -13,8 +13,14 @@ export const PASS1_WORLD = { width: 1000, height: 500 };
  */
 export const SITE_MARGIN = { x: YARD.x, y: YARD.y };
 
-/** The building's size with the margin the camera may show around it. */
+/**
+ * The building's size with the margin the camera may show around it. `world` may carry x0, where
+ * the building starts (pass 6 M38: the plants' pump rooms reach past x = 0).
+ */
 export const siteOf = (world) => ({ ...world, margin: SITE_MARGIN });
+
+/** The pass 6 building as a camera world: from its west wall to its east wall. */
+export const buildingSite = (building) => siteOf({ x0: building.x1, width: building.x2 - building.x1, height: building.y2 - building.y1 });
 
 /** Pixels per world unit for a map region { w, h }: the same as pass 1 on the same screen. */
 export function passOneScale(region) {
@@ -35,9 +41,10 @@ export function createCamera(rect, scale, world, focus = null) {
 /** Size of the visible area in world units. */
 export const visibleSize = (cam) => ({ w: cam.rect.w / cam.scale, h: cam.rect.h / cam.scale });
 
-function clampAxis(pos, visible, size, margin = 0) {
-  if (visible >= size + 2 * margin) return (size - visible) / 2; // smaller than the view: centre it
-  return Math.min(Math.max(pos, 0 - margin), size - visible + margin);
+// origin: where the building starts on this axis (pass 6: the plants grew past x = 0).
+function clampAxis(pos, visible, size, margin = 0, origin = 0) {
+  if (visible >= size + 2 * margin) return origin + (size - visible) / 2; // smaller than the view: centre it
+  return Math.min(Math.max(pos, origin - margin), origin + size - visible + margin);
 }
 
 /** The camera moved back inside the building's edges. Returns a new camera. */
@@ -47,7 +54,7 @@ export function clampCamera(cam) {
   const m = cam.world.margin ?? 0;
   const mx = typeof m === 'number' ? m : m.x;
   const my = typeof m === 'number' ? m : m.y;
-  return { ...cam, x: clampAxis(cam.x, v.w, cam.world.width, mx), y: clampAxis(cam.y, v.h, cam.world.height, my) };
+  return { ...cam, x: clampAxis(cam.x, v.w, cam.world.width, mx, cam.world.x0 ?? 0), y: clampAxis(cam.y, v.h, cam.world.height, my) };
 }
 
 /** Drag by (dx, dy) screen pixels: the map follows the finger, so the camera moves the other way. */

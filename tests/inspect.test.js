@@ -130,7 +130,7 @@ test('tapping a built device finds it; empty spots are not devices', () => {
   const s = running();
   const cam = createCamera({ x: 0, y: 0, w: 800, h: 400 }, 0.6, WORLD, START_POINT);
   let found = 0;
-  for (const id of ['row-1-t-0', 'msb-1-t-A', 'cdu-1-t', 'pump-A-t', 'chiller-A-0']) {
+  for (const id of ['row-1-t-0', 'msb-1-t-A', 'cdu-1-t', 'gpump-A-0', 'chiller-A-0']) {
     const p = devicePoint(cam, id);
     if (!p) continue;
     assert.equal(deviceAt(s, cam, p), id);
@@ -173,4 +173,18 @@ test('runway: while the cash falls, how long it lasts at this rate; hidden when 
   const rich = createGame({ seed: 1, config: { tutorial: false, director: { enabled: false }, building: { enabled: true, startCash: 300, burn: NO_BURN } } });
   step(rich, 0.05);
   assert.equal(moneyModel(rich).runway, null, 'rising: no runway');
+});
+
+test('the two kinds of pump say what they are (pass 6 M38)', async () => {
+  const { spotInfo } = await import('../src/ui/spots.js');
+  const s = running();
+  const g = inspectInfo(s, 'gpump-A-0');
+  assert.equal(g.name, 'Glycol pump');
+  assert.equal(g.lines[1], 'One of 2 glycol pumps at Plant A · Upkeep $0.15/s');
+  const w = inspectInfo(s, 'wpump-A-0');
+  assert.equal(w.name, 'Water pump');
+  assert.match(w.lines[1], /^The only water pump at Plant A: no spare/);
+  assert.equal(spotInfo(s, 'gpump-A-2').line, 'Spare glycol pump for Plant A');
+  assert.equal(spotInfo(s, 'gpump-B-0').line, "Glycol pump: runs Plant B's chillers");
+  assert.equal(spotInfo(s, 'wpump-A-1').name, 'Water pump');
 });

@@ -1,56 +1,121 @@
-// The chilled-water pipes (M19, at the owner's request). Pure: where every pipe runs, in world units.
+// The pipes (M19, at the owner's request; pass 6 M38: two loops). Pure: where every pipe runs, in
+// world units. Drawing only: the rules do not use pipes.
 //
-// The pipes run overhead. Each plant: a riser beside the outer column of chillers between its top
-// and bottom pumps, a second riser beside the inner column, and a branch to every chiller. Two
-// headers run the length of the building, at y = 125 and 655, between the corridors and the halls.
-// Where a pipe meets a unit it slopes down to it (height 1 overhead, 0 at the unit): at each chiller,
-// and at each pump's discharge. Each CDU is fed by a short vertical drop off its header (a "tap").
-// Pieces over a walkway are marked so the screen can fade them while someone walks underneath.
-// Drawing only: the rules do not use pipes.
+// Pass 6 (the owner's sketches of 16 Nov). Both loops run overhead and are drawn alike, in black:
+//   - Glycol: each glycol pump room's four pumps feed the room's header by a short pipe to the
+//     right; each header joins a riser down the outer side of the outer chiller column; a riser
+//     down the outer side of the inner column too. Every chiller takes a stub into its top half.
+//     A header runs the length of the building at y = 125 (and 655) and feeds every CDU by a drop.
+//   - Water: the water pumps feed a line at y = 160 (and 620), just inside the glycol header on the
+//     hall side, which runs the length of the building. Risers just inside the glycol risers take a
+//     stub into every chiller's bottom half. At each hall the water turns down into the hall's wall
+//     either side of the CDU (owner, 16 Nov: a short pipe into the wall shows it going under the
+//     floor) and comes back out the other side: under the floor it is not drawn.
+// Where a pipe meets a unit it slopes down to it (height 1 overhead, 0 at the unit). Pieces over a
+// walkway are marked so the screen can fade them while someone walks underneath.
 
-import { EQUIPMENT, HALLS, LANES, PLANTS, WORLD } from '../core/index2.js';
+import { BUILDING, EQUIPMENT, HALLS, LANES, PLANTS, PUMP_ROOM_HEADER_X, WORLD } from '../core/index2.js';
 
-export const HEADER_Y = { t: 125, b: 655 };
-// In line with the pumps' discharge (x = 50 + 15.5: see PUMP_DISCHARGE_X in src/render/icons.js),
-// between the pumps and the outer chillers (x = 100 to 200).
-const OUTER_RISER = 65.5;
-const INNER_RISER = 445; // between the inner chillers (x = 320 to 420) and hall 1 (x = 480)
-const CHILLER_HALF_W = 50;
-const PUMP_Y = { t: 40, b: 740 };
-const DISCHARGE_TIP = 32; // the discharge stub ends this far from the pump's centre (size 80)
+export const HEADER_Y = { t: 125, b: 655 }; // glycol, to the CDUs
+export const WATER_Y = { t: 160, b: 620 }; // water, into the halls' floors
+// Risers beside each chiller column, outer side (pass 6: the middle aisle stays open). Glycol is
+// the outermost; water just inside it. Plant A's numbers; Plant B mirrors them.
+const RISER = { outer: { glycol: 70, water: 84 }, inner: { glycol: 450, water: 436 } };
+const CHILLER_HALF_W = 52;
+const CHILLER_STUB_DY = { glycol: -14, water: 14 }; // the chiller drawing's top and bottom halves
+const PUMP_SUCTION = 40; // a pump's short pipe to the right ends this far from its centre (size 80)
+const PUMP_DISCHARGE_X = 15.5; // a water pump's discharge, as in src/render/icons.js
+export const FLOOR_DIVE = 42; // the water dives into a hall's floor this far either side of its CDU
 export const INCLINE = 26; // world units over which a pipe slopes from overhead down to its unit
 export const WALK_HALF = 11; // half a walkway's width, as drawn in src/render/campus2.js
 
 const mirror = (x) => WORLD.width - x;
+const run = (x1, y1, x2, y2, extra) => ({ x1: Math.min(x1, x2), y1: Math.min(y1, y2), x2: Math.max(x1, x2), y2: Math.max(y1, y2), ...extra });
+
+// The chiller column a chiller stands in: 'outer' (by the end wall) or 'inner' (by the halls).
+const columnOf = (c) => (Math.abs(c.x - (c.plant === 'A' ? PLANTS.A.cols[1] : mirror(PLANTS.A.cols[1]))) < 1 ? 'outer' : 'inner');
 
 /**
- * Pipe runs: [{ x1, y1, x2, y2, plant, kind, drop }] where plant is 'A' or 'B' (null for the
- * headers), kind is 'riser', 'branch' or 'header', and drop says which ends slope down to a unit:
- * 'start', 'end', 'both' or null. Every run is horizontal or vertical; x1 <= x2 and y1 <= y2.
+ * Pipe runs: [{ x1, y1, x2, y2, plant, loop, kind, drop }] where plant is 'A' or 'B' (null for the
+ * runs the length of the building), loop 'glycol' or 'water', kind 'room' (a pump room's header),
+ * 'stub' (a pump's pipe to it), 'main' (the room to its riser), 'riser', 'branch' (into a chiller),
+ * 'header' or 'dive' (the water into a hall's wall), and drop says which ends slope down to a unit: 'start', 'end', 'both' or
+ * null. Every run is horizontal or vertical; x1 <= x2 and y1 <= y2.
  */
 export function pipeRuns() {
   const runs = [];
   for (const plant of Object.values(PLANTS)) {
-    const fx = plant.id === 'A' ? (x) => x : mirror;
     const p = plant.id;
-    // The outer riser ends on each pump's discharge.
-    runs.push({ x1: fx(OUTER_RISER), y1: PUMP_Y.t + DISCHARGE_TIP, x2: fx(OUTER_RISER), y2: PUMP_Y.b - DISCHARGE_TIP, plant: p, kind: 'riser', drop: 'both' });
-    runs.push({ x1: fx(INNER_RISER), y1: HEADER_Y.t, x2: fx(INNER_RISER), y2: HEADER_Y.b, plant: p, kind: 'riser', drop: null });
+    const fx = p === 'A' ? (x) => x : mirror;
+    const pumps = EQUIPMENT.filter((e) => e.type === 'pump' && e.plant === p);
+    // Glycol pump rooms: a header per room, each pump's pipe to it, and a branch to the outer riser.
+    for (const half of ['t', 'b']) {
+      const room = pumps.filter((e) => e.loop === 'glycol' && e.half === half);
+      const ys = room.map((e) => e.y);
+      const y1 = Math.min(...ys) - 28;
+      const y2 = Math.max(...ys) + 28;
+      const hx = fx(PUMP_ROOM_HEADER_X);
+      runs.push(run(hx, y1, hx, y2, { plant: p, loop: 'glycol', kind: 'room', drop: null }));
+      for (const e of room) {
+        const tip = e.x + (p === 'A' ? PUMP_SUCTION : -PUMP_SUCTION);
+        runs.push(run(tip, e.y, hx, e.y, { plant: p, loop: 'glycol', kind: 'stub', drop: p === 'A' ? 'start' : 'end' }));
+      }
+      const midY = (y1 + y2) / 2;
+      runs.push(run(hx, midY, fx(RISER.outer.glycol), midY, { plant: p, loop: 'glycol', kind: 'main', drop: null }));
+    }
+    // Risers beside both chiller columns.
+    for (const col of ['outer', 'inner']) {
+      runs.push(run(fx(RISER[col].glycol), HEADER_Y.t, fx(RISER[col].glycol), HEADER_Y.b, { plant: p, loop: 'glycol', kind: 'riser', drop: null }));
+      runs.push(run(fx(RISER[col].water), WATER_Y.t, fx(RISER[col].water), WATER_Y.b, { plant: p, loop: 'water', kind: 'riser', drop: null }));
+    }
+    // A stub from each riser into each chiller: glycol into its top half, water into its bottom.
     for (const c of EQUIPMENT.filter((e) => e.type === 'chiller' && e.plant === p)) {
-      // Outer column to the outer riser, inner column to the inner riser; the chiller end slopes down.
-      const outer = Math.abs(c.x - fx(PLANTS.A.cols[1])) < 1;
-      const riser = fx(outer ? OUTER_RISER : INNER_RISER);
-      const edge = c.x + (riser < c.x ? -CHILLER_HALF_W : CHILLER_HALF_W);
-      runs.push({ x1: Math.min(riser, edge), y1: c.y, x2: Math.max(riser, edge), y2: c.y, plant: p, kind: 'branch', drop: edge < riser ? 'start' : 'end' });
+      const col = columnOf(c);
+      for (const loop of ['glycol', 'water']) {
+        const riser = fx(RISER[col][loop]);
+        const edge = c.x + (riser < c.x ? -CHILLER_HALF_W : CHILLER_HALF_W);
+        const y = c.y + CHILLER_STUB_DY[loop];
+        runs.push(run(riser, y, edge, y, { plant: p, loop, kind: 'branch', drop: edge < riser ? 'start' : 'end' }));
+      }
     }
   }
-  for (const y of [HEADER_Y.t, HEADER_Y.b]) runs.push({ x1: OUTER_RISER, y1: y, x2: mirror(OUTER_RISER), y2: y, plant: null, kind: 'header', drop: null });
+  // The glycol headers, the length of the building.
+  for (const y of [HEADER_Y.t, HEADER_Y.b]) runs.push(run(RISER.outer.glycol, y, mirror(RISER.outer.glycol), y, { plant: null, loop: 'glycol', kind: 'header', drop: null }));
+  // The water lines, the length of the building, diving under each hall's floor either side of its CDU.
+  for (const half of ['t', 'b']) {
+    const y = WATER_Y[half];
+    const dives = EQUIPMENT.filter((e) => e.type === 'cdu' && e.half === half).sort((a, b) => a.x - b.x);
+    let x = RISER.outer.water;
+    for (const c of dives) {
+      runs.push(run(x, y, c.x - FLOOR_DIVE, y, { plant: null, loop: 'water', kind: 'header', drop: null }));
+      // Down into the hall's wall either side of the CDU, sloping to the floor at the wall.
+      const hall = HALLS[c.hall];
+      const wallY = half === 't' ? hall.y : hall.y + hall.h;
+      for (const k of [-1, 1]) runs.push(run(c.x + k * FLOOR_DIVE, y, c.x + k * FLOOR_DIVE, wallY, { plant: null, loop: 'water', kind: 'dive', drop: half === 't' ? 'end' : 'start', hall: c.hall }));
+      x = c.x + FLOOR_DIVE;
+    }
+    runs.push(run(x, y, mirror(RISER.outer.water), y, { plant: null, loop: 'water', kind: 'header', drop: null }));
+  }
   return runs;
 }
 
-/** Where each CDU is fed: a vertical drop off its header, at the CDU's centre line. [{ x, y, id, hall }]. */
+/**
+ * Where a pipe turns straight down, seen from above as a round flange: each CDU's drop off the
+ * glycol header, and each water pump's drop off the water line. [{ x, y, id, hall, plant, loop }];
+ * hall is null for a pump's.
+ */
 export function pipeTaps() {
-  return EQUIPMENT.filter((e) => e.type === 'cdu').map((e) => ({ x: e.x, y: HEADER_Y[e.half], id: e.id, hall: e.hall }));
+  const out = [];
+  for (const e of EQUIPMENT) {
+    if (e.type === 'cdu') {
+      out.push({ x: e.x, y: HEADER_Y[e.half], id: e.id, hall: e.hall, plant: null, loop: 'glycol' });
+    }
+    if (e.type === 'pump' && e.loop === 'water') {
+      const x = e.x + (e.plant === 'A' ? PUMP_DISCHARGE_X : -PUMP_DISCHARGE_X);
+      out.push({ x, y: WATER_Y[e.half], id: e.id, hall: null, plant: e.plant, loop: 'water' });
+    }
+  }
+  return out;
 }
 
 // Walkway strips as rectangles (the lanes outside the halls' interiors: corridors, plant lanes,
@@ -141,10 +206,10 @@ export function pipePieces(runs = pipeRuns()) {
  * or the whole building once Plant B is online. Pipes beyond it are drawn as under construction.
  */
 export function onlineSpan(online, plantB) {
-  if (plantB) return { x1: 0, x2: WORLD.width };
+  if (plantB) return { x1: BUILDING.x1, x2: BUILDING.x2 };
   let x2 = PLANTS.A.x + PLANTS.A.w;
   for (let h = 1; h <= online; h++) x2 = Math.max(x2, HALLS[h].x + HALLS[h].w);
-  return { x1: 0, x2 };
+  return { x1: BUILDING.x1, x2 };
 }
 
 /** Is world point (x, y) within `near` units of a piece? (For fading pipes over people.) */

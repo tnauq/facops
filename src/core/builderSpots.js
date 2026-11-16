@@ -3,6 +3,9 @@
 
 import { spotState } from './sites.js';
 
+/** Pass 6 (M38): the water pumps in the order the scripted builders buy them, one per two halls. */
+export const WATER_PUMPS_ORDER = [0, 1, 2, 3].map((i) => `wpump-A-${i}`);
+
 export const CHILLERS_ORDER = [
   ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => `chiller-A-${i}`),
   ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => `chiller-B-${i}`),
@@ -19,7 +22,7 @@ export function nextChillerSpot(state) {
   const id = CHILLERS_ORDER.find((c) => spotState(state, c) === 'empty');
   if (!id) return null;
   const plant = id.split('-')[1];
-  if (plant === 'B' && spotState(state, 'pump-B-t') === 'empty') return 'pump-B-t';
+  if (plant === 'B' && spotState(state, 'gpump-B-0') === 'empty') return 'gpump-B-0'; // pass 6: a glycol pump
   const chillers = CHILLERS_ORDER.filter((c) => c.startsWith(`chiller-${plant}`) && started(state, c)).length;
   const dryUnits = DRY_ORDER(plant).filter((d) => started(state, d)).length;
   if (dryUnits * state.config.building.chillersPerDryCooler < chillers + 1) {

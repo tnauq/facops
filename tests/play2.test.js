@@ -2,8 +2,8 @@
 // tests and the selection rules, never straight to the engine.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EQUIPMENT_BY_ID, START_POINT, WORLD, assign, choose, createGame, nearestIdleTech, step } from '../src/core/index2.js';
-import { centreOn, createCamera, passOneScale } from '../src/ui/camera.js';
+import { BUILDING, EQUIPMENT_BY_ID, START_POINT, WORLD, assign, choose, createGame, nearestIdleTech, step } from '../src/core/index2.js';
+import { buildingSite, centreOn, createCamera, passOneScale } from '../src/ui/camera.js';
 import { crewCards } from '../src/ui/crewbar.js';
 import { hitTest } from '../src/ui/hittest.js';
 import { hudModel2 } from '../src/ui/hud2.js';
@@ -152,7 +152,7 @@ test('a run can be played by tapping bubbles and techs on the scrolling map', ()
     if (!tech) continue;
     // Scroll to the alarm, tap its bubble; scroll to the tech, tap it. As a player would.
     const e = EQUIPMENT_BY_ID[alarm.equipId];
-    cam = centreOn(createCamera(regs.map, passOneScale(regions(W, H).map), WORLD), e.x, e.y);
+    cam = centreOn(createCamera(regs.map, passOneScale(regions(W, H).map), buildingSite(BUILDING)), e.x, e.y); // as the game's camera (pass 6: wall to wall)
     const b = mapTargets2(state, cam).bubbles.find((x) => x.id === alarm.id);
     tap(b, mapTargets2(state, cam));
     cam = centreOn(cam, tech.x, tech.y);

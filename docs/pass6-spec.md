@@ -66,7 +66,7 @@ M38 starts with a layout preview the owner approves before any rule moves (3.1).
 
 ### 3.1 Layout (GDD v1.0 additions 1.1)
 
-- **Each plant grows outward**, toward its end of the building. The halls, corridors and yard between the plants keep their shape; the whole building shifts so Plant A still starts near x = 0. The building is wider by about 260 world units at each end (*starting value*: the pump rooms about 160, the water pumps about 100). The dry cooler blocks move out with the end walls.
+- **Each plant grows outward**, toward its end of the building. The halls, corridors and yard between the plants keep their shape. *(Built in M38 as a building that runs past x = 0 at the west end, so nothing between the plants moved.)* The building is wider by about 260 world units at each end (*starting value*: the pump rooms about 160, the water pumps about 100). The dry cooler blocks move out with the end walls.
 - **Glycol pump rooms:** two at each plant against the end wall, north and south, each with four glycol pumps in a line from top to bottom. Each pump has a short pipe to the right into the room's header. The two rooms' headers join one glycol main.
 - **Chillers:** as today, eight in two columns of four with the middle aisle open. The glycol header and the water header run down the **outer** side of each column, glycol outermost; each sends a short stub into its half of every chiller: the glycol stub into the chiller drawing's top half, the water stub into its bottom half (the two components of the existing sprite).
 - **Water pumps:** two pairs on the hall side of the chillers, north and south, feeding the water main.
@@ -79,7 +79,7 @@ M38 starts with a layout preview the owner approves before any rule moves (3.1).
 All black, overhead with shadows, as today.
 
 - **Glycol:** the dry cooler blocks through the end wall to the inlet side of both pump rooms; the pump room headers to the glycol main; the main to the glycol headers of both chiller columns; out along both corridors to **every CDU**, with a drop into each.
-- **Water:** the water pumps to the water main; the main to the water headers; out along both corridors **parallel to the glycol** (on the hall side of it), with two drops into each hall's floor **either side of its CDU**. Under the floor the water is not drawn, or drawn as a faint dashed line across the hall (owner's choice at the checklist).
+- **Water:** the water pumps to the water main; the main to the water headers; out along both corridors **parallel to the glycol** (on the hall side of it), turning down into each hall's wall **either side of its CDU** (owner, 16 Nov: into the walls, not a dashed line). Under the floor the water is not drawn.
 - The north corridor feeds the top halves, the south the bottom halves.
 
 ### 3.3 Rules in M38

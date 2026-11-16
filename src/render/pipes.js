@@ -41,6 +41,9 @@ function withSpan(online, plantB) {
   return out;
 }
 
+// A tap is pale past the online halls, and at Plant B before it opens (pass 6: the water pumps' taps).
+const tapPale = (t, online, plantB) => (t.hall === null ? t.plant === 'B' && !plantB : t.hall > online);
+
 const sx = (v, x) => v.ox + x * v.scale;
 const sy = (v, y) => v.oy + y * v.scale;
 
@@ -60,7 +63,7 @@ export function drawPipeShadows(ctx, v, { online = 1, plantB = false } = {}) {
     }
     // A tap's shadow runs from under the header down to the CDU.
     for (const t of TAPS) {
-      if ((t.hall > online) !== pale) continue;
+      if (tapPale(t, online, plantB) !== pale) continue;
       ctx.moveTo(sx(v, t.x + SHADOW_OFFSET.x), sy(v, t.y + SHADOW_OFFSET.y));
       ctx.lineTo(sx(v, t.x), sy(v, t.y));
     }
@@ -124,12 +127,13 @@ export function drawOverheadPipes(ctx, v, { online = 1, plantB = false } = {}) {
   for (const p of withSpan(online, plantB)) {
     ctx.globalAlpha = p.pale ? OFFLINE_ALPHA : 1;
     pipePiece(ctx, v, p);
-    // Where the piece reaches its unit, the pipe turns down.
-    if (p.h1 === 0) flange(ctx, v, p.x1, p.y1, 6.5);
-    if (p.h2 === 0) flange(ctx, v, p.x2, p.y2, 6.5);
+    // Where the piece reaches its unit, the pipe turns down. The water's pipes into a hall simply
+    // meet the wall (owner, 16 Nov): no flange.
+    if (p.kind !== 'dive' && p.h1 === 0) flange(ctx, v, p.x1, p.y1, 6.5);
+    if (p.kind !== 'dive' && p.h2 === 0) flange(ctx, v, p.x2, p.y2, 6.5);
   }
   for (const t of TAPS) {
-    ctx.globalAlpha = t.hall > online ? OFFLINE_ALPHA : 1;
+    ctx.globalAlpha = tapPale(t, online, plantB) ? OFFLINE_ALPHA : 1;
     flange(ctx, v, t.x, t.y, 7.5);
   }
   ctx.restore();

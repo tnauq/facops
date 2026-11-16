@@ -16,8 +16,8 @@ test('the loan is repaid at its rate on top of the site overhead, upkeep and wag
   assert.equal(b.doubling, 0, 'no doubling by default');
   assert.equal(loanLeft(s), b.loan);
   assert.ok(Math.abs(loanTimeLeft(s) - b.loan / b.loanRate) < 1e-9);
-  // At the start: the loan, the overhead, upkeep on seven pieces of infrastructure, two techs' wages.
-  assert.ok(Math.abs(burnRate(s) - (b.loanRate + b.base + 7 * b.upkeep + 2 * b.wages)) < 1e-9);
+  // At the start: the loan, the overhead, upkeep on nine pieces of infrastructure (pass 6: three pumps), two techs' wages.
+  assert.ok(Math.abs(burnRate(s) - (b.loanRate + b.base + 9 * b.upkeep + 2 * b.wages)) < 1e-9);
   advance(s, 60);
   assert.ok(Math.abs(loanLeft(s) - (b.loan - 60 * b.loanRate)) < 0.5);
 });
@@ -31,7 +31,7 @@ test('once paid off, only the overhead, upkeep and wages remain, and the overhea
   assert.equal(events.filter((e) => e.type === 'loanPaid').length, 1);
   assert.ok(Math.abs(s.loanPaidAt - b.loan / b.loanRate) < 0.1);
   const late = burnRate(s);
-  assert.ok(Math.abs(late - (b.base + 7 * b.upkeep + 2 * b.wages)) < 1e-9);
+  assert.ok(Math.abs(late - (b.base + 9 * b.upkeep + 2 * b.wages)) < 1e-9);
   advance(s, 600);
   assert.ok(Math.abs(burnRate(s) - late) < 1e-9, 'flat: no doubling');
 });

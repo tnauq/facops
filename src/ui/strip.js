@@ -4,7 +4,7 @@
 // alarm and tech as a dot, and a frame for what the map shows. Tapping or dragging on it moves
 // the view there.
 
-import { EQUIPMENT_BY_ID, HALLS, PLANTS, WORLD, hallOnline, plantBOnline } from '../core/index2.js';
+import { BUILDING, EQUIPMENT_BY_ID, HALLS, PLANTS, WORLD, hallOnline, plantBOnline } from '../core/index2.js';
 import { regions } from './regions.js';
 import { shieldsModel } from './shields.js';
 import { alarmCost } from './cost.js';
@@ -41,9 +41,11 @@ const PAD = 3; // px inside the strip, top and bottom
 /** World to strip px, and back (x only: the strip is true to width). */
 // The yard (M30) lies past the building's edges: its alarms and techs sit at the strip's edge.
 const clamp01 = (k) => Math.max(0, Math.min(1, k));
-export const stripX = (strip, wx) => strip.x + clamp01(wx / WORLD.width) * strip.w;
+// Pass 6 (M38): the strip runs wall to wall, past the plants' pump rooms.
+const SPAN = BUILDING.x2 - BUILDING.x1;
+export const stripX = (strip, wx) => strip.x + clamp01((wx - BUILDING.x1) / SPAN) * strip.w;
 export const stripY = (strip, wy) => strip.y + PAD + clamp01(wy / WORLD.height) * (strip.h - 2 * PAD);
-export const worldXAt = (strip, px) => Math.max(0, Math.min(WORLD.width, ((px - strip.x) / strip.w) * WORLD.width));
+export const worldXAt = (strip, px) => Math.max(BUILDING.x1, Math.min(BUILDING.x2, BUILDING.x1 + ((px - strip.x) / strip.w) * SPAN));
 
 /**
  * Everything the strip shows, in screen px:
@@ -54,7 +56,7 @@ export const worldXAt = (strip, px) => Math.max(0, Math.min(WORLD.width, ((px - 
 export function stripModel(state, strip, cam) {
   const shields = shieldsModel(state);
   const byHall = new Map(shields.halls.map((h) => [h.hall, h]));
-  const box = (o) => ({ x: stripX(strip, o.x), w: (o.w / WORLD.width) * strip.w });
+  const box = (o) => ({ x: stripX(strip, o.x), w: (o.w / SPAN) * strip.w });
   const halls = Object.values(HALLS).map((h) => {
     const s = byHall.get(h.id);
     return { id: h.id, ...box(h), online: hallOnline(state, h.id), power: s ? s.power.status : null, liquid: s ? s.liquid.status : null };
@@ -67,8 +69,8 @@ export function stripModel(state, strip, cam) {
   const techs = state.techs.map((t) => ({ id: t.id, x: stripX(strip, t.x), y: stripY(strip, t.y), trade: t.trade }));
   const v = visibleSize(cam);
   // The view can look a little past the walls (spec 4b.3); the frame stays on the building.
-  const left = Math.max(0, cam.x);
-  const right = Math.min(WORLD.width, cam.x + v.w);
-  const frame = { x: stripX(strip, left), w: (Math.max(0, right - left) / WORLD.width) * strip.w };
+  const left = Math.max(BUILDING.x1, cam.x);
+  const right = Math.min(BUILDING.x2, cam.x + v.w);
+  const frame = { x: stripX(strip, left), w: (Math.max(0, right - left) / SPAN) * strip.w };
   return { halls, plants, cooling: { status: shields.cooling.status, spare: shields.cooling.spare }, alarms, techs, frame };
 }

@@ -101,10 +101,13 @@ function whatItDoes(state, e) {
     case 'dry':
       return { line: `Lets ${state.config.building.chillersPerDryCooler} of Plant ${e.plant}'s chillers run`, warn: false };
     case 'pump': {
-      const partner = `pump-${e.plant}-${e.half === 't' ? 'b' : 't'}`;
-      return isBuilt(state, partner)
-        ? { line: `Backup pump for Plant ${e.plant}`, warn: false }
-        : { line: `Runs Plant ${e.plant}'s chillers`, warn: false };
+      // Pass 6 (M38): two kinds. Glycol pumps run their plant's chillers (in M38, any one does);
+      // water pumps will serve two halls each once M39's rules are in.
+      if (e.loop === 'water') return { line: "Water pump: serves two halls from the next update", warn: false };
+      const others = EQUIPMENT.filter((q) => q.type === 'pump' && q.loop === 'glycol' && q.plant === e.plant && q.id !== e.id && isBuilt(state, q.id));
+      return others.length > 0
+        ? { line: `Spare glycol pump for Plant ${e.plant}`, warn: false }
+        : { line: `Glycol pump: runs Plant ${e.plant}'s chillers`, warn: false };
     }
     default:
       return { line: '', warn: false };
@@ -112,6 +115,7 @@ function whatItDoes(state, e) {
 }
 
 const NAMES = { row: 'Rack row', chiller: 'Chiller', pump: 'Pump', cdu: 'Coolant unit', rmu: 'RMU', dry: 'Dry cooler' };
+const nameOf = (e) => (e.type === 'msb' ? `Switchboard ${e.side}` : e.type === 'xfmr' ? `Transformer ${e.side}` : e.type === 'pump' ? (e.loop === 'water' ? 'Water pump' : 'Glycol pump') : NAMES[e.type]);
 
 /**
  * What the build card shows for a spot: { id, type, name, price, priceText, line, warn, upkeep,
@@ -127,7 +131,7 @@ export function spotInfo(state, id) {
   return {
     id,
     type: e.type,
-    name: e.type === 'msb' ? `Switchboard ${e.side}` : e.type === 'xfmr' ? `Transformer ${e.side}` : NAMES[e.type],
+    name: nameOf(e),
     price,
     priceText: money(price),
     line,

@@ -130,9 +130,12 @@ export function infraStatus(state, id) {
       return { feeds: `Cools a hall's worth of racks · runs on Plant ${e.plant}'s pumps and dry coolers`, role, state: st, warn: st !== 'Working' || spare < 0 };
     }
     case 'pump': {
-      const partner = `pump-${e.plant}-${otherHalf(e.half)}`;
+      // Pass 6 (M38): glycol pumps run their plant's chillers; water pumps serve halls from M39.
       const st = d.overpressure ? 'Overpressure' : 'Working';
-      return { feeds: `Runs Plant ${e.plant}'s chillers`, role: pairText(state, partner, 'pumps'), state: st, warn: st !== 'Working' };
+      const same = Object.entries(state.equip).filter(([id, q]) => q.built && id !== e.id && EQUIPMENT_BY_ID[id].type === 'pump' && EQUIPMENT_BY_ID[id].loop === e.loop && EQUIPMENT_BY_ID[id].plant === e.plant).length;
+      const role = same > 0 ? `One of ${same + 1} ${e.loop} pumps at Plant ${e.plant}` : `The only ${e.loop} pump at Plant ${e.plant}: no spare`;
+      const feeds = e.loop === 'water' ? 'Feeds the water loop under the halls' : `Runs Plant ${e.plant}'s chillers · fed from its dry coolers`;
+      return { feeds, role, state: st, warn: st !== 'Working' };
     }
     case 'dry': {
       const per = state.config.building.chillersPerDryCooler;
@@ -147,6 +150,7 @@ export function infraStatus(state, id) {
 }
 
 const NAMES = { row: 'Rack row', chiller: 'Chiller', pump: 'Pump', cdu: 'Coolant unit', rmu: 'RMU', dry: 'Dry cooler' };
+const pumpName = (e) => (e.loop === 'water' ? 'Water pump' : 'Glycol pump'); // pass 6 M38
 
 /**
  * What the inspect card shows: { id, type, name, side, headline, lines: [text], warn, lineWarn }. headline is
@@ -154,7 +158,7 @@ const NAMES = { row: 'Rack row', chiller: 'Chiller', pump: 'Pump', cdu: 'Coolant
  */
 export function inspectInfo(state, id) {
   const e = EQUIPMENT_BY_ID[id];
-  const name = e.type === 'msb' ? `Switchboard ${e.side}` : e.type === 'xfmr' ? `Transformer ${e.side}` : NAMES[e.type];
+  const name = e.type === 'msb' ? `Switchboard ${e.side}` : e.type === 'xfmr' ? `Transformer ${e.side}` : e.type === 'pump' ? pumpName(e) : NAMES[e.type];
   if (e.type === 'row') {
     const r = rowStatus(state, id);
     return { id, type: e.type, name, side: 'A', headline: dollars(r.earning), lines: [r.reason || `Earning in full: 3 racks, ${dollars(state.config.building.income)} at full output`], warn: r.reason !== '' && r.reason !== 'Powering up', lineWarn: r.reason !== '' && r.reason !== 'Powering up' };

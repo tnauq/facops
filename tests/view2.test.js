@@ -25,9 +25,9 @@ test('icons show the live faults', () => {
 
 test('a pump\'s gauge climbs as its clock runs down', () => {
   const s = quiet({ startHalls: 2 });
-  raiseAlarm(s, 'pump', 'pump-A-b');
+  raiseAlarm(s, 'pump', 'gpump-A-4');
   advance(s, 10);
-  const p = equipmentStatus(s)(EQUIPMENT_BY_ID['pump-A-b']).pressure;
+  const p = equipmentStatus(s)(EQUIPMENT_BY_ID['gpump-A-4']).pressure;
   assert.ok(p > 0.45 && p < 0.55, `${p}`);
 });
 

@@ -207,20 +207,20 @@ test('a spare chiller tripping costs nothing', () => {
 
 test('before Plant B, Plant A\'s top pump feeds every online top CDU', () => {
   const s = quiet({ startHalls: 5 });
-  assert.deepEqual(pumpLoop(s, 'pump-A-t').map((c) => c.id).sort(), ['cdu-1-t', 'cdu-2-t', 'cdu-3-t', 'cdu-4-t', 'cdu-5-t']);
-  assert.equal(pumpLoop(s, 'pump-A-b').every((c) => c.half === 'b'), true);
+  assert.deepEqual(pumpLoop(s, 'gpump-A-0').map((c) => c.id).sort(), ['cdu-1-t', 'cdu-2-t', 'cdu-3-t', 'cdu-4-t', 'cdu-5-t']);
+  assert.equal(pumpLoop(s, 'gpump-A-4').every((c) => c.half === 'b'), true);
 });
 
 test('after Plant B, each plant\'s pumps feed the halls in its half', () => {
   const s = quiet({ startHalls: 8 });
-  assert.deepEqual(pumpLoop(s, 'pump-A-b').map((c) => c.hall).sort(), [1, 2, 3, 4]);
-  assert.deepEqual(pumpLoop(s, 'pump-B-b').map((c) => c.hall).sort(), [5, 6, 7, 8]);
+  assert.deepEqual(pumpLoop(s, 'gpump-A-4').map((c) => c.hall).sort(), [1, 2, 3, 4]);
+  assert.deepEqual(pumpLoop(s, 'gpump-B-4').map((c) => c.hall).sort(), [5, 6, 7, 8]);
 });
 
 test('a burst leaks only on its own loop, never both CDUs of one hall', () => {
   for (let seed = 1; seed <= 10; seed++) {
     const s = quiet({ startHalls: 8 }, seed);
-    raiseAlarm(s, 'pump', 'pump-B-t');
+    raiseAlarm(s, 'pump', 'gpump-B-0');
     tick(s, 20.1);
     const leaks = s.alarms.filter((a) => a.type === 'leak').map((a) => a.equipId);
     assert.equal(leaks.length, 2);

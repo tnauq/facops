@@ -1,7 +1,7 @@
 // The campus overview strip (pass 3 spec, section 3).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { HALLS, START_POINT, WORLD, advance, createGame, raiseAlarm } from '../src/core/index2.js';
+import { BUILDING, HALLS, START_POINT, WORLD, advance, createGame, raiseAlarm } from '../src/core/index2.js';
 import { centreOn, createCamera, passOneScale } from '../src/ui/camera.js';
 import { regions } from '../src/ui/regions.js';
 import { STRIP_HEIGHT, inStripTarget, regions3, stripModel, stripTarget, stripX, worldXAt } from '../src/ui/strip.js';
@@ -41,8 +41,9 @@ test('the strip is true to width: every hall where it is in the building, and ta
     assert.ok(h.x >= strip.x && h.x + h.w <= strip.x + strip.w);
   }
   assert.ok(Math.abs(worldXAt(strip, stripX(strip, HALLS[5].cx)) - HALLS[5].cx) < 1e-6);
-  assert.equal(worldXAt(strip, strip.x - 50), 0);
-  assert.equal(worldXAt(strip, strip.x + strip.w + 50), WORLD.width);
+  // Pass 6 (M38): the strip runs wall to wall, past the plants' pump rooms.
+  assert.equal(worldXAt(strip, strip.x - 50), BUILDING.x1);
+  assert.equal(worldXAt(strip, strip.x + strip.w + 50), BUILDING.x2);
 });
 
 test('online halls carry their shields; offline halls and Plant B before hall 6 are marked offline', () => {
@@ -81,8 +82,12 @@ test('the frame shows what the map shows, and follows the camera', () => {
   const { strip } = regions3(844, 390);
   let cam = camFor(844, 390);
   let f = stripModel(quiet(), strip, cam).frame;
-  assert.ok(Math.abs(f.x - strip.x) < 1e-9); // the run starts at the left end
-  assert.ok(Math.abs(f.w / strip.w - cam.rect.w / cam.scale / WORLD.width) < 1e-9);
+  // The run starts near the left end: the view stays on the building, which (pass 6) starts at its
+  // west wall, past the pump rooms.
+  const left = Math.max(BUILDING.x1, cam.x);
+  assert.ok(Math.abs(f.x - stripX(strip, left)) < 1e-9);
+  const right = Math.min(BUILDING.x2, cam.x + cam.rect.w / cam.scale);
+  assert.ok(Math.abs(f.w / strip.w - (right - left) / (BUILDING.x2 - BUILDING.x1)) < 1e-9);
   cam = centreOn(cam, HALLS[6].cx, 390);
   f = stripModel(quiet(), strip, cam).frame;
   const mid = worldXAt(strip, f.x + f.w / 2);

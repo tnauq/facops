@@ -84,11 +84,59 @@ The owner approved `docs/pass6-spec.md` (version 0.1) on 16 November 2026: a blu
 | Milestone | Tag | Status |
 |---|---|---|
 | M37. Main menu, Settings, pause menu | `m37` | Done |
-| M38. The longer plant | | Next |
-| M39. Pump rules | | |
+| M38. The longer plant | `m38` | Done |
+| M39. Pump rules | | Next |
 | M40. Teaching and the balance check | | |
 
 ## Log
+
+### M38. The longer plant
+
+Pass 6 spec 3. The owner approved the layout from screenshots on 16 November, and asked for the water pipes to run into the hall walls rather than a dashed line under the floor.
+
+Built:
+
+- **Layout** (`src/core/layout2.js`): each plant grows 200 units outward. `BUILDING` is the new outside wall, from x = -200 to 4120. The halls, chillers, corridors and yard keep their coordinates; `WORLD` stays the mirror line.
+  - **Glycol pump rooms:** two at each plant against the end wall, north and south, four pumps in a line from top to bottom (`gpump-A-0` to `gpump-A-7`, 0 to 3 the north room). The crew reaches them from a new lane just inside the rooms, joined to both corridors.
+  - **Water pumps:** two pairs between the corridor and the chillers on the hall side (`wpump-A-0` to `wpump-A-3`), reached from the corridors.
+  - Both kinds are `type: 'pump'` with a `loop` of `'glycol'` or `'water'`, so the Pump Overpressure alarm, its picture and its fix work on either. The old `pump-*` spots are gone. The dry cooler blocks moved out with the end walls.
+- **Pipes** (`src/ui/pipes.js`), all black and overhead, as in the owner's sketches:
+  - **Glycol:** each pump's short pipe runs right into its room's header, and each room joins the riser on the outer side of the outer chiller column. Both columns have their risers on the outer side, so the middle aisle stays open. Every chiller takes glycol into its top half, and the glycol header along the building feeds every CDU as before.
+  - **Water:** the water pumps drop off a water line just inside the glycol header. Water risers stand just inside the glycol ones and feed every chiller's bottom half. At each hall the water turns down into the hall's wall either side of the CDU, and comes back out the other side.
+  - The dry cooler pipes run in through the end wall to the end of each pump room's header.
+- **Drawing:** pump room pads; the end walls, floor, apron and the yard's concrete run to the new walls; the plant's title moved into the middle aisle (the water pumps stand where it was); glycol pumps face their header, water pumps their line.
+- **Camera and overview strip** run wall to wall (`buildingSite` in `src/ui/camera.js`).
+- **Rules, only what keeps the game running** (spec 3.3):
+  - A plant's chillers need a built **glycol** pump (today's rule on the new spots).
+  - Water pumps cost upkeep and can alarm, and do nothing else yet.
+  - Both kinds cost $200.
+  - **The start** has two glycol pumps and one water pump in place of the one pump. That is two more pieces of infrastructure, so the start burns $0.30 a second more in upkeep.
+  - The scripted builders buy a glycol pump where they bought a pump, and a water pump with the third, fifth and seventh halls.
+- **Build and inspect cards:** "Glycol pump: runs Plant A's chillers", "Spare glycol pump for Plant A", "Water pump: serves two halls from the next update"; the inspect card says how many of that kind the plant has.
+- **Tests:** the layout, pipe, yard, strip, play and start tests now pin the new layout and pumps; nothing they check was dropped. 2 new tests (494 in all).
+
+Scripted checks (12 seeds), against M33's table:
+
+| Player | Run length: median | Earned | 150 MW at |
+|---|---|---|---|
+| Compute first, backups from hall 4 | 19:11 (M33: 17:52) | $118,136 ($109,891) | 7:10 (7:01) |
+| The same, getting ready for the CEO | 25:04 (20:07) | $176,140 ($144,782) | 7:11 (6:58) |
+| Backups from hall 6 | 19:02 (17:09) | $117,350 ($110,638) | 6:19 (6:14) |
+| Never a backup | 17:33 (18:18) | $102,841 ($93,536) | 6:19 (6:14) |
+| Backups early | 0:38 (0:38) | $18,648 ($43,101) | 10:35 (10:11) |
+
+Within the noise of 12 seeds for the main builders. Buying backups early does worse than before: with two more pumps the start's upkeep is higher, and that builder was already going broke.
+
+Worth knowing:
+
+- The spec said the whole building would shift so Plant A starts near x = 0. Instead the building grows past x = 0 at the west end and past the old width at the east; it looks the same and kept every hall's and chiller's coordinates.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the plant with the new pumps and their spots, a tech walking to and fixing a glycol pump's overpressure; the map preview with every device built. No console errors.
+
+Owner's checklist:
+
+- The plants look like the sketch: four pumps in a line in each room, the chiller headers on the outside with the middle open, the water pumps by the hall.
+- The corridors carry two pipes; glycol drops into the CDU and water into the hall's wall on either side of it.
+- Nothing else about the game feels different yet.
 
 ### M37. Main menu, Settings, pause menu
 

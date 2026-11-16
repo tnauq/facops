@@ -49,7 +49,7 @@ test('a network failure on a dark row costs nothing more until the lights are ba
 });
 
 test('pumps cost nothing; chillers cost nothing while spares run, and the shortfall once short', () => {
-  assert.equal(costOf(withFaults([['pump', 'pump-A-t']], { startHalls: 2 }), 'pump-A-t'), 0);
+  assert.equal(costOf(withFaults([['pump', 'gpump-A-0']], { startHalls: 2 }), 'gpump-A-0'), 0);
   assert.equal(costOf(withFaults([['chiller', 'chiller-A-0']], { startHalls: 5 }), 'chiller-A-0'), 0);
   // Hall 5: 8 chillers, 7 needed. Two down: 6 of 7 running, short by one.
   const s = withFaults([['chiller', 'chiller-A-0'], ['chiller', 'chiller-A-1']], { startHalls: 5 });
@@ -75,12 +75,12 @@ test('triage order: costly alarms first, biggest first; then by clock; then olde
   const s = quiet({ startHalls: 2 });
   raiseAlarm(s, 'breaker', 'msb-1-t-A'); // free, 45 s clock
   advance(s, 1);
-  raiseAlarm(s, 'pump', 'pump-A-t'); // free, 20 s clock: before the breaker
+  raiseAlarm(s, 'pump', 'gpump-A-0'); // free, 20 s clock: before the breaker
   raiseAlarm(s, 'network', 'row-2-t-0'); // -6
   raiseAlarm(s, 'leak', 'cdu-2-b'); // -4 now, though its clock is shorter
   advance(s, 4);
   const order = triageOrder(s).map((x) => x.alarm.equipId);
-  assert.deepEqual(order, ['row-2-t-0', 'cdu-2-b', 'pump-A-t', 'msb-1-t-A']);
+  assert.deepEqual(order, ['row-2-t-0', 'cdu-2-b', 'gpump-A-0', 'msb-1-t-A']);
   // The second CDU leaking makes both leak tickets the most expensive.
   raiseAlarm(s, 'leak', 'cdu-2-t');
   advance(s, 4);

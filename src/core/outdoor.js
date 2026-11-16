@@ -15,7 +15,8 @@
 export const TRANSFORMER = { w: 58, h: 52, y: -80 }; // centre y on the north side
 export const RMU = { w: 48, h: 34, y: -168 };
 export const LINE_Y = -232; // the north power line; the south one mirrors it
-export const DRY = { x1: -290, x2: -50, y1: 170, y2: 610, cols: 2, rows: 4 }; // Plant A's block
+// Pass 6 (M38): the block moved out with the end wall (layout2 PLANT_EXTENSION, 200).
+export const DRY = { x1: -490, x2: -250, y1: 170, y2: 610, cols: 2, rows: 4 }; // Plant A's block
 export const POLE_EVERY = 280;
 
 /**
@@ -32,13 +33,13 @@ export const YARD_LANE_Y = (TRANSFORMER.y - TRANSFORMER.h / 2 + RMU.y + RMU.h / 
 export const DRY_LANE_X = (DRY.x1 + DRY.x2) / 2; // Plant A's block; Plant B's mirrors it
 
 /** How far past the walls the yard reaches, for the camera (x: past the ends, y: past the sides). */
-export const YARD = { x: 330, y: 280 };
+export const YARD = { x: 330, y: 280 }; // past BUILDING's walls (pass 6: the ends moved out 200)
 
 /**
  * Where everything in the yard stands, for the building's switchboards and pumps. world: the
  * building's { width, height }. Returns { TRANSFORMERS, RMUS, POWER_LINES, POLES, DRY_COOLERS, DRY_PIPES }.
  */
-export function buildYard(MSBS, PUMPS, world) {
+export function buildYard(MSBS, PUMPS, world, roomHeaderX = 0) {
   const ny = (y) => world.height - y; // mirror north to south
 
   /** Transformers: one per switchboard, { id, msbId, hall, half, side, x, y }. */
@@ -110,20 +111,22 @@ export function buildYard(MSBS, PUMPS, world) {
   });
 
   /**
-   * Pipes from each plant's north and south pumps out through the end wall to its dry cooler block:
-   * [{ plant, half, points: [{ x, y }] }], each a path along the ground.
+   * Pass 6 (M38): pipes from each plant's dry cooler block in through the end wall to the end of each
+   * glycol pump room's header (PUMPS here: the first pump of the north room and the last of the
+   * south one): [{ plant, half, points: [{ x, y }] }], each a path along the ground.
    */
   const DRY_PIPES = PUMPS.map((p) => {
     const block = DRY_COOLERS.find((d) => d.plant === p.plant);
-    const outward = p.plant === 'A' ? -1 : 1;
+    const mirror = (x) => (p.plant === 'A' ? x : world.width - x);
     const runX = (block.x1 + block.x2) / 2;
     const edgeY = p.half === 't' ? block.y1 : block.y2;
+    const inY = p.y + (p.half === 't' ? -28 : 28); // just beyond the end pump, at the header's end
     return {
       plant: p.plant,
       half: p.half,
       points: [
-        { x: p.x + outward * 20, y: p.y },
-        { x: runX, y: p.y },
+        { x: mirror(roomHeaderX), y: inY },
+        { x: runX, y: inY },
         { x: runX, y: edgeY },
       ],
     };

@@ -24,7 +24,7 @@ test('each device is introduced once a run; two at once come one after the other
   const s = quiet();
   const intros = createIntros();
   raiseAlarm(s, 'network', 'row-1-t-0');
-  raiseAlarm(s, 'pump', 'pump-A-t');
+  raiseAlarm(s, 'pump', 'gpump-A-0');
   assert.equal(updateIntros(intros, s), INTRO_TEXT.network);
   advance(s, INTRO_SECONDS + 0.1);
   assert.equal(updateIntros(intros, s), INTRO_TEXT.pump);
@@ -41,7 +41,7 @@ test('an introduction waits while the CEO is being announced', () => {
   const s = quiet();
   const intros = createIntros();
   s.ceo = { phase: 'warning' };
-  raiseAlarm(s, 'pump', 'pump-A-t');
+  raiseAlarm(s, 'pump', 'gpump-A-0');
   assert.equal(updateIntros(intros, s), '');
   s.ceo = null;
   assert.equal(updateIntros(intros, s), INTRO_TEXT.pump);

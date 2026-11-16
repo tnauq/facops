@@ -43,8 +43,9 @@ test('each dry cooler lets two of its plant\'s chillers run', () => {
 
 test('a run starts with the bare minimum for one hall, and $800', () => {
   const s = game();
-  for (const id of ['pump-A-t', 'chiller-A-0', 'dry-A-0', ...chain(1, 't'), 'cdu-1-t', 'row-1-t-0', 'row-1-t-1']) assert.equal(isBuilt(s, id), true, id);
-  for (const id of ['pump-A-b', 'chiller-A-1', 'dry-A-1', 'xfmr-1-t-B', 'msb-1-t-B', 'rmu-1-b', 'msb-1-b-A', 'cdu-1-b', 'row-1-t-2', 'row-2-t-0']) assert.equal(isBuilt(s, id), false, id);
+  // Pass 6 (M38): two glycol pumps and one water pump in place of the one pump.
+  for (const id of ['gpump-A-0', 'gpump-A-1', 'wpump-A-0', 'chiller-A-0', 'dry-A-0', ...chain(1, 't'), 'cdu-1-t', 'row-1-t-0', 'row-1-t-1']) assert.equal(isBuilt(s, id), true, id);
+  for (const id of ['gpump-A-2', 'gpump-A-4', 'wpump-A-1', 'chiller-A-1', 'dry-A-1', 'xfmr-1-t-B', 'msb-1-t-B', 'rmu-1-b', 'msb-1-b-A', 'cdu-1-b', 'row-1-t-2', 'row-2-t-0']) assert.equal(isBuilt(s, id), false, id);
   assert.equal(s.cash, 800);
   assert.equal(hallOnline(s, 1), true);
   assert.equal(hallOnline(s, 2), false);
@@ -170,7 +171,10 @@ test('chillers: one per hall\'s worth of racks online; they run only at a plant 
   build(s, 'chiller-B-0');
   advance(s, 8.1);
   assert.equal(runningChillers(s), 1, 'Plant B has no pump yet');
-  build(s, 'pump-B-t');
+  build(s, 'wpump-B-0');
+  advance(s, 8.1);
+  assert.equal(runningChillers(s), 1, 'a water pump does not run chillers (pass 6 M38)');
+  build(s, 'gpump-B-0');
   advance(s, 8.1);
   assert.equal(runningChillers(s), 1, 'Plant B has no dry cooler yet');
   build(s, 'dry-B-0');
@@ -281,16 +285,16 @@ test('the burn doubles over time, and grows with infrastructure and crew', async
   const PASS4 = { base: 3, doubling: 150, upkeep: 0.15, wages: 0.5 };
   const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, building: { enabled: true, burn: PASS4 }, director: { enabled: false } } });
   const b = s.config.building.burn;
-  // At the start: base, plus upkeep on the pump, chiller, dry cooler, RMU, transformer, switchboard
-  // and coolant unit, plus 2 techs' wages.
-  assert.ok(Math.abs(burnRate(s) - (b.base + 7 * b.upkeep + 2 * b.wages)) < 1e-9);
+  // At the start: base, plus upkeep on the three pumps (pass 6: two glycol, one water), chiller,
+  // dry cooler, RMU, transformer, switchboard and coolant unit, plus 2 techs' wages.
+  assert.ok(Math.abs(burnRate(s) - (b.base + 9 * b.upkeep + 2 * b.wages)) < 1e-9);
   s.t = b.doubling;
-  assert.ok(Math.abs(burnRate(s) - (2 * b.base + 7 * b.upkeep + 2 * b.wages)) < 1e-9);
+  assert.ok(Math.abs(burnRate(s) - (2 * b.base + 9 * b.upkeep + 2 * b.wages)) < 1e-9);
   s.t = 0;
   s.cash = 5000;
   build(s, 'msb-1-t-B');
   advance(s, 8.1);
-  assert.ok(burnRate(s) > b.base * Math.pow(2, s.t / b.doubling) + 7 * b.upkeep + 2 * b.wages, 'a backup costs upkeep');
+  assert.ok(burnRate(s) > b.base * Math.pow(2, s.t / b.doubling) + 9 * b.upkeep + 2 * b.wages, 'a backup costs upkeep');
 });
 
 test('in the red, a countdown runs: back out of it in time and the run goes on, stay in it and it ends', async () => {

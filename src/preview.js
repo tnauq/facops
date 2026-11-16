@@ -5,13 +5,13 @@
 // Both: drag, mouse wheel or arrow keys scroll; tapping an off-map arrow glides to its alarm.
 // Pass 1 stays playable at ./pass1/.
 
-import { HALLS, MID_Y, START_POINT, WORLD, choose, createGame, formatClock, greedyMove, load, pickFor, plantBOnline as plantBOnline2, step } from './core/index2.js';
+import { BUILDING, HALLS, MID_Y, START_POINT, WORLD, choose, createGame, formatClock, greedyMove, load, pickFor, plantBOnline as plantBOnline2, step } from './core/index2.js';
 import { drawBuilding } from './render/campus2.js';
 import { drawCrew } from './render/campus.js';
 import { drawAlarmBubble } from './render/icons.js';
 import { drawMarker } from './render/markers.js';
 import { BUBBLE_RADIUS, BUBBLE_RAISE } from './ui/bubbles.js';
-import { cameraView, centreOn, createCamera, glide, panBy, passOneScale, siteOf } from './ui/camera.js';
+import { buildingSite, cameraView, centreOn, createCamera, glide, panBy, passOneScale } from './ui/camera.js';
 import { fannedCrew } from './ui/crew.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
 import { popScale } from './ui/feel.js';
@@ -22,7 +22,7 @@ import { MAX_HALLS, hallsFromHash, plantBOnline, sampleAlarms, sampleStatus } fr
 import { HUD_HEIGHT, regions } from './ui/regions.js';
 import { bubbles2, equipmentStatus } from './ui/view2.js';
 
-const SITE = siteOf(WORLD);
+const SITE = buildingSite(BUILDING); // pass 6: wall to wall, past the plants' pump rooms
 
 const INK = '#1F3A5F';
 const MUTED = '#56606E';

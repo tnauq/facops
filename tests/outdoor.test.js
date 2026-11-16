@@ -1,11 +1,12 @@
 // The yard outside the building (M28, owner 15 Nov): layout only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DRY_COOLERS, DRY_PIPES, EQUIPMENT, EQUIPMENT_BY_ID, POLES, POWER_LINES, RMUS, TRANSFORMERS, WORLD } from '../src/core/layout2.js';
+import { BUILDING, PUMP_ROOM_HEADER_X, DRY_COOLERS, DRY_PIPES, EQUIPMENT, EQUIPMENT_BY_ID, POLES, POWER_LINES, RMUS, TRANSFORMERS, WORLD } from '../src/core/layout2.js';
 import { TRANSFORMER, YARD } from '../src/core/outdoor.js';
 
 const MSBS = EQUIPMENT.filter((e) => e.type === 'msb');
-const inYard = (x, y) => x >= -YARD.x && x <= WORLD.width + YARD.x && y >= -YARD.y && y <= WORLD.height + YARD.y;
+// The camera may look YARD past the outside walls (pass 6 M38: the end walls moved out with the plants).
+const inYard = (x, y) => x >= BUILDING.x1 - YARD.x && x <= BUILDING.x2 + YARD.x && y >= -YARD.y && y <= WORLD.height + YARD.y;
 
 test('every switchboard has a transformer straight outside the wall from it', () => {
   assert.equal(TRANSFORMERS.length, MSBS.length);
@@ -42,21 +43,23 @@ test('a power line on each side runs in from out of view on the left to the righ
   }
 });
 
-test("a dry cooler block outside each plant, west and east, piped to that plant's north and south pumps", () => {
+test("a dry cooler block outside each plant, west and east, piped to that plant's north and south pump rooms", () => {
   const [a, b] = DRY_COOLERS;
   assert.equal(a.plant, 'A');
-  assert.ok(a.x2 < 0, 'west of the west wall');
+  assert.ok(a.x2 < BUILDING.x1, 'west of the west wall');
   assert.equal(b.plant, 'B');
-  assert.ok(b.x1 > WORLD.width, 'east of the east wall');
+  assert.ok(b.x1 > BUILDING.x2, 'east of the east wall');
   for (const d of DRY_COOLERS) {
     assert.equal(d.units.length, 8);
     assert.ok(inYard(d.x1, d.y1) && inYard(d.x2, d.y2));
   }
   assert.equal(DRY_PIPES.length, 4);
   for (const p of DRY_PIPES) {
-    const pump = EQUIPMENT_BY_ID[`pump-${p.plant}-${p.half}`];
+    // Pass 6 (M38): from the end of its pump room's header, beyond the end pump.
+    const pump = EQUIPMENT_BY_ID[`gpump-${p.plant}-${p.half === 't' ? 0 : 7}`];
     const block = DRY_COOLERS.find((d) => d.plant === p.plant);
-    assert.equal(p.points[0].y, pump.y, 'starts at its pump');
+    assert.equal(p.points[0].y, pump.y + (p.half === 't' ? -28 : 28), 'starts at its room\'s header');
+    assert.equal(p.points[0].x, p.plant === 'A' ? PUMP_ROOM_HEADER_X : WORLD.width - PUMP_ROOM_HEADER_X);
     const end = p.points.at(-1);
     assert.equal(end.y, p.half === 't' ? block.y1 : block.y2, 'ends at the block');
     assert.ok(end.x > block.x1 && end.x < block.x2);

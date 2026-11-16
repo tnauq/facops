@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  BUILDING,
   CENTRE_X,
   DOORS,
   EQUIPMENT,
@@ -22,13 +23,15 @@ import {
 const count = (type) => EQUIPMENT.filter((e) => e.type === type).length;
 const near = (a, b) => Math.abs(a - b) < 1e-6;
 
-test('counts: 8 halls, 48 rows, 32 MSBs, 16 CDUs, 16 chillers, 4 pumps', () => {
+test('counts: 8 halls, 48 rows, 32 MSBs, 16 CDUs, 16 chillers, 16 glycol and 8 water pumps (pass 6 M38)', () => {
   assert.equal(Object.keys(HALLS).length, 8);
   assert.equal(count('row'), 48);
   assert.equal(count('msb'), 32);
   assert.equal(count('cdu'), 16);
   assert.equal(count('chiller'), 16);
-  assert.equal(count('pump'), 4);
+  assert.equal(EQUIPMENT.filter((e) => e.type === 'pump' && e.loop === 'glycol').length, 16);
+  assert.equal(EQUIPMENT.filter((e) => e.type === 'pump' && e.loop === 'water').length, 8);
+  assert.equal(count('pump'), 24);
   assert.equal(new Set(EQUIPMENT.map((e) => e.id)).size, EQUIPMENT.length, 'ids are unique');
 });
 
@@ -39,7 +42,12 @@ test('the left half matches the spec table: the campus grows left to right', () 
     assert.equal(h.y, HALL_TOP);
     assert.equal(h.y + h.h, HALL_BOTTOM);
   }
-  assert.deepEqual(EQUIPMENT_BY_ID['pump-A-t'], { ...EQUIPMENT_BY_ID['pump-A-t'], x: 50, y: 40, sx: 50, sy: 95 });
+  // Pass 6 (M38): the glycol pump rooms against the end wall, four pumps in a line, reached from a
+  // lane just inside them; the water pumps between the corridor and the chillers, reached from it.
+  assert.deepEqual(EQUIPMENT_BY_ID['gpump-A-0'], { ...EQUIPMENT_BY_ID['gpump-A-0'], x: -95, y: 140, sx: -10, sy: 140 });
+  assert.deepEqual([0, 1, 2, 3].map((k) => EQUIPMENT_BY_ID[`gpump-A-${k}`].x), [-95, -95, -95, -95], 'in a line');
+  assert.deepEqual(EQUIPMENT_BY_ID['wpump-A-0'], { ...EQUIPMENT_BY_ID['wpump-A-0'], x: 310, y: 140, sx: 310, sy: 95 });
+  assert.ok(BUILDING.x1 < EQUIPMENT_BY_ID['gpump-A-0'].x - 42, 'the end wall stands past the pump room');
   assert.deepEqual([EQUIPMENT_BY_ID['chiller-A-0'].x, EQUIPMENT_BY_ID['chiller-A-0'].y], [370, 225]);
   assert.deepEqual([EQUIPMENT_BY_ID['chiller-A-7'].x, EQUIPMENT_BY_ID['chiller-A-7'].y], [150, 555]);
   assert.deepEqual(START_POINT, { x: 260, y: 390 });
@@ -61,7 +69,7 @@ test('the right half mirrors the left across the centre line', () => {
   for (const e of EQUIPMENT.filter((q) => q.x < CENTRE_X)) {
     const twinId = e.id
       .replace(/^(row|cdu|msb|xfmr|rmu)-(\d)/, (m, t, h) => `${t}-${{ 1: 8, 2: 7, 3: 6, 4: 5 }[h]}`)
-      .replace(/^(chiller|pump|dry)-A/, '$1-B');
+      .replace(/^(chiller|gpump|wpump|dry)-A/, '$1-B');
     const twin = EQUIPMENT_BY_ID[twinId];
     assert.ok(twin, `${e.id} has a mirror twin ${twinId}`);
     assert.ok(near(twin.x, WORLD.width - e.x), `${e.id} x`);
@@ -70,8 +78,14 @@ test('the right half mirrors the left across the centre line', () => {
 });
 
 test('the top half mirrors the bottom about the middle aisle', () => {
+  // Pumps (pass 6 M38) are numbered top to bottom: glycol k mirrors 7 - k, water 0 and 1 mirror 2 and 3.
+  const bottomTwin = (e) => {
+    if (e.type !== 'pump') return e.id.replace('-t', '-b');
+    const k = e.loop === 'glycol' ? 7 - e.index : e.index + 2;
+    return `${e.loop === 'glycol' ? 'g' : 'w'}pump-${e.plant}-${k}`;
+  };
   for (const e of EQUIPMENT.filter((q) => q.half === 't')) {
-    const twin = EQUIPMENT_BY_ID[e.id.replace('-t', '-b')];
+    const twin = EQUIPMENT_BY_ID[bottomTwin(e)];
     assert.ok(near(twin.x, e.x));
     assert.ok(near(twin.y, WORLD.height - e.y), `${e.id}`);
   }
@@ -164,11 +178,12 @@ test('walks are long on purpose: Plant A to hall 8 is over 3000 units', () => {
 
 test('plants and lanes stay inside the building; the yard\'s walkways stay in the yard (M30)', async () => {
   const { YARD } = await import('../src/core/outdoor.js');
-  for (const p of Object.values(PLANTS)) assert.ok(p.x >= 0 && p.x + p.w <= WORLD.width);
+  // Pass 6 (M38): the building runs from its west wall to its east wall, past the pump rooms.
+  for (const p of Object.values(PLANTS)) assert.ok(p.x >= BUILDING.x1 && p.x + p.w <= BUILDING.x2);
   const yard = (l) => /^(yard-|exit-|dry-)/.test(l.id);
   for (const l of LANES) {
     const [mx, my] = yard(l) ? [YARD.x, YARD.y] : [0, 0];
-    for (const v of [l.x1, l.x2]) assert.ok(v >= -mx && v <= WORLD.width + mx, l.id);
+    for (const v of [l.x1, l.x2]) assert.ok(v >= BUILDING.x1 - mx && v <= BUILDING.x2 + mx, l.id);
     for (const v of [l.y1, l.y2]) assert.ok(v >= -my && v <= WORLD.height + my, l.id);
   }
 });
@@ -186,7 +201,7 @@ test('every yard device can be reached from inside, through a door in the outsid
       const b = r.points[i];
       const crossY = [0, WORLD.height].find((y) => (a.y - y) * (b.y - y) < 0);
       if (crossY !== undefined) assert.ok(DOORS.some((d) => d.outside && near(d.x, a.x) && d.y === crossY), `${e.id} leaves through a wall at x ${a.x}`);
-      const crossX = [0, WORLD.width].find((x) => (a.x - x) * (b.x - x) < 0);
+      const crossX = [BUILDING.x1, BUILDING.x2].find((x) => (a.x - x) * (b.x - x) < 0);
       if (crossX !== undefined) assert.ok(DOORS.some((d) => d.outside && d.x === crossX && near(d.y, a.y)), `${e.id} leaves through an end wall at y ${a.y}`);
     }
   }
@@ -200,5 +215,13 @@ test('location tags', () => {
   assert.equal(locationTag('xfmr-2-t-B'), 'H2 top B');
   assert.equal(locationTag('rmu-5-b'), 'H5 bottom RMU');
   assert.equal(locationTag('dry-A-3'), 'Plant A cooler');
-  assert.equal(locationTag('pump-A-b'), 'Plant A');
+  assert.equal(locationTag('gpump-A-4'), 'Plant A');
+});
+
+test('every pump can be reached on foot (pass 6 M38)', () => {
+  for (const e of EQUIPMENT.filter((q) => q.type === 'pump')) {
+    const p = { x: e.sx, y: e.sy };
+    assert.ok(isOnNetwork(p), `${e.id} service point is off the walkways`);
+    assert.ok(Number.isFinite(route(START_POINT, p).length), e.id);
+  }
 });

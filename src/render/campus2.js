@@ -3,7 +3,9 @@
 // pass 1's size. Halls not yet online and Plant B before hall 6 are drawn pale, "under construction".
 // Only what is on screen is drawn, so the long building costs no more than one screen of it.
 
-import { DOORS, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, LANES, PLANTS, WORLD } from '../core/layout2.js';
+import { BUILDING, DOORS, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, LANES, MID_Y, PLANTS, WORLD } from '../core/layout2.js';
+
+const MID_Y_LABEL = MID_Y - 22; // just above the dry coolers' walkway across the plant
 import { ICON_SIZE, drawChiller, drawCdu, drawLabel, drawMsb, drawPump, drawRack } from './icons.js';
 import { drawApron, drawJoints, drawTyreTracks, fillConcrete, fillDirt, fillTiles } from './floors.js';
 import { drawPipeShadows, drawPipes } from './pipes.js';
@@ -116,7 +118,9 @@ function drawOne(ctx, v, e, st) {
 
 // M19: each pump's discharge points along its riser (down for the top pumps, up for the bottom
 // ones), on the side of the volute facing the halls' far end, so Plant B's pumps are mirrored.
-const pumpTurn = (e) => ({ flipY: e.half === 't', flipX: e.plant === 'B' });
+// Pass 6 (M38): a glycol pump's short pipe (the drawing's right-hand stub) points at its room's
+// header, toward the halls; a water pump's discharge points at the water line it feeds.
+const pumpTurn = (e) => (e.loop === 'water' ? { flipY: e.half === 't', flipX: e.plant === 'B' } : { flipX: e.plant === 'B' });
 
 // M19: each CDU's cold and warm stubs point at its hall and run to the hall's wall.
 function cduTurn(e) {
@@ -150,12 +154,20 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   // concrete apron along the outside wall.
   fillDirt(ctx, v, screen);
   drawTyreTracks(ctx, v, WORLD);
-  drawApron(ctx, v, WORLD);
+  drawApron(ctx, v, { x0: BUILDING.x1, width: BUILDING.x2 - BUILDING.x1, height: WORLD.height });
   drawYardGround(ctx, v);
   // Floors (M19): smoothed concrete with control joints, the plants' pads, walkways, then the
   // halls' white raised-floor tiles with their aisles.
-  fillConcrete(ctx, v, 0, 0, WORLD.width, WORLD.height);
-  drawJoints(ctx, v, 0, 0, WORLD.width, WORLD.height);
+  fillConcrete(ctx, v, BUILDING.x1, 0, BUILDING.x2 - BUILDING.x1, WORLD.height);
+  drawJoints(ctx, v, BUILDING.x1, 0, BUILDING.x2 - BUILDING.x1, WORLD.height);
+  // Pass 6 (M38): the glycol pump rooms' pads, one round each room's four pumps and header.
+  for (const r of pumpRooms()) {
+    ctx.globalAlpha = r.plant === 'A' || plantB ? 1 : OFFLINE_ALPHA;
+    rect(ctx, v, r.x, r.y, r.w, r.h, COLOR.pad);
+    ctx.strokeStyle = COLOR.padEdge;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(sx(v, r.x), sy(v, r.y), r.w * v.scale, r.h * v.scale);
+  }
   for (const p of Object.values(PLANTS)) {
     ctx.globalAlpha = p.id === 'A' || plantB ? 1 : OFFLINE_ALPHA;
     rect(ctx, v, p.x, p.y, p.w, p.h, COLOR.pad);
@@ -176,10 +188,11 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
 
   // Walls: the building outline, then every hall with gaps at its doors.
   // The outside walls have doors out to the yard (M30).
-  wall(ctx, v, 0, 0, WORLD.width, 0, DOORS, 8);
-  wall(ctx, v, 0, WORLD.height, WORLD.width, WORLD.height, DOORS, 8);
-  wall(ctx, v, 0, 0, 0, WORLD.height, DOORS, 8);
-  wall(ctx, v, WORLD.width, 0, WORLD.width, WORLD.height, DOORS, 8);
+  // Pass 6 (M38): the end walls stand past the plants' pump rooms.
+  wall(ctx, v, BUILDING.x1, 0, BUILDING.x2, 0, DOORS, 8);
+  wall(ctx, v, BUILDING.x1, WORLD.height, BUILDING.x2, WORLD.height, DOORS, 8);
+  wall(ctx, v, BUILDING.x1, 0, BUILDING.x1, WORLD.height, DOORS, 8);
+  wall(ctx, v, BUILDING.x2, 0, BUILDING.x2, WORLD.height, DOORS, 8);
   for (const h of Object.values(HALLS)) {
     ctx.globalAlpha = isUp(h.id) ? 1 : OFFLINE_ALPHA;
     const doors = DOORS;
@@ -217,7 +230,8 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
   }
   for (const p of Object.values(PLANTS)) {
     const up = p.id === 'A' || plantB;
-    drawLabel(ctx, up || offlineTitle === null ? `Plant ${p.id}` : `Plant ${p.id} · ${offlineTitle}`, sx(v, p.x + p.w / 2), sy(v, p.y - 26), up ? titlePx : labelPx, COLOR.plantInk);
+    // Pass 6 (M38): the water pumps stand where the title was, so it sits in the middle aisle.
+    drawLabel(ctx, up || offlineTitle === null ? `Plant ${p.id}` : `Plant ${p.id} · ${offlineTitle}`, sx(v, p.lane), sy(v, MID_Y_LABEL), up ? titlePx : labelPx, COLOR.plantInk);
   }
 
   // Equipment.
@@ -250,6 +264,24 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
 }
 
 const SPOT_INK = '#1F3A5F';
+
+// The glycol pump rooms (pass 6 M38): a pad round each room's pumps and header. [{ plant, x, y, w, h }].
+function pumpRooms() {
+  const out = [];
+  for (const plant of ['A', 'B']) {
+    for (const half of ['t', 'b']) {
+      const pumps = EQUIPMENT.filter((e) => e.type === 'pump' && e.loop === 'glycol' && e.plant === plant && e.half === half);
+      if (pumps.length === 0) continue;
+      const xs = pumps.map((e) => e.x);
+      const ys = pumps.map((e) => e.y);
+      // The header side (toward the halls) needs a little more room than the end-wall side.
+      const x1 = Math.min(...xs) - (plant === 'A' ? 58 : 68);
+      const x2 = Math.max(...xs) + (plant === 'A' ? 68 : 58);
+      out.push({ plant, x: x1, y: Math.min(...ys) - 44, w: x2 - x1, h: Math.max(...ys) - Math.min(...ys) + 80 });
+    }
+  }
+  return out;
+}
 
 // An empty spot (pass 4 spec 3.1): a dashed outline round the device's footprint and a "+" badge.
 // Pass 5 (spec 7.2): the badge is solid ink with a white "+" when the cash covers the price, and
