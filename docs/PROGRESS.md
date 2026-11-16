@@ -94,7 +94,7 @@ Built:
 - **Commissioned on screen:** every hall lights up in turn with "Commissioned". About 3.5 s later a card opens and waits: the CEO's "Fine. It's finished. Don't touch anything.", the sale price, **Keep running** or **Hand over the keys · $42,000**. If the sale isn't allowed that moment (the CEO is visiting, or an outage is open), the button is greyed and the card says to sell from the menu later. Under `#auto` no card opens.
 - **The menu** (the gear, or pause) has **Hand over the keys · $14,250** under the usual buttons. Before the Handover, during a visit or with an outage open, it is greyed with the reason underneath. Tapping it opens a confirm card with the sale price and the score it would give; **Back** returns to the menu.
 - **Results** lead with how the run ended (**Sold**, **Commissioned and sold**, **Fired by the CEO: three strikes**, **Went broke**), then the score, the highest milestone reached, and how long the run lasted. A sold run has a Sale line. The Copy text gains a Score line.
-- **Best score:** the new score, under its own key (`facops.best.v5`). Until you finish a pass 5 run, the start card shows your old best as "$90,000 in 14:20 (older rules: money earned)". The old best is never changed.
+- **Best score:** the new score, under its own key (`facops.best.v5`). Until you finish a pass 5 run, the start card shows your old best labelled, for example "$90,000 in 14:20 (older rules: money earned)". The old best is never changed.
 - **Drawer:** none added; `building.sale.fromHandover: false` (selling at any time) is there for the scripted checks.
 - `scripts/pacing4.mjs` now reports how many runs are Commissioned and when.
 - 12 new tests (471 in all). The results-card test for going broke now checks that the score leads.
