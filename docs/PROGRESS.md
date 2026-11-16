@@ -101,7 +101,7 @@ Built:
 - **Settings** (new): a Classic mode switch (the drawer's Building mode, the other way round; from the next run), Pass 1, Map preview, Tuning, and Back. The drawer opened from Settings returns to Settings, and Settings returns to wherever it was opened from. Opened from the menu, the blueprint stays behind it.
 - **The pause menu** has the same look: Resume, Restart, Settings, and the sale row from M34. The gear always opens the pause menu now (with Real-time mode on it used to open the drawer).
 - The best score now keeps the run's highest milestone, for the menu.
-- `src/ui/flow.js` has `menu` in place of `start`, and `settings`; 3 new tests (493 in all). The flow and drawer tests now say `menu` where they said `start`.
+- `src/ui/flow.js` has `menu` in place of `start`, and `settings`; 2 new tests (492 in all). The flow and drawer tests now say `menu` where they said `start`.
 
 Worth knowing:
 
