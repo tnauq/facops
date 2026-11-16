@@ -7,6 +7,9 @@
 // run, tutorial or not; `devices: false` gives a run without the tutorial only that line.
 // Pass 5 (spec 4.3): the same place introduces the CEO's strikes once, in every run, as the last
 // walkthrough before them leaves.
+// Pass 6 spec 5 (M40): the pumps' two new states, a CDU without glycol and a hall without water, get
+// a line once each, in every building run like the loan line: they are new rules, and a player who
+// learned the game before them skips the tutorial.
 
 import { strikesToFire } from '../core/index2.js';
 
@@ -24,7 +27,13 @@ export const INTRO_TEXT = {
   loan: 'Loan paid off. The money is yours now.',
   // Pass 5 spec 4.3: once, as the last walkthrough before the strikes leaves (strikesText below).
   strikes: '',
+  // Pass 6 spec 5 (M40). The water line names the hall (waterText below).
+  dryCdu: 'Not enough glycol pumps: the farthest coolant unit has gone dry. Build another.',
+  noWater: '',
 };
+
+/** The first hall without water (pass 6 spec 5). */
+export const waterText = (hall) => `Water pumps serve two halls each. Hall ${hall} has none: it runs at half.`;
 
 const COUNT = ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'];
 
@@ -58,6 +67,16 @@ export function updateIntros(intros, state) {
     intros.given.add('strikes');
     intros.queue.push({ type: 'strikes', id: null });
   }
+  // Pass 6 (M40): the pumps' supply, worked out each step in building mode.
+  const sup = state.supply;
+  if (sup && sup.dryCdus.size > 0 && !intros.given.has('dryCdu')) {
+    intros.given.add('dryCdu');
+    intros.queue.push({ type: 'dryCdu', id: null });
+  }
+  if (sup && sup.dryHalls.size > 0 && !intros.given.has('noWater')) {
+    intros.given.add('noWater');
+    intros.queue.push({ type: 'noWater', id: null, hall: Math.min(...sup.dryHalls) });
+  }
   for (const a of state.alarms) {
     if (intros.devices === false) break;
     if (INTRO_TEXT[a.type] && !intros.given.has(a.type)) {
@@ -71,7 +90,7 @@ export function updateIntros(intros, state) {
   const warning = state.ceo !== null && state.ceo !== undefined && state.ceo.phase === 'warning';
   if (intros.queue.length > 0 && !warning) {
     const next = intros.queue.shift();
-    intros.text = next.type === 'strikes' ? strikesText(strikesToFire(state)) : INTRO_TEXT[next.type];
+    intros.text = next.type === 'strikes' ? strikesText(strikesToFire(state)) : next.type === 'noWater' ? waterText(next.hall) : INTRO_TEXT[next.type];
     intros.ids = state.alarms.some((a) => a.id === next.id) ? [next.id] : [];
     intros.until = state.t + (next.type === 'loan' ? NOTICE_SECONDS : INTRO_SECONDS);
     // The strikes line must be gone before the first strike visit's warning (45 s away at least).

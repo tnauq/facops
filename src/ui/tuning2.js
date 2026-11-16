@@ -16,6 +16,11 @@ const setBurn = (o, key, v) => {
   o.building = { ...(o.building ?? {}), burn: { ...D.building.burn, ...(o.building?.burn ?? {}), [key]: v } };
 };
 
+// The pumps' numbers sit one level below building too (pass 6 spec 5, M40).
+const setPumps = (o, key, v) => {
+  o.building = { ...(o.building ?? {}), pumps: { ...D.building.pumps, ...(o.building?.pumps ?? {}), [key]: v } };
+};
+
 export const TUNING2_FIELDS = [
   { id: 'tighten', label: 'Tightening per 10 s (%)', kind: 'range', min: 0, max: 10, step: 0.5,
     get: (c) => c.director.tighten * 100, set: (o, v) => { o.director.tighten = v / 100; } },
@@ -72,6 +77,15 @@ export const TUNING2_FIELDS = [
     get: (c) => c.ceo.strikeFine, set: (o, v) => { o.ceo = { ...(o.ceo ?? {}), strikeFine: v }; } },
   { id: 'capSteps', label: 'Alarm cap +2 at 14:00 and +2 at 17:00', kind: 'toggle',
     get: (c) => (c.building.capSteps ?? []).length > 0, set: (o, v) => { o.building = { ...(o.building ?? {}), capSteps: v ? D.building.capSteps : [] }; } },
+  // New in pass 6 (spec 5): what each pump carries.
+  { id: 'chillersPerGlycolPump', label: 'Chillers per glycol pump', kind: 'range', min: 1, max: 4, step: 1,
+    get: (c) => c.building.pumps.chillersPerGlycolPump, set: (o, v) => setPumps(o, 'chillersPerGlycolPump', v) },
+  { id: 'cdusPerGlycolPump', label: 'Coolant units per glycol pump', kind: 'range', min: 1, max: 6, step: 1,
+    get: (c) => c.building.pumps.cdusPerGlycolPump, set: (o, v) => setPumps(o, 'cdusPerGlycolPump', v) },
+  { id: 'hallsPerWaterPump', label: 'Halls per water pump', kind: 'range', min: 1, max: 8, step: 1,
+    get: (c) => c.building.pumps.hallsPerWaterPump, set: (o, v) => setPumps(o, 'hallsPerWaterPump', v) },
+  { id: 'noWaterFactor', label: 'Output of a hall without water (%)', kind: 'range', min: 0, max: 100, step: 10,
+    get: (c) => c.building.pumps.noWaterFactor * 100, set: (o, v) => setPumps(o, 'noWaterFactor', v / 100) },
   { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',
     get: (c) => !c.tutorial, set: (o, v) => { o.tutorial = !v; } },
 ];

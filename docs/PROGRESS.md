@@ -86,9 +86,47 @@ The owner approved `docs/pass6-spec.md` (version 0.1) on 16 November 2026: a blu
 | M37. Main menu, Settings, pause menu | `m37` | Done |
 | M38. The longer plant | `m38` | Done |
 | M39. Pump rules | `m39` | Done |
-| M40. Teaching and the balance check | | Next |
+| M40. Teaching and the balance check | `m40` | Done |
 
 ## Log
+
+### M40. Teaching and the balance check
+
+Pass 6 spec 5. Pass 6 is complete.
+
+Built:
+
+- **Tutorial:** the new-hall lesson now reads "New hall: RMU, transformer, switchboard, coolant unit, a water pump for every 2 halls, then racks." (98 characters). This is the spec's line, so the old "Each chiller needs a dry cooler" sentence is gone; nothing else in the tutorial names the dry coolers now.
+- **Introductions** (M21's one-line callouts), once each per run:
+  - The first CDU without glycol: "Not enough glycol pumps: the farthest coolant unit has gone dry. Build another."
+  - The first hall without water: "Water pumps serve two halls each. Hall 3 has none: it runs at half." (The line names the hall.)
+  - Both show in **every building run**, like the loan line, not only runs that began with the tutorial. These are new rules, and anyone who learned the game earlier has Skip tutorial on. They wait behind a CEO warning like every introduction.
+- **Tuning drawer:** "Chillers per glycol pump", "Coolant units per glycol pump", "Halls per water pump" and "Output of a hall without water (%)".
+- **Crew guidance:** checked. The Mechanical line reads "Faster on chillers, pumps and dry coolers." and a test now pins it.
+- **Tests:** 4 new ones in `tests/pumpTeaching.test.js`. The tutorial and strikes tests now expect the spec's new-hall line and allow the pump lines beside the strike line (516 in all).
+
+Scripted checks (spec 4.4, 12 seeds): **identical with the tutorial off and on**, the same table as M39. In building mode the tutorial lives only on the screen (the rules never read it), and the scripted players don't use the screen.
+
+| Player | Run length: median (range) | Earned | 150 MW at | CDUs ever dry / halls ever without water |
+|---|---|---|---|---|
+| Compute first, backups from hall 4 | 22:57 (5:04 to 27:30) | $135,758 | 7:37 (10/12) | 0.3 / 3.3 |
+| The same, getting ready for the CEO | 23:53 (17:34 to 30:00) | $171,907 | 7:38 (12/12) | 0.6 / 3.9 |
+| Backups from hall 6 | 17:37 (5:04 to 26:16) | $89,152 | 6:31 (10/12) | 0.6 / 2.2 |
+| Never a backup | 18:37 (5:04 to 25:18) | $77,981 | 6:31 (10/12) | 0.4 / 1.3 |
+| Never hires | 10:03 (5:04 to 25:59) | $71,302 | 7:30 (10/12) | 0.3 / 3.0 |
+| Slow (decides every 4 s) | 20:57 (17:41 to 25:34) | $123,412 | 8:29 (12/12) | 0.8 / 2.8 |
+| Backups early | 0:40 (0:40 to 4:06) | $751 | - | 0 / 0 |
+
+The targets stand as M39 left them: 150 MW, spare pumps paying off, buying everything early, and the dry time are all met. **The run length is still over** (22:57; 21:19 over 24 seeds; target 14 to 20). The spec only asks to record it, so nothing was tuned; it waits for the owner. The levers are in the drawer: the late alarm-cap steps, CEO strikes before fired, and the fine.
+
+Worth knowing:
+
+- Checked in headless Chrome at 844 x 390 and 660 x 300: the drawer's four pump controls, and the glycol line on a run without the tutorial. No console errors.
+
+Owner's checklist:
+
+- A first run with the tutorial teaches the pumps without a wall of text.
+- The first dry CDU and the first hall without water each get one line.
 
 ### M39. Pump rules
 

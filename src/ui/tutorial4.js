@@ -29,6 +29,9 @@ const anyStarted = (state, ids) => ids.some((id) => started(state, id));
 const BOTTOM_ROWS = ['row-1-b-0', 'row-1-b-1', 'row-1-b-2'];
 const BOTTOM_CHAIN = ['rmu-1-b', 'xfmr-1-b-A', 'msb-1-b-A']; // the bottom half's power chain (M29)
 
+// Pass 6 spec 5 (M40): the new-hall lesson names the water pumps (98 characters, under the limit).
+export const GROW_LINE = 'New hall: RMU, transformer, switchboard, coolant unit, a water pump for every 2 halls, then racks.';
+
 // The spec's wording (116 characters) trimmed to the callouts' 110-character limit, same meaning.
 export const ROLES_LINE = 'Any tech fixes anything indoors; a matching hat is faster. Yard high voltage: electricians (yellow) only.';
 
@@ -86,7 +89,7 @@ export function updateTutorial4(tut, state, events) {
       }
       break;
     case 'backup':
-      if (waited > READ_TIME) go(tut, state, 'grow', 'New hall: RMU, transformer, switchboard and coolant unit, then racks. Each chiller needs a dry cooler.');
+      if (waited > READ_TIME) go(tut, state, 'grow', GROW_LINE);
       break;
     case 'grow':
       if (waited > READ_TIME) {

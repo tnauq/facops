@@ -184,7 +184,9 @@ test('the strikes are introduced once, in one line, as the last walkthrough befo
     if (t) texts.add(t);
     return g.ceo !== null && g.ceo.strike === true;
   }, 1500);
-  assert.deepEqual([...texts], ["From now on, every CEO visit that sees an outage is a strike. Three and you're out."]);
+  // Pass 6 (M40): the pumps' own lines may show in the same run; the strikes get exactly one line.
+  const others = [...texts].filter((t) => !/^(Water pumps serve|Not enough glycol pumps)/.test(t));
+  assert.deepEqual(others, ["From now on, every CEO visit that sees an outage is a strike. Three and you're out."]);
   assert.equal(strikesText(1), 'From now on, any CEO visit that sees an outage ends the run.');
 });
 

@@ -48,8 +48,8 @@ test('the lessons teach the build order: racks, a switchboard for each half, bac
   assert.match(text, /own RMU, transformer and switchboard first/);
   assert.match(text, /no backup/);
   assert.match(text, /Backups cost upkeep/);
-  assert.match(text, /RMU, transformer, switchboard and coolant unit, then racks/);
-  assert.match(text, /dry cooler/);
+  // Pass 6 spec 5 (M40): the spec's new-hall line names the water pumps in place of the dry coolers.
+  assert.match(text, /New hall: RMU, transformer, switchboard, coolant unit, a water pump for every 2 halls, then racks\./);
   assert.match(text, /hire/i);
 });
 
