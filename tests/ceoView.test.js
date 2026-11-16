@@ -39,6 +39,7 @@ test('the banner: warning, visit, zero tolerance, and one line on a narrow map',
   assert.equal(bannerModel(s).lines[0], 'The CEO is here · Hall 3 left');
   s.ceo.zeroTolerance = true;
   assert.deepEqual(bannerModel(s).lines, ['Zero tolerance · Hall 3 left', 'Any unattended alarm seen ends the run']);
+  assert.equal(bannerModel(s).dark, true);
   assert.equal(bannerModel(s, true).lines[0], 'CEO · H3 · zero tolerance');
   run(s, (g) => g.ceo === null);
   assert.equal(bannerModel(s), null);
@@ -48,7 +49,7 @@ test('the Handover is "every hall"; the visit before zero tolerance says so', ()
   const s = quiet({ startHalls: 8 });
   run(s, (g) => g.ceo !== null);
   assert.equal(bannerModel(s).lines[0], 'The CEO is coming · every hall · 0:20');
-  s.ceo.nextIsZeroTolerance = true;
+  s.ceo.nextIsStrike = true; // the classic game keeps zero tolerance (pass 5 spec 4.1 is building mode's)
   assert.match(bannerModel(s).lines[1], /Next visit: zero tolerance$/);
 });
 

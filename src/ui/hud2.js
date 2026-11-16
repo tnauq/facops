@@ -2,7 +2,7 @@
 // so the same drawing code paints it: the load in MW against online capacity, and a note with
 // "Hall 3 of 8" and how far the next hall's construction has got.
 
-import { buildProgress, buildingOn, burnRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn } from '../core/index2.js';
+import { buildProgress, buildingOn, burnRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
 
@@ -15,12 +15,14 @@ export function ceoNote(state) {
   const c = state.ceo;
   if (!c) return null;
   const areas = c.areas.length > 4 ? 'every hall' : c.areas.map(shortArea).join(', ');
-  const stake = c.zeroTolerance ? 'zero tolerance' : `−${c.cost}`;
+  const strike = c.strike && !c.zeroTolerance ? `strike ${c.strikeNumber} of ${strikesToFire(state)}` : null;
+  const stake = c.zeroTolerance ? 'zero tolerance' : strike ?? `−${c.cost}`;
   const when = c.phase === 'warning' ? `CEO ${formatClock(Math.max(0, Math.ceil(c.warningEnd - state.t)))}` : 'CEO in';
-  const next = c.nextIsZeroTolerance && c.phase === 'warning' ? ' · next: zero tolerance' : '';
+  const nextWord = c.nextIsZeroTolerance ? 'zero tolerance' : c.nextIsStrike ? 'strikes' : null;
+  const next = nextWord && c.phase === 'warning' ? ` · next: ${nextWord}` : '';
   return {
     long: `${when} ${c.phase === 'warning' ? '· ' : ''}${areas} · ${stake}${next}`,
-    short: `${when} ${c.zeroTolerance ? 'ZT' : stake}`,
+    short: `${when} ${c.zeroTolerance ? 'ZT' : strike ? `S${c.strikeNumber}/${strikesToFire(state)}` : stake}`,
   };
 }
 
@@ -57,7 +59,17 @@ function noteWordings(state, extra) {
   return [`${loan} · ${halls}${extra}`, `${loan} · ${short}`, loan];
 }
 
-/** { clock, load, band, meter, note, noteShort } and, in building mode, money (moneyModel). */
+/**
+ * The CEO's strikes for the HUD (pass 5 spec 4.2): { given, of } from the first strike on, else null.
+ * Pass 3's zero tolerance (one strike) never shows them: its one strike ends the run.
+ */
+export function strikesModel(state) {
+  const given = state.ceoStrikes ?? 0;
+  const of = strikesToFire(state);
+  return given > 0 && of > 1 ? { given: Math.min(given, of), of } : null;
+}
+
+/** { clock, load, band, meter, note, noteShort, strikes } and, in building mode, money (moneyModel). */
 export function hudModel2(state, { auto = false } = {}) {
   const l = load(state);
   if (buildingOn(state)) {
@@ -72,6 +84,7 @@ export function hudModel2(state, { auto = false } = {}) {
       note,
       noteShort: shorter[0],
       noteShorter: shorter[1] ?? shorter[0],
+      strikes: strikesModel(state),
     };
   }
   const parts = [`Hall ${state.halls} of ${state.config.maxHalls}`];
@@ -84,6 +97,7 @@ export function hudModel2(state, { auto = false } = {}) {
     load: `${Math.round(l.deliveredMw)} / ${Math.round(l.capacityMw)} MW`,
     band: l.band,
     meter: Math.max(0, Math.min(100, state.meter)),
+    strikes: strikesModel(state),
     note: parts.join(' · '),
     // A shorter wording for narrow screens, where the note must fit before the HUD buttons.
     noteShort: [`H${state.halls}/${state.config.maxHalls}`, ...(state.halls < state.config.maxHalls ? [`next ${Math.floor(buildProgress(state) * 100)}%`] : []), ...parts.slice(2)].join(' · '),

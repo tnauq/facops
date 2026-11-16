@@ -2,7 +2,7 @@
 // The banner's words, the CEO's lines and when they are said, the assistant's place a step behind,
 // and the effects of a sighting (a float, the HUD flash, a shaken bubble).
 
-import { EQUIPMENT_BY_ID, areaName, formatClock } from '../core/index2.js';
+import { EQUIPMENT_BY_ID, areaName, formatClock, strikesToFire } from '../core/index2.js';
 import { FLASH_TIME } from './feel.js';
 
 // ---------------------------------------------------------------- lines (spec 4.8; all original)
@@ -23,6 +23,9 @@ export const LINES = {
   leaveGood: ['Acceptable. Barely. Keep shipping.', 'Great hustle. Do it again, faster.'],
   leaveBad: ["We'll talk about this at the offsite.", "I'm adding a dashboard to your dashboard."],
   zeroTolerance: ['Next visit I want zero problems. Not few. Zero.'],
+  // Pass 5 spec 4.2: leaving walkthrough 2, and one line per strike, in order (starting set).
+  nextStrikes: ["From now on I'm counting. Three strikes."],
+  strike: ["That's one. I count to three.", 'Two. My assistant is writing this down.', "Three. You're done. I'll get an AI to run this."],
   fire: ["You're done. I'll get an AI to run this.", 'Clear your desk. Take a cart.'],
 };
 
@@ -37,7 +40,7 @@ export const SHAKE_TIME = 0.6;
 
 /** New view state for one run. */
 export function createCeoView() {
-  return { say: null, lastAt: null, trail: [], shakes: {}, nextIsZeroTolerance: false, visits: 0 };
+  return { say: null, lastAt: null, trail: [], shakes: {}, nextIsZeroTolerance: false, nextIsStrike: false, visits: 0 };
 }
 
 /**
@@ -46,7 +49,10 @@ export function createCeoView() {
  */
 export function ceoEvents(view, events, state, feel) {
   for (const e of events) {
-    if (e.type === 'ceoWarning') view.nextIsZeroTolerance = e.nextIsZeroTolerance;
+    if (e.type === 'ceoWarning') {
+      view.nextIsZeroTolerance = e.nextIsZeroTolerance;
+      view.nextIsStrike = Boolean(e.nextIsStrike);
+    }
     if (e.type === 'ceoArrive') {
       view.visits += 1;
       const list = e.kind === 'ribbon' ? LINES.ribbon : e.kind === 'handover' ? LINES.handover : LINES.arrive;
@@ -57,15 +63,34 @@ export function ceoEvents(view, events, state, feel) {
       view.shakes[e.alarmId] = e.t + SHAKE_TIME;
       const at = EQUIPMENT_BY_ID[e.equipId];
       // Beside the alarm, so it never sits on the alarm's own MW label.
-      feel.floats.push({ text: e.zeroTolerance ? 'Fired' : `−${e.cost} Stability`, x: at.x + 90, y: at.y, born: e.t });
+      feel.floats.push({ text: sightingFloat(e), x: at.x + 90, y: at.y, born: e.t });
       feel.flashUntil = e.t + FLASH_TIME;
     }
+    // A strike's own line (pass 5 spec 4.2) takes over from the sighting's: the count matters more.
+    if (e.type === 'ceoStrike') view.say = { text: strikeLine(e.count, e.of), until: e.t + SAY_TIME };
     if (e.type === 'ceoLeave') {
-      const list = view.nextIsZeroTolerance ? LINES.zeroTolerance : e.sightings > 0 ? LINES.leaveBad : LINES.leaveGood;
+      const next = view.nextIsZeroTolerance ? LINES.zeroTolerance : view.nextIsStrike ? LINES.nextStrikes : null;
+      const list = next ?? (e.sightings > 0 ? LINES.leaveBad : LINES.leaveGood);
       view.say = { text: pickLine(list, state.seed + view.visits), until: e.t + SAY_TIME };
       view.nextIsZeroTolerance = false;
+      view.nextIsStrike = false;
     }
   }
+}
+
+const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
+
+/** What floats beside a sighting: the fine in dollars, the Stability hit, or "Fired" (zero tolerance). */
+export function sightingFloat(e) {
+  if (e.zeroTolerance) return 'Fired';
+  if (e.fine !== null && e.fine !== undefined) return e.fine > 0 ? `−${money(e.fine)}` : 'Strike';
+  return e.strike ? 'Strike' : `−${e.cost} Stability`;
+}
+
+/** The CEO's line for strike `count` of `of`: the last strike always gets the last line. */
+export function strikeLine(count, of = LINES.strike.length) {
+  const i = count >= of ? LINES.strike.length - 1 : Math.min(count - 1, LINES.strike.length - 2);
+  return LINES.strike[Math.max(0, i)];
 }
 
 /** The speech bubble to show at game time t, or null. */
@@ -133,9 +158,17 @@ function placesText(areas, all) {
 }
 const shortPlaces = (areas) => (areas.length === 0 ? 'leaving' : areas.length >= 8 ? 'all halls' : areas.map((a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`)).join(', '));
 
+// What a sighting costs, in the banner's words: dollars in building mode (pass 4: fines), else Stability.
+function stakeText(state, c) {
+  const b = state.config.building;
+  if (!(b && b.enabled && !b.stability)) return `−${c.cost}`;
+  return `−${money(c.strike ? state.config.ceo.strikeFine : c.cost * b.ceoFine)}`;
+}
+
 /**
- * The banner across the top of the map, or null between visits. { lines, zeroTolerance }: two lines
- * on a wide map, one on a narrow one (spec 4.7).
+ * The banner across the top of the map, or null between visits. { lines, dark }: two lines on a wide
+ * map, one on a narrow one (spec 4.7). `dark` (solid ink) marks a visit where one sighting ends the
+ * run: zero tolerance, or the strike visit that would give the last strike (pass 5 spec 4.2).
  */
 export function bannerModel(state, narrow = false) {
   const c = state.ceo;
@@ -144,14 +177,27 @@ export function bannerModel(state, narrow = false) {
   const left = areasLeft(c);
   const clock = formatClock(Math.max(0, Math.ceil(c.warningEnd - state.t)));
   const zt = c.zeroTolerance;
+  const of = strikesToFire(state);
+  if (c.strike && !zt) {
+    const n = c.strikeNumber;
+    const dark = n >= of;
+    const strike = c.struck ? `strike ${n} of ${of} given` : `strike ${n} of ${of}`;
+    if (narrow) return { lines: [['CEO', shortPlaces(left), ...(warning ? [clock] : []), strike].join(' · ')], dark };
+    const where = placesText(left, false);
+    const title = `CEO · ${warning ? where : `${where} left`}${warning ? ` · ${clock}` : ''} · ${strike}`;
+    const fine = stakeText(state, c);
+    const sub = c.struck ? (dark ? `Strike ${n} of ${of} given` : `${fine} for each outage seen`) : `Any outage seen is strike ${n} of ${of}${dark ? ': fired' : ''} · ${fine} each`;
+    return { lines: [title, sub], dark };
+  }
+  const next = c.nextIsStrike ? (zt || of <= 1 ? 'zero tolerance' : 'strikes') : null;
   if (narrow) {
-    const parts = ['CEO', shortPlaces(left), ...(warning ? [clock] : []), zt ? 'zero tolerance' : `−${c.cost}`];
-    return { lines: [parts.join(' · ')], zeroTolerance: zt };
+    const parts = ['CEO', shortPlaces(left), ...(warning ? [clock] : []), zt ? 'zero tolerance' : stakeText(state, c), ...(next && warning ? [`next: ${next}`] : [])];
+    return { lines: [parts.join(' · ')], dark: zt };
   }
   const where = placesText(left, c.kind === 'handover');
   const title = zt
     ? `Zero tolerance · ${warning ? where : `${where} left`}${warning ? ` · ${clock}` : ''}`
     : warning ? `The CEO is coming · ${where} · ${clock}` : `The CEO is here · ${left.length > 0 ? `${where} left` : where}`;
-  const sub = zt ? 'Any unattended alarm seen ends the run' : `Each unattended alarm seen: −${c.cost}${c.nextIsZeroTolerance ? ' · Next visit: zero tolerance' : ''}`;
-  return { lines: [title, sub], zeroTolerance: zt };
+  const sub = zt ? 'Any unattended alarm seen ends the run' : `Each unattended alarm seen: ${stakeText(state, c)}${next ? ` · Next visit: ${next}` : ''}`;
+  return { lines: [title, sub], dark: zt };
 }

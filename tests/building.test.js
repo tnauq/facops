@@ -265,7 +265,8 @@ test('the classic game is untouched: crew + 2 cap, hall table by halls online', 
 test('compute first wins: a builder who buys backups early earns far less than one who builds racks first', async () => {
   const { playRun } = await import('../src/core/index2.js');
   const config = { tutorial: false, building: { enabled: true } };
-  const run = (builder, seed) => playRun({ seed, config, policy: 'none', builder, maxSeconds: 1500 });
+  // 30 minutes (was 25): pass 5's strikes let a good builder last longer than zero tolerance did (M33).
+  const run = (builder, seed) => playRun({ seed, config, policy: 'none', builder, maxSeconds: 1800 });
   for (const seed of [1, 2]) {
     const first = run('builder', seed);
     const early = run('careful', seed);

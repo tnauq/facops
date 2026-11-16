@@ -83,7 +83,8 @@ test('the Handover comes with hall 8 and tours every hall; Start with halls 8 ge
 });
 
 test('walkthroughs follow the Handover: −50, −70, then zero tolerance with shrinking warnings', () => {
-  const s = quiet({ startHalls: 8 });
+  // Pass 3's zero tolerance is kept as one strike with no fine (pass 5 spec 4.1).
+  const s = quiet({ startHalls: 8, ceo: { strikes: 1, strikeFine: 0 } });
   const seen = [];
   for (let i = 0; i < 6; i++) {
     stepUntil(s, (g) => g.ceo !== null && g.ceo.number === i + 1, 900);
@@ -193,6 +194,8 @@ test('a tech still walking to the alarm does not count', () => {
 
 test('zero tolerance: one unattended alarm seen ends the run, fired by the CEO', () => {
   const s = ribbonInspectingTop();
+  s.config.ceo.strikes = 1; // pass 3's zero tolerance: a strike visit whose one strike fires
+  s.ceo.strike = true;
   s.ceo.zeroTolerance = true;
   s.ceo.cost = null;
   raiseAlarm(s, 'leak', 'cdu-3-t');

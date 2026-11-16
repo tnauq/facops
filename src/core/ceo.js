@@ -3,7 +3,9 @@
 // A visit is announced with a warning, then the CEO walks a route of areas along the same lanes as
 // the crew, inspecting each area (facing the top half, then the bottom), and leaves. Anything in
 // the CEO's view cone that is not being fixed by a tech on site is a sighting: it costs the visit's
-// Stability hit, or, under zero tolerance, ends the run. Each alarm costs at most once per visit.
+// Stability hit (or fine). From walkthrough 3, every visit is a strike visit (pass 5 spec 4.1): each
+// sighting is fined, a visit with any sighting is one strike, and the last strike ends the run. With
+// `ceo.strikes: 1` that is pass 3's zero tolerance. Each alarm costs at most once per visit.
 //
 // game2.js owns the state; it calls ceoStep every tick and queueCeoVisit when a hall comes online.
 
@@ -111,7 +113,14 @@ export function routePoints(ceo) {
   return out;
 }
 
-// What the next visit of this kind is: its areas, warning, cost and zero tolerance.
+/**
+ * Strikes before the CEO fires you (pass 5 spec 4.1). Strikes are pass 5's, for building mode; the
+ * classic game keeps pass 3's zero tolerance, which its pacing is built on: one strike.
+ */
+export const strikesToFire = (state) => (buildingOn(state) ? Math.max(1, state.config.ceo.strikes) : 1);
+
+// What the next visit of this kind is: its areas, warning, cost and whether it is a strike visit.
+// `zeroTolerance` marks a strike visit whose one strike ends the run (ceo.strikes: 1).
 function visitFor(state, kind, hall = null) {
   const cfg = state.config.ceo;
   if (kind === 'ribbon') return { areas: [`h${hall ?? cfg.ribbonHall}`], ...cfg.ribbon, inspect: cfg.inspect, zeroTolerance: false };
@@ -121,10 +130,10 @@ function visitFor(state, kind, hall = null) {
   }
   const n = state.ceoWalks + 1; // this walkthrough's number
   const walk = cfg.walks[n - 1];
-  if (walk) return { areas: pickRoute(state), ...walk, inspect: cfg.inspect, zeroTolerance: false, walk: n, nextIsZeroTolerance: n === cfg.walks.length };
-  const late = n - cfg.walks.length - 1; // 0 for the first zero-tolerance visit
+  if (walk) return { areas: pickRoute(state), ...walk, inspect: cfg.inspect, zeroTolerance: false, walk: n, nextIsStrike: n === cfg.walks.length };
+  const late = n - cfg.walks.length - 1; // 0 for the first strike visit
   const warning = Math.max(cfg.ztWarningMin, cfg.ztWarning - late);
-  return { areas: pickRoute(state), warning, cost: null, inspect: cfg.inspect, zeroTolerance: true, walk: n };
+  return { areas: pickRoute(state), warning, cost: null, inspect: cfg.inspect, strike: true, zeroTolerance: strikesToFire(state) <= 1, walk: n };
 }
 
 function emit(state, type, data = {}) {
@@ -144,7 +153,11 @@ function startVisit(state, entry) {
     areas: v.areas,
     cost: v.cost,
     zeroTolerance: v.zeroTolerance,
-    nextIsZeroTolerance: Boolean(v.nextIsZeroTolerance),
+    strike: Boolean(v.strike), // a strike visit (pass 5 spec 4.1)
+    strikeNumber: v.strike ? (state.ceoStrikes ?? 0) + 1 : null, // the strike this visit would give
+    struck: false, // a strike has been given on this visit
+    nextIsStrike: Boolean(v.nextIsStrike),
+    nextIsZeroTolerance: Boolean(v.nextIsStrike) && strikesToFire(state) <= 1,
     phase: 'warning',
     warningEnd: state.t + v.warning,
     steps,
@@ -164,7 +177,9 @@ function startVisit(state, entry) {
     seconds: v.warning,
     cost: v.cost,
     zeroTolerance: v.zeroTolerance,
-    nextIsZeroTolerance: Boolean(v.nextIsZeroTolerance),
+    strike: Boolean(v.strike),
+    nextIsStrike: Boolean(v.nextIsStrike),
+    nextIsZeroTolerance: Boolean(v.nextIsStrike) && strikesToFire(state) <= 1,
   });
 }
 
@@ -270,6 +285,27 @@ function endRun(state) {
   emit(state, 'over', { reason: 'ceo' });
 }
 
+// A strike visit (pass 5 spec 4.1): one strike per visit, however many sightings; the last one fires.
+function giveStrike(state, c) {
+  if (c.struck) return;
+  c.struck = true;
+  state.ceoStrikes = (state.ceoStrikes ?? 0) + 1;
+  state.strikeTimes = [...(state.strikeTimes ?? []), state.t];
+  const of = strikesToFire(state);
+  emit(state, 'ceoStrike', { count: state.ceoStrikes, of });
+  if (state.ceoStrikes >= of) {
+    emit(state, 'ceoFired', { strikes: state.ceoStrikes });
+    endRun(state);
+  }
+}
+
+// Building mode without Stability (pass 4, owner 15 Nov): a sighting is a fine instead, in dollars.
+// A strike visit fines `ceo.strikeFine`. Null where the sighting costs Stability (or nothing).
+function fineFor(state, c) {
+  if (!buildingOn(state) || state.config.building.stability) return null;
+  return c.strike ? state.config.ceo.strikeFine : c.cost * state.config.building.ceoFine;
+}
+
 function judge(state, c) {
   for (const alarm of state.alarms) {
     if (c.counted[alarm.id] || attended(state, alarm) || !ceoSees(state, alarm.equipId)) continue;
@@ -279,18 +315,19 @@ function judge(state, c) {
     c.counted[alarm.id] = true;
     c.sightings += 1;
     state.stats.ceoSightings += 1;
-    emit(state, 'ceoSighting', { alarmId: alarm.id, alarmType: alarm.type, equipId: alarm.equipId, cost: c.cost, zeroTolerance: c.zeroTolerance });
-    if (c.zeroTolerance) {
-      endRun(state);
-      return;
-    }
-    // Building mode without Stability (pass 4, owner 15 Nov): a sighting is a fine instead.
-    if (buildingOn(state) && !state.config.building.stability) {
+    const fine = fineFor(state, c);
+    emit(state, 'ceoSighting', { alarmId: alarm.id, alarmType: alarm.type, equipId: alarm.equipId, cost: c.cost, fine, strike: c.strike, zeroTolerance: c.zeroTolerance });
+    if (fine !== null) {
       // The fine can put the cash in the red; the red countdown then decides (game2.js burn).
-      state.cash -= c.cost * state.config.building.ceoFine;
-      state.stats.ceoFines = (state.stats.ceoFines ?? 0) + c.cost * state.config.building.ceoFine;
+      state.cash -= fine;
+      state.stats.ceoFines = (state.stats.ceoFines ?? 0) + fine;
+    }
+    if (c.strike) {
+      giveStrike(state, c);
+      if (state.over) return;
       continue;
     }
+    if (fine !== null) continue;
     state.meter -= c.cost;
     if (state.meter <= EPS) {
       endRun(state);
@@ -304,8 +341,11 @@ function finish(state, c) {
   state.ceoVisits += 1;
   emit(state, 'ceoLeave', { kind: c.kind, sightings: c.sightings });
   // Walkthroughs follow the Handover, and each other, after a seeded gap.
+  // Pass 5 (M33's checks): strike visits come closer together, so the late game ends the run.
   if (c.kind === 'handover' || c.kind === 'walk') {
-    const [lo, hi] = state.config.ceo.gap;
+    const cfg = state.config.ceo;
+    const nextIsStrike = state.ceoWalks >= cfg.walks.length;
+    const [lo, hi] = nextIsStrike && cfg.strikeGap ? cfg.strikeGap : cfg.gap;
     state.ceoNext = { at: state.t + state.ceoRng.range(lo, hi), kind: 'walk' };
   }
 }

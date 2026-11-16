@@ -1,5 +1,5 @@
 // Scripted checks for pass 4's building mode (spec 4.1). Not part of the game. Run with:
-//   node scripts/pacing4.mjs [seeds] [config JSON]
+//   node scripts/pacing4.mjs [seeds] [config JSON] [players: a word in their names, e.g. "builder,"]
 // Every player builds with a scripted plan; auto-dispatch sends the techs. Prints one row per player.
 import { onlineRows, playRun } from '../src/core/index2.js';
 
@@ -38,23 +38,27 @@ function one(seed, opts) {
       }
     },
   });
-  const cause = r.firedByCeo ? (r.state.ceo && r.state.ceo.zeroTolerance ? 'zero tolerance' : 'CEO fine') : r.bankrupt ? 'broke' : 'meter';
-  return { seconds: r.seconds, earned: r.earned, firstBuild, mw150, cause, short: early ? short / early : 0, crew: r.crew.length, halls: r.halls };
+  // Pass 5 (M33): fired by the CEO's strikes, broke (before or after the loan's 5:00), or still running.
+  const cause = r.firedByCeo ? 'fired' : r.bankrupt ? (r.seconds < 300 ? 'broke early' : 'broke late') : r.finished ? 'other' : 'still running';
+  return { seconds: r.seconds, earned: r.earned, firstBuild, mw150, cause, short: early ? short / early : 0, crew: r.crew.length, halls: r.halls, strikes: r.strikes };
 }
 
 console.log(`Seeds 1 to ${seeds}. Config: ${JSON.stringify(extra)}`);
-console.log('| Player | Run length (range) | Earned | First build | 150 MW at | Halls | Crew | Ended by zero tolerance / CEO fine / broke | Short-handed before 8:00 |');
-console.log('|---|---|---|---|---|---|---|---|---|');
+console.log('| Player | Run length: median (range) | Earned | First build | 150 MW at | Halls | Crew | Fired / broke before 5:00 / broke later / still running | Strikes | Short-handed before 8:00 |');
+console.log('|---|---|---|---|---|---|---|---|---|---|');
+const median = (xs) => { const v = [...xs].sort((a, b) => a - b); const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
 const rows = {};
-for (const [name, opts] of PLAYERS) {
+const only = process.argv[4];
+for (const [name, opts] of PLAYERS.filter(([n]) => !only || n.includes(only))) {
   const runs = [];
   for (let seed = 1; seed <= seeds; seed++) runs.push(one(seed, opts));
   const len = runs.map((r) => r.seconds);
   const hit = runs.filter((r) => r.mw150 !== null);
   const by = (c) => runs.filter((r) => r.cause === c).length;
   rows[name] = mean(runs.map((r) => r.earned));
-  console.log(`| ${name} | ${clock(mean(len))} (${clock(Math.min(...len))} to ${clock(Math.max(...len))}) | $${Math.round(mean(runs.map((r) => r.earned))).toLocaleString('en-US')} | ${clock(mean(runs.map((r) => r.firstBuild ?? 0)))} | ${hit.length ? `${clock(mean(hit.map((r) => r.mw150)))} (${hit.length}/${seeds})` : '-'} | ${mean(runs.map((r) => r.halls)).toFixed(1)} | ${mean(runs.map((r) => r.crew)).toFixed(1)} | ${by('zero tolerance')} / ${by('CEO fine')} / ${by('broke')} | ${Math.round(mean(runs.map((r) => r.short)) * 100)}% |`);
+  console.log(`| ${name} | ${clock(median(len))} (${clock(Math.min(...len))} to ${clock(Math.max(...len))}) | $${Math.round(mean(runs.map((r) => r.earned))).toLocaleString('en-US')} | ${clock(mean(runs.map((r) => r.firstBuild ?? 0)))} | ${hit.length ? `${clock(mean(hit.map((r) => r.mw150)))} (${hit.length}/${seeds})` : '-'} | ${mean(runs.map((r) => r.halls)).toFixed(1)} | ${mean(runs.map((r) => r.crew)).toFixed(1)} | ${by('fired')} / ${by('broke early')} / ${by('broke late')} / ${by('still running')} | ${mean(runs.map((r) => r.strikes)).toFixed(1)} | ${Math.round(mean(runs.map((r) => r.short)) * 100)}% |`);
 }
+if (only) process.exit(0);
 const b = rows['builder (compute first, backups from hall 4, hires)'];
 const less = (name) => Math.round((1 - rows[name] / b) * 100);
 console.log(`\nAgainst the compute-first builder: careful earns ${less('careful builder (backups early)')}% less, greedy ${less('greedy builder (no backups)')}% less, never hiring ${less('builder that never hires')}% less.`);

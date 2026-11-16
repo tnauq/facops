@@ -89,6 +89,33 @@ function drawMoney(ctx, layout, money) {
   }
 }
 
+// A hardhat seen side on: a dome over a brim. Filled in ink for a strike given, an outline for one to come.
+function drawHardhat(ctx, cx, by, r, filled) {
+  ctx.beginPath();
+  ctx.arc(cx, by, r, Math.PI, 0);
+  ctx.closePath();
+  ctx.moveTo(cx - r * 1.4, by);
+  ctx.lineTo(cx + r * 1.4, by);
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = INK;
+  if (filled) {
+    ctx.fillStyle = INK;
+    ctx.fill();
+  }
+  ctx.stroke();
+}
+
+/**
+ * The CEO's strikes (pass 5 spec 4.2): under the clock, which moves up to make room, one hardhat per
+ * strike to give. The CEO's hardhat is white, but white vanishes on the white HUD, so a strike given
+ * is filled in ink and one to come is an ink outline: never a trade colour.
+ */
+function drawStrikes(ctx, x, cy, strikes) {
+  const gap = Math.min(15, 30 / Math.max(1, strikes.of - 1)); // narrower when the drawer sets more strikes
+  const r = Math.min(5.5, gap / 2.8);
+  for (let i = 0; i < strikes.of; i++) drawHardhat(ctx, x + 7 + i * gap, cy + 11, r, i < strikes.given);
+}
+
 function drawPlay(ctx, cx, cy, r) {
   ctx.fillStyle = INK;
   ctx.beginPath();
@@ -114,8 +141,15 @@ export function drawHud(ctx, W, layout, model, note = '', buttons = { held: fals
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillStyle = INK;
-  ctx.font = `600 15px ${FONT}`;
-  ctx.fillText(model.clock, layout.clock.x, cy);
+  if (model.strikes) {
+    ctx.font = `600 13px ${FONT}`;
+    ctx.fillText(model.clock, layout.clock.x, cy - 7);
+    drawStrikes(ctx, layout.clock.x, cy, model.strikes);
+    ctx.font = `600 15px ${FONT}`;
+  } else {
+    ctx.font = `600 15px ${FONT}`;
+    ctx.fillText(model.clock, layout.clock.x, cy);
+  }
 
   drawBandMark(ctx, layout.bandMark.cx, cy, layout.bandMark.size, model.band);
   ctx.fillStyle = INK;

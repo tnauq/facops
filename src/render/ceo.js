@@ -206,7 +206,7 @@ export function drawSpeech(ctx, rect, x, y, text) {
 /** Height in px the banner needs for this model. */
 export const bannerHeight = (model) => (model ? 8 + model.lines.length * 15 : 0);
 
-/** The banner across the top of the map, as wide as its words: white with ink text, or solid ink under zero tolerance. */
+/** The banner across the top of the map, as wide as its words: white with ink text, or solid ink when one sighting ends the run. */
 export function drawBanner(ctx, rect, model) {
   if (!model) return;
   const h = bannerHeight(model);
@@ -221,12 +221,12 @@ export function drawBanner(ctx, rect, model) {
   const x = rect.x + (rect.w - w) / 2;
   ctx.beginPath();
   ctx.roundRect(x, rect.y + 4, w, h, 8);
-  ctx.fillStyle = model.zeroTolerance ? INK : 'rgba(255, 255, 255, 0.94)';
+  ctx.fillStyle = model.dark ? INK : 'rgba(255, 255, 255, 0.94)';
   ctx.fill();
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2;
   ctx.stroke();
-  ctx.fillStyle = model.zeroTolerance ? '#FFFFFF' : INK;
+  ctx.fillStyle = model.dark ? '#FFFFFF' : INK;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   model.lines.forEach((l, i) => {

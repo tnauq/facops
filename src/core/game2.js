@@ -12,7 +12,7 @@
 import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, YARD_ALARMS, makeConfig2 } from './config2.js';
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
-import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit } from './ceo.js';
+import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
 import { HALL_IDS, buildingOn, builtCdus, builtMsbs, dryCapacity, hallOnline, isBuilt, msbFed, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
 
@@ -118,6 +118,8 @@ export function createGame({ seed = 1, config = {} } = {}) {
     ceoNext: cfg.ceo.enabled && halls >= cfg.maxHalls ? { at: cfg.ceo.handoverDelay, kind: 'handover' } : null,
     ceoWalks: 0, // walkthroughs started
     ceoVisits: 0, // visits finished
+    ceoStrikes: 0, // pass 5 spec 4.1: strikes given on strike visits
+    strikeTimes: [], // game time of each strike
     ceoRng: createRng((seed * 7919 + 104729) >>> 0),
     // Building mode (pass 4 spec 2.1, 2.5).
     cash: building ? cfg.building.startCash : 0,
@@ -1208,6 +1210,10 @@ export function results(state) {
     ceoVisits: state.ceoVisits,
     ceoSightings: s.ceoSightings,
     firedByCeo: state.overReason === 'ceo',
+    // Pass 5 spec 4.2: strikes, and when each was given (economy time, as the loan's).
+    strikes: state.ceoStrikes ?? 0,
+    strikesToFire: strikesToFire(state),
+    strikeTimes: (state.strikeTimes ?? []).map((t) => t - (buildingOn(state) ? state.economyStart ?? 0 : 0)),
     deliveries: s.deliveries.map((d) => ({ ...d })),
     crew: state.techs.map((t) => t.trade),
     picks: s.picks.map((p) => ({ hall: p.hall, card: cardText(p.card) })),
@@ -1246,7 +1252,7 @@ export function resultsText(state) {
     `Mode: ${r.mode} | Seed: ${r.seed}`,
     `Survived: ${formatClock(r.seconds)} | Halls: ${r.halls} of ${state.config.maxHalls}${r.fullCampus ? ' | Full campus' : ''}`,
     `Delivered: ${r.energyGwh.toFixed(2)} GWh (${pct(r.shareOfPossible)} of possible)`,
-    `CEO: ${r.ceoVisits} visits survived, ${r.ceoSightings} unattended alarms seen${r.firedByCeo ? ' | Fired by the CEO' : ''}`,
+    `CEO: ${r.ceoVisits} visits survived, ${r.ceoSightings} unattended alarms seen${r.strikes > 0 ? ` | Strikes: ${r.strikeTimes.map(formatClock).join(', ')}` : ''}${r.firedByCeo ? ' | Fired by the CEO' : ''}`,
     `Deliveries: ${r.deliveries.length > 0 ? r.deliveries.map((d) => `H${d.hall} ${formatClock(d.t)}`).join(', ') : 'none'}`,
     `Crew: ${count(r.crew)} | Picks: ${r.picks.length > 0 ? r.picks.map((p) => `H${p.hall} ${p.card}`).join(', ') : 'none'}`,
     `Time in green / yellow / red: ${pct(r.green)} / ${pct(r.yellow)} / ${pct(r.red)}`,

@@ -65,6 +65,11 @@ export const TUNING2_FIELDS = [
     get: (c) => c.building.burn.base, set: (o, v) => setBurn(o, 'base', v) },
   { id: 'doubling', label: 'Overhead doubles every (s, 0 = never; pass 4: 150)', kind: 'range', min: 0, max: 300, step: 10,
     get: (c) => c.building.burn.doubling, set: (o, v) => setBurn(o, 'doubling', v) },
+  // New in pass 5 (spec 4.1): the CEO's strikes. 1 strike with a $0 fine is pass 3's zero tolerance.
+  { id: 'strikes', label: 'CEO strikes before fired (1 = zero tolerance)', kind: 'range', min: 1, max: 6, step: 1,
+    get: (c) => c.ceo.strikes, set: (o, v) => { o.ceo = { ...(o.ceo ?? {}), strikes: v }; } },
+  { id: 'strikeFine', label: 'Fine per sighting on a strike visit ($)', kind: 'range', min: 0, max: 8000, step: 250,
+    get: (c) => c.ceo.strikeFine, set: (o, v) => { o.ceo = { ...(o.ceo ?? {}), strikeFine: v }; } },
   { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',
     get: (c) => !c.tutorial, set: (o, v) => { o.tutorial = !v; } },
 ];

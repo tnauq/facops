@@ -78,12 +78,18 @@ export const DEFAULT_CONFIG2 = {
     inspect: 4, // seconds at each area: half facing the top, half the bottom
     inspectHandover: 2,
     gap: [45, 60], // seconds between the end of one visit and the next walkthrough's warning
+    strikeGap: [20, 30], // M33's checks: the gap before each strike visit (walkthroughs keep 45 to 60 s), to shorten long runs
     ribbonHall: 3, // the ribbon-cutting comes with this hall
     ribbon: { warning: 20, cost: 15 },
     handover: { warning: 20, cost: 35 },
     handoverDelay: 30, // a run that starts with every hall online gets its Handover this far in
-    walks: [{ warning: 20, cost: 50 }, { warning: 15, cost: 70 }], // walkthroughs 1 and 2; after these, zero tolerance
-    ztWarning: 12, // the first zero-tolerance warning, then 1 s less each visit...
+    walks: [{ warning: 20, cost: 50 }, { warning: 15, cost: 70 }], // walkthroughs 1 and 2; after these, strike visits
+    // Pass 5 spec 4.1 (M33): from walkthrough 3 every visit is a strike visit. Each sighting is fined
+    // `strikeFine` dollars (building mode), and a visit with any sighting is one strike; `strikes`
+    // strikes and the CEO fires you. `strikes: 1` with `strikeFine: 0` is pass 3's zero tolerance.
+    strikes: 3,
+    strikeFine: 3500, // dollars: walkthrough 2's fine (70 points x building.ceoFine)
+    ztWarning: 12, // the first strike visit's warning, then 1 s less each visit...
     ztWarningMin: 8, // ...down to this
     areasMin: 2,
     areasMax: 3,

@@ -72,12 +72,72 @@ The owner approved `docs/pass5-spec.md` (version 0.2, manage) on 16 November 202
 | Milestone | Tag | Status |
 |---|---|---|
 | M32. The construction loan | `m32` | Done |
-| M33. The CEO's strikes | | Next |
-| M34. Commissioned and selling the campus | | |
+| M33. The CEO's strikes | `m33` | Done (run length a little over target: see the log) |
+| M34. Commissioned and selling the campus | | Next |
 | M35. Crew guidance | | |
 | M36. Inspect card, plus marks, runway | | |
 
 ## Log
+
+### M33. The CEO's strikes
+
+Pass 5 spec 4 (owner, 16 Nov: a run should end because the late game outruns you, not because of one sighting).
+
+Built:
+
+- **Rule** (`src/core/ceo.js`, `ceo.strikes: 3` and `ceo.strikeFine: 3500` in `src/core/config2.js`): from walkthrough 3 every visit is a strike visit. Each outage the CEO sees unattended is fined $3,500, and a visit with any sighting gives one strike, however many it sees. The third strike ends the run at once ("Fired by the CEO"). A clean visit takes nothing away. Events `ceoStrike` (with the count) and `ceoFired`.
+- **Strike visits come closer together**: 20 to 30 s apart (new `ceo.strikeGap`), where walkthroughs 1 and 2 keep 45 to 60 s. See the checks below for why.
+- **The classic game** (Building mode off in the drawer) keeps pass 3's zero tolerance, since its pacing is built on it. In building mode, `strikes: 1` with a $0 fine is the old zero tolerance.
+- **Banner:** "CEO · Halls 3, 4 · 0:09 · strike 2 of 3", with "Any outage seen is strike 2 of 3 · −$3,500 each" underneath. The visit that would give the last strike is solid ink, as zero tolerance was. Walkthrough 2 says "Next visit: strikes". Banner fines are now shown in dollars in building mode (they said Stability points before).
+- **HUD:** from the first strike, three small hardhats under the clock (the clock moves up a little), filled for each strike given. The CEO's hardhat is white, but white disappears on the white HUD, so a strike given is filled in the HUD's ink and one to come is an ink outline. Never a trade colour.
+- **The CEO's lines:** "That's one. I count to three.", "Two. My assistant is writing this down.", "Three. You're done. I'll get an AI to run this." Leaving walkthrough 2: "From now on I'm counting. Three strikes." A sighting now floats its fine in dollars ("−$3,500") in building mode, where it said Stability before.
+- **One line introduces the strikes**, once, as walkthrough 2 leaves: "From now on, every CEO visit that sees an outage is a strike. Three and you're out."
+- **Results:** headline "Fired by the CEO: three strikes", and a Strikes line with the minute of each ("3 of 3 · 13:42, 14:47, 15:49"); also in the Copy text.
+- **Drawer:** strikes before fired (1 = zero tolerance) and the fine per sighting.
+- `scripts/pacing4.mjs` now reports the median run length, fired / broke before 5:00 / broke later / still running, and strikes; an optional third argument runs only the players whose names contain it.
+- 10 new tests (458 in all). The old zero-tolerance tests now say they use one strike. The "compute first wins" test gives each run 30 minutes instead of 25, since good runs now last longer.
+
+Scripted checks (`scripts/pacing4.mjs`, 12 seeds, with the loan):
+
+| Player | Run length: median (range) | Earned | Halls | Crew | Fired / broke before 5:00 / broke later / still running at 30:00 | Strikes |
+|---|---|---|---|---|---|---|
+| Compute first, backups from hall 4, hires | 21:14 (4:54 to 28:41) | $145,992 | 7.5 | 8.2 | 10 / 1 / 1 / 0 | 2.5 |
+| The same, getting ready for the CEO | 23:42 (9:15 to 30:00) | $167,616 | 7.9 | 8.7 | 9 / 0 / 1 / 2 | 2.6 |
+| Backups from hall 6 | 20:48 (4:54 to 27:51) | $134,833 | 7.3 | 8.2 | 10 / 1 / 1 / 0 | 2.5 |
+| Backups early | 0:38 (0:38 to 25:34) | $40,260 | 3.6 | 4.6 | 4 / 7 / 1 / 0 | 1.0 |
+| Never a backup | 23:03 (4:54 to 30:00) | $129,811 | 7.3 | 7.9 | 7 / 1 / 2 / 2 | 2.1 |
+| Never hires | 8:37 (4:54 to 30:00) | $67,063 | 6.5 | 2.0 | 3 / 1 / 7 / 1 | 0.9 |
+| Decides every 4 s | 23:29 (18:34 to 30:00) | $165,460 | 7.9 | 9.0 | 9 / 0 / 0 / 3 | 2.7 |
+
+Against the spec's targets (4.4):
+
+- **Run length, median 14 to 20 minutes: missed, 21:14.** With strikes and nothing else changed it was 22:46, with 2 runs of 12 still going at 30 minutes.
+- **How runs end: met.** 10 of 12 by three strikes; going broke is rare for the compute-first builder.
+- **Getting ready for the CEO lasts longer and earns more: met** (23:42 and $168k against 21:14 and $146k).
+- **Backups from hall 4 or 6 earn more than none: met** ($146k and $135k against $130k).
+- **Short-handed before 8:00 under 25%: just missed, 25%.** That is the early game, which M33 does not touch; it was the same before.
+
+What was tried for the run length, compute-first builder only:
+
+| Change | Median run |
+|---|---|
+| None | 22:46 |
+| Director tightening 2% / 2.5% / 3% every 10 s (was 1.5%) | 23:07 / 29:16 / 27:33 |
+| Every gap 30–40 / 25–35 / 20–30 s | 20:37 / 18:05 / 21:24 |
+| Strike visits only 20–30 / 15–25 s (**kept 20–30**) | 21:14 / 20:16 |
+| Experiment, not kept: alarm cap +4 instead of +2 (with 20–30) | 20:06, all 12 fired, none past 26:30 |
+
+Worth knowing:
+
+- **Tightening the director does nothing late**, because the director stops at a cap of 2 alarms plus one per hall: late in a run it is always at the cap, so it cannot get harder. That cap is what lets a crew of 8 keep up indefinitely. Raising it (the last row) is the change that makes the late game outrun the crew; I did not make it, because the spec names only tightening and the gap. Say if you want it, or a cap that rises after the Handover.
+- Shortening only the strike visits' gap keeps the Handover and walkthroughs 1 and 2 as they were. The 12-seed numbers are noisy: medians move a minute or two between similar settings.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the banner fits on one line at 660, the hardhats fill one by one, the third strike ends the run on the results card; no console errors.
+
+Owner's checklist:
+
+- Play past the Handover. The banner says when strikes begin, and the hardhats fill one by one.
+- When you are fired, can you name the visit you should have prepared for?
+- Does the end of a run feel like your doing, not the clock's?
 
 ### M32. The construction loan
 

@@ -1,6 +1,6 @@
 // What the round-over card shows (spec section 10), from results(state). Pure.
 
-import { loanText } from '../core/index2.js';
+import { formatClock, loanText } from '../core/index2.js';
 
 const pct = (v) => `${Math.round(v * 100)}%`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -40,6 +40,14 @@ function addPass2(r, big, lines) {
   lines.push(['Upgrades', ups.length > 0 ? ups.join(', ') : 'none']);
 }
 
+const NUMBER = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
+
+/** "Fired by the CEO: three strikes" when strikes did it (pass 5 spec 4.2), else "Fired by the CEO". */
+export function firedTitle(r) {
+  if (!(r.strikesToFire > 1 && r.strikes >= r.strikesToFire)) return 'Fired by the CEO';
+  return `Fired by the CEO: ${NUMBER[r.strikes] ?? r.strikes} strikes`;
+}
+
 /**
  * { big, lines, bestLine, title }.
  * big: the headline numbers, shown large: time survived, energy delivered, share of possible.
@@ -69,7 +77,9 @@ export function resultsPanel(r, record, formatClock) {
   }
   const bestScore = Number.isFinite(record.best.earned) ? `$${Math.round(record.best.earned).toLocaleString('en-US')}` : `${record.best.energyGwh.toFixed(2)} GWh`;
   const bestLine = record.isNew ? 'New best!' : `Best: ${bestScore} in ${formatClock(record.best.seconds)}`;
+  // Pass 5 spec 4.2: the minute of each strike.
+  if (r.strikes > 0) lines.splice(r.building ? 1 : 0, 0, ['Strikes', `${r.strikes} of ${r.strikesToFire} · ${r.strikeTimes.map(formatClock).join(', ')}`]);
   // The card's heading: who ended the run.
-  const title = r.firedByCeo ? 'Fired by the CEO' : r.bankrupt ? 'Went broke' : 'Round over';
+  const title = r.firedByCeo ? firedTitle(r) : r.bankrupt ? 'Went broke' : 'Round over';
   return { big, lines, bestLine, title };
 }
