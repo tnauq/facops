@@ -2,6 +2,9 @@
 // { energyGwh, seconds }. Better means more energy delivered; on a tie, the longer round.
 // Storage is optional: if it is blocked or broken the game carries on without a saved best.
 
+// The milestones' names (as on the results card, src/ui/results.js).
+const MILESTONE_NAME = { ribbon: 'Ribbon-cutting', handover: 'Handover', commissioned: 'Commissioned' };
+
 export const BEST_KEY = 'facops.best.v1';
 export const BEST2_KEY = 'facops.best.v2'; // pass 2 keeps its own best: a 300 MW run scores differently
 export const BEST4_KEY = 'facops.best.v4'; // pass 4 building mode: the score is money earned
@@ -19,6 +22,7 @@ export function recordBest(previous, round) {
   const scored = money && Number.isFinite(round.score);
   const entry = money ? { energyGwh: round.energyGwh, seconds: round.seconds, earned: round.earned } : { energyGwh: round.energyGwh, seconds: round.seconds };
   if (scored) entry.score = round.score;
+  if (scored && round.milestone) entry.milestone = round.milestone; // pass 6 M37: shown on the main menu
   if (!valid(previous) || (money && !Number.isFinite(previous.earned)) || (scored && !Number.isFinite(previous.score))) return { best: entry, isNew: true };
   const score = (b) => (scored ? b.score : money ? b.earned : b.energyGwh);
   const better = score(entry) > score(previous) || (score(entry) === score(previous) && entry.seconds > previous.seconds);
@@ -44,6 +48,7 @@ export function loadBest(storage = defaultStorage(), key = BEST_KEY) {
     const out = { energyGwh: parsed.energyGwh, seconds: parsed.seconds };
     if (Number.isFinite(parsed.earned)) out.earned = parsed.earned;
     if (Number.isFinite(parsed.score)) out.score = parsed.score;
+    if (typeof parsed.milestone === 'string') out.milestone = parsed.milestone;
     return out;
   } catch {
     return null;
@@ -57,6 +62,7 @@ export function saveBest(best, storage = defaultStorage(), key = BEST_KEY) {
     const out = { energyGwh: best.energyGwh, seconds: best.seconds };
     if (Number.isFinite(best.earned)) out.earned = best.earned;
     if (Number.isFinite(best.score)) out.score = best.score;
+    if (typeof best.milestone === 'string') out.milestone = best.milestone;
     storage.setItem(key, JSON.stringify(out));
     return true;
   } catch {
@@ -77,7 +83,8 @@ export function bestText(best, formatClock) {
  * run, the old best labelled with the older rules (money earned only).
  */
 export function buildingBestText(best5, best4, formatClock) {
-  if (valid(best5)) return bestText(best5, formatClock);
+  // Pass 6 (M37): with the highest milestone that run reached, "$142,300 in 18:10 · Commissioned".
+  if (valid(best5)) return `${bestText(best5, formatClock)}${MILESTONE_NAME[best5.milestone] ? ` · ${MILESTONE_NAME[best5.milestone]}` : ''}`;
   if (valid(best4) && Number.isFinite(best4.earned)) return `${bestText(best4, formatClock)} (older rules: money earned)`;
   return 'None yet';
 }

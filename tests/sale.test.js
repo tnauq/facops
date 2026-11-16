@@ -191,3 +191,11 @@ test('the best is the new score; the old best shows, labelled, until a pass 5 ru
   assert.equal(buildingBestText(r.best, { energyGwh: 1, seconds: 100, earned: 90000 }, formatClock), '$5,000 in 3:20');
   assert.equal(buildingBestText(null, null, formatClock), 'None yet');
 });
+
+test('the main menu\'s best names the highest milestone (pass 6 M37)', () => {
+  const r = recordBest(null, { building: true, energyGwh: 1, seconds: 1090, earned: 100000, score: 142300, milestone: 'commissioned' });
+  assert.equal(r.best.milestone, 'commissioned');
+  assert.equal(buildingBestText(r.best, null, formatClock), '$142,300 in 18:10 · Commissioned');
+  const plain = recordBest(null, { building: true, energyGwh: 1, seconds: 60, earned: 10, score: 10, milestone: null });
+  assert.equal(buildingBestText(plain.best, null, formatClock), '$10 in 1:00');
+});

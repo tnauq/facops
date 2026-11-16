@@ -150,7 +150,7 @@ test('one-tap: with nobody free the alarm queues and the next free tech takes it
 // ---- Opening and closing the drawer ----
 
 test('the drawer opens from every card and Done goes back to it', () => {
-  for (const from of ['start', 'paused', 'over']) {
+  for (const from of ['menu', 'paused', 'over', 'settings']) {
     const open = reduceFlow(from, 'tuning');
     assert.deepEqual(open, { mode: 'tuning', newRound: false, back: from });
     assert.deepEqual(reduceFlow('tuning', 'done', open.back), { mode: from, newRound: false });

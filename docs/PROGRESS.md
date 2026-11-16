@@ -83,12 +83,37 @@ The owner approved `docs/pass6-spec.md` (version 0.1) on 16 November 2026: a blu
 
 | Milestone | Tag | Status |
 |---|---|---|
-| M37. Main menu, Settings, pause menu | | Next |
-| M38. The longer plant | | |
+| M37. Main menu, Settings, pause menu | `m37` | Done |
+| M38. The longer plant | | Next |
 | M39. Pump rules | | |
 | M40. Teaching and the balance check | | |
 
 ## Log
+
+### M37. Main menu, Settings, pause menu
+
+Pass 6 spec 2. Screen only.
+
+Built:
+
+- **The main menu** replaces the start card: the blueprint sheet across the whole screen (ink blue, a 20 px drafting grid), "DWG FO-001 · REV 6", **FacOps** large in white, four hall outlines on a dashed centre line, "Facility operations manager wanted", and on the right **New run**, **Tutorial** and **Settings**, with the best score under them and its highest milestone ("Best: $142,300 in 18:10 · Commissioned"). Sizes scale down for a small screen.
+- **Tutorial** starts a run with the lessons on, whatever Skip tutorial says, and leaves that switch as it was.
+- **Settings** (new): a Classic mode switch (the drawer's Building mode, the other way round; from the next run), Pass 1, Map preview, Tuning, and Back. The drawer opened from Settings returns to Settings, and Settings returns to wherever it was opened from. Opened from the menu, the blueprint stays behind it.
+- **The pause menu** has the same look: Resume, Restart, Settings, and the sale row from M34. The gear always opens the pause menu now (with Real-time mode on it used to open the drawer).
+- The best score now keeps the run's highest milestone, for the menu.
+- `src/ui/flow.js` has `menu` in place of `start`, and `settings`; 3 new tests (493 in all). The flow and drawer tests now say `menu` where they said `start`.
+
+Worth knowing:
+
+- The results, Hire, Commissioned and sale cards keep their old look, as the spec says.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the menu, Settings, the drawer and back, Back to the menu, Tutorial starting the lessons with Skip tutorial on, and the pause menu; no console errors.
+
+Owner's checklist:
+
+- The game opens on the blueprint menu. It reads well on the phone, and nothing is cut off.
+- Tutorial starts a run with the lessons even with Skip tutorial on.
+- Settings has Classic mode, Pass 1, the map preview and Tuning; Back goes back.
+- The pause menu has the same look, with the sale after the Handover.
 
 ### M36. Inspect card, plus marks, runway
 

@@ -49,6 +49,49 @@
       border: 1px solid #1F3A5F; background: #FFFFFF; color: #1F3A5F; cursor: pointer;
     }
     .buttons button.primary { background: #1F3A5F; color: #FFFFFF; }
+    /* Pass 6 (M37): the blueprint look for the main menu, Settings and the pause menu. Ink sheet,
+       a 20 px drafting grid, white and pale blue lines. No hat colours. */
+    .card.bp {
+      background-color: #1F3A5F; color: #FFFFFF; border: 1px solid #9FB3CC;
+      background-image: linear-gradient(#2A4A73 1px, transparent 1px), linear-gradient(90deg, #2A4A73 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .card.bp h1 { color: #FFFFFF; font-weight: 600; letter-spacing: 1px; }
+    .card.bp .muted, .card.bp p.muted { color: #9FB3CC; }
+    .card.bp .buttons button, .card.bp .bp-link {
+      background: transparent; color: #FFFFFF; border: 1px solid #9FB3CC; border-radius: 8px;
+    }
+    .card.bp .buttons button.primary { background: #FFFFFF; color: #1F3A5F; border-color: #FFFFFF; }
+    .card.bp .bp-link { display: inline-flex; align-items: center; justify-content: center; min-width: 110px; min-height: 44px; line-height: normal; padding: 0 18px; box-sizing: border-box; font: 600 15px system-ui, -apple-system, 'Segoe UI', sans-serif; text-decoration: none; }
+    .card.bp.full {
+      position: fixed; inset: 0; max-width: none; max-height: none; border: 0; border-radius: 0; overflow: hidden;
+      display: flex; align-items: center; gap: 5vw; text-align: left; box-sizing: border-box;
+      padding: max(14px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(28px, env(safe-area-inset-left));
+    }
+    .card.bp.full[hidden] { display: none; }
+    /* Settings and the drawer opened from the main menu keep the blueprint sheet behind them. */
+    #overlay.bp-backdrop {
+      background-color: #1F3A5F;
+      background-image: linear-gradient(#2A4A73 1px, transparent 1px), linear-gradient(90deg, #2A4A73 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .bp-title { flex: 1.3; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .bp-dwg { font-size: clamp(10px, 1.5vw, 13px); letter-spacing: 2px; color: #9FB3CC; }
+    .bp-name { font-size: clamp(40px, 10vw, 92px); font-weight: 700; letter-spacing: 3px; line-height: 1; }
+    .bp-halls { width: clamp(150px, 30vw, 320px); height: auto; }
+    .bp-tag { font-size: clamp(12px, 1.8vw, 17px); color: #9FB3CC; }
+    .bp-menu { flex: 1; display: flex; flex-direction: column; gap: 10px; max-width: 300px; min-width: 0; }
+    .bp-menu button {
+      min-height: 44px; padding: 0 16px; border-radius: 8px; text-align: left; cursor: pointer;
+      font: 600 16px system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: transparent; color: #FFFFFF; border: 1px solid #9FB3CC;
+    }
+    .bp-menu button.primary { background: #FFFFFF; color: #1F3A5F; border-color: #FFFFFF; }
+    .bp-best { margin: 2px 0 0; font-size: 13px; color: #9FB3CC; }
+    .bp-switch { display: flex; align-items: center; gap: 12px; min-height: 44px; text-align: left; cursor: pointer; margin: 8px 0; }
+    .bp-switch input { width: 22px; height: 22px; margin: 0; accent-color: #FFFFFF; flex: none; }
+    .bp-switch span { display: flex; flex-direction: column; font-size: 15px; font-weight: 600; }
+    .bp-switch small { font-size: 12px; font-weight: 400; color: #9FB3CC; }
     /* Tuning drawer: two columns of controls on a wide phone, one on a narrow window. Each row is 44 px tall. */
     .card.tuning { width: min(680px, 98vw); max-width: none; max-height: 97vh; padding: 6px 14px 8px; }
     .card.tuning h1 { font-size: 16px; margin: 0; }
@@ -113,22 +156,43 @@
 <body>
   <canvas id="game"></canvas>
   <div id="overlay" hidden>
-    <div class="card" data-overlay="start" hidden>
-      <h1>FacOps</h1>
-      <p>Alarms pile up. Send your crew. Keep the load in the green.</p>
-      <p class="muted">Best: <span data-field="best"></span></p>
-      <p class="muted"><a href="./pass1/">Play pass 1</a> · <a href="./map.html">Map preview</a></p>
-      <div class="buttons">
-        <button class="primary" data-action="start">Start</button>
-        <button data-action="tuning">Tuning</button>
+    <!-- Pass 6 (M37): the main menu, a blueprint sheet across the whole screen. -->
+    <div class="card bp full" data-overlay="menu" hidden>
+      <div class="bp-title">
+        <span class="bp-dwg">DWG FO-001 · REV 6</span>
+        <span class="bp-name">FacOps</span>
+        <svg class="bp-halls" viewBox="0 0 200 26" aria-hidden="true">
+          <rect x="1" y="4" width="34" height="18" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+          <rect x="45" y="4" width="34" height="18" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+          <rect x="89" y="4" width="34" height="18" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+          <rect x="133" y="4" width="34" height="18" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+          <line x1="0" y1="13" x2="200" y2="13" stroke="#9FB3CC" stroke-width="1" stroke-dasharray="3 3"/>
+        </svg>
+        <span class="bp-tag">Facility operations manager wanted</span>
+      </div>
+      <div class="bp-menu">
+        <button class="primary" data-action="start">New run</button>
+        <button data-action="tutorial">Tutorial</button>
+        <button data-action="settings">Settings</button>
+        <p class="bp-best">Best: <span data-field="best"></span></p>
       </div>
     </div>
-    <div class="card" data-overlay="paused" hidden>
+    <div class="card bp" data-overlay="settings" hidden>
+      <h1>Settings</h1>
+      <label class="bp-switch"><input type="checkbox" id="classic-switch"><span>Classic mode<small>The dispatch game of passes 1 to 3. From the next run.</small></span></label>
+      <div class="buttons">
+        <a class="bp-link" href="./pass1/">Pass 1</a>
+        <a class="bp-link" href="./map.html">Map preview</a>
+        <button data-action="tuning">Tuning</button>
+        <button class="primary" data-action="settingsBack">Back</button>
+      </div>
+    </div>
+    <div class="card bp" data-overlay="paused" hidden>
       <h1>Paused</h1>
       <div class="buttons">
         <button class="primary" data-action="resume">Resume</button>
         <button data-action="restart">Restart</button>
-        <button data-action="tuning">Tuning</button>
+        <button data-action="settings">Settings</button>
       </div>
       <div class="buttons sell" id="sell-row" hidden>
         <button data-action="sellAsk" id="sell-button">Hand over the keys</button>

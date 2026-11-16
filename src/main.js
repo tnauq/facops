@@ -85,7 +85,7 @@ let gesture = null;
 let stripGesture = false; // a finger on the overview strip: the view follows it
 let railGesture = null; // a touch on a rail that overflows: { start, startFirst, dragging }
 let markers = [];
-let mode = 'start'; // see src/ui/flow.js
+let mode = 'menu'; // see src/ui/flow.js
 // Building mode keeps its own best, in money (pass 4 M27); the classic game keeps pass 2's.
 // Pass 5 (M34): building mode's best is the new score, under its own key; pass 4's best stays as it
 // was and shows, labelled, until a pass 5 run sets one.
@@ -94,16 +94,19 @@ const olderBest = loadBest(defaultStorage(), BEST4_KEY);
 const bestKind = () => (tuning.building ? 'building' : 'classic');
 let tuning = tuning2.loadTuning(defaultStorage());
 let tuningBack = null;
+let settingsBack = null; // the card Settings returns to (pass 6 M37)
 
 const isAuto = () => window.location.hash === '#auto';
 const portrait = () => size.h > size.w;
 
 // ---- Rounds and screens ----
 
-function newRound() {
+function newRound({ tutorial = false } = {}) {
   held = false;
+  const config = tuning2.tuningToConfig(tuning);
+  if (tutorial) config.tutorial = true; // the saved Skip tutorial switch is left as it is
   round = {
-    state: createGame({ seed: Date.now() % 1000000000, config: tuning2.tuningToConfig(tuning) }),
+    state: createGame({ seed: Date.now() % 1000000000, config }),
     clock: createClock(),
     auto: isAuto(),
     nextAuto: 0,
@@ -181,9 +184,16 @@ function showCommissioned() {
   document.querySelector('[data-overlay="commissioned"] [data-action="sell"]').disabled = !card.enabled;
 }
 
-function showStart() {
+// The main menu (pass 6 spec 2.1): the best score and its milestone under the buttons.
+function showMenu() {
   const kind = bestKind();
-  showOverlay('start', { best: kind === 'building' ? buildingBestText(bests.building, olderBest, formatClock) : bestText(bests.classic, formatClock) });
+  showOverlay('menu', { best: kind === 'building' ? buildingBestText(bests.building, olderBest, formatClock) : bestText(bests.classic, formatClock) });
+}
+
+// Settings (pass 6 spec 2.2): Classic mode is the drawer's Building mode switch, the other way round.
+function showSettings() {
+  document.getElementById('classic-switch').checked = !tuning.building;
+  showOverlay('settings');
 }
 
 // Hold and speed (pass 4 spec 3.4). While held nothing moves, but taps still select, assign and
@@ -195,7 +205,7 @@ const speedButtons = () => round && !round.state.config.realtime;
 function pressButton(id) {
   if (id === 'hold') held = !held;
   else if (id === 'speed') speed = speed === 1 ? 2 : 1;
-  else if (id === 'settings') act(speedButtons() ? 'pause' : 'tuning'); // the gear is the menu when the speed buttons show
+  else if (id === 'settings') act('pause'); // the gear opens the pause menu, which has Settings (pass 6 M37)
   else act('pause');
   draw();
 }
@@ -237,11 +247,14 @@ function act(action) {
   // Continue never skips a pick: the rules wait until a card is taken.
   if (action === 'continue' && round.state.pendingPick) return;
   if (action === 'continue' && mode === 'delivery') glideTo(HALLS[round.state.halls].cx, MID_Y, DELIVERY_GLIDE_MS);
-  const next = reduceFlow(mode, action, tuningBack);
+  const next = reduceFlow(mode, action, tuningBack, settingsBack);
   if (next.back) tuningBack = next.back;
-  if (next.newRound) newRound();
+  if (next.settingsBack) settingsBack = next.settingsBack;
+  // Tutorial (pass 6 spec 2.2): a run with the lessons on, whatever Skip tutorial says.
+  if (next.newRound) newRound({ tutorial: action === 'tutorial' });
   mode = next.mode;
-  if (mode === 'start') showStart();
+  if (mode === 'menu') showMenu();
+  else if (mode === 'settings') showSettings();
   else if (mode === 'over') showOverlay('over');
   else if (mode === 'paused') showPaused();
   else if (mode === 'sell') showOverlay('sell', sellConfirm(round.state));
@@ -249,8 +262,15 @@ function act(action) {
     setTuningControls(tuning, tuning2.tuningLabel);
     showOverlay('tuning');
   } else showOverlay(mode);
+  markMenuBackdrop();
   round.selection = NOTHING;
   draw();
+}
+
+// Pass 6 (M37): Settings and the drawer reached from the main menu keep the blueprint behind them.
+function markMenuBackdrop() {
+  const fromMenu = mode === 'menu' || (mode === 'settings' && settingsBack === 'menu') || (mode === 'tuning' && tuningBack === 'settings' && settingsBack === 'menu');
+  document.getElementById('overlay').classList.toggle('bp-backdrop', fromMenu);
 }
 
 function changeTuning(values) {
@@ -680,12 +700,14 @@ function onWheel(e) {
 
 function begin() {
   newRound();
-  mode = isAuto() ? 'playing' : 'start';
-  if (mode === 'start') showStart();
+  mode = isAuto() ? 'playing' : 'menu';
+  if (mode === 'menu') showMenu();
   else showOverlay('playing');
 }
 
 bindOverlays(act);
+// Settings' Classic mode switch (pass 6 spec 2.2): saved like any drawer setting, for the next run.
+document.getElementById('classic-switch').addEventListener('change', (e) => changeTuning(tuning2.setTuning(tuning, 'building', !e.target.checked)));
 buildTuningControls(tuning2.fields, (id, raw) => changeTuning(tuning2.setTuning(tuning, id, raw)));
 canvas.addEventListener('pointerdown', onDown);
 canvas.addEventListener('pointermove', onMove);
