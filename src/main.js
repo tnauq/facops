@@ -120,6 +120,8 @@ function newRound() {
     if (cfg.tutorial && !round.auto) {
       round.tutorial = createTutorial4(promptVerb());
       round.intros = createIntros();
+    } else {
+      round.intros = createIntros({ devices: false }); // only the loan line (pass 5 spec 3.2)
     }
   } else if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) {
     round.tutorial = createTutorial(promptVerb());
@@ -346,7 +348,7 @@ function draw() {
     drawCallout(ctx, cam.rect, round.callout, ys);
   }
   const model = hudModel2(s, { auto: round.auto });
-  const notes = held ? ['Held: tap ▶ to carry on', 'Held'] : [model.note, model.noteShort];
+  const notes = held ? ['Held: tap ▶ to carry on', 'Held'] : [model.note, model.noteShort, model.noteShorter].filter(Boolean);
   drawHud(ctx, w, hudLayout(w, { speedButtons: speedButtons() }), model, notes, { held, speed });
   drawHudFlash(ctx, w, HUD_HEIGHT, flashAlpha(round.feel, s.t));
 }

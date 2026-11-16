@@ -10,6 +10,12 @@ export const TUNING2_KEY = 'facops.tuning.v2';
 // The drawer starts from the game's settings: building mode on (pass 4 M25).
 const D = gameDefaults2();
 
+// The burn's numbers sit one level below building, and the config merges only one level, so a change
+// to one of them carries the rest of the burn with it (pass 5 spec 3.2).
+const setBurn = (o, key, v) => {
+  o.building = { ...(o.building ?? {}), burn: { ...D.building.burn, ...(o.building?.burn ?? {}), [key]: v } };
+};
+
 export const TUNING2_FIELDS = [
   { id: 'tighten', label: 'Tightening per 10 s (%)', kind: 'range', min: 0, max: 10, step: 0.5,
     get: (c) => c.director.tighten * 100, set: (o, v) => { o.director.tighten = v / 100; } },
@@ -50,6 +56,15 @@ export const TUNING2_FIELDS = [
     get: (c) => c.autoDispatch.enabled, set: (o, v) => { o.autoDispatch = { ...(o.autoDispatch ?? {}), enabled: v }; } },
   { id: 'realtime', label: 'Real-time mode (no hold or speed buttons)', kind: 'toggle',
     get: (c) => c.realtime, set: (o, v) => { o.realtime = v; } },
+  // New in pass 5 (spec 3.2): the construction loan, the site overhead, and pass 4's doubling base.
+  { id: 'loan', label: 'Construction loan ($)', kind: 'range', min: 0, max: 4000, step: 100,
+    get: (c) => c.building.burn.loan, set: (o, v) => setBurn(o, 'loan', v) },
+  { id: 'loanRate', label: 'Loan repaid per second ($)', kind: 'range', min: 1, max: 12, step: 0.5,
+    get: (c) => c.building.burn.loanRate, set: (o, v) => setBurn(o, 'loanRate', v) },
+  { id: 'siteOverhead', label: 'Site overhead per second ($)', kind: 'range', min: 0, max: 6, step: 0.5,
+    get: (c) => c.building.burn.base, set: (o, v) => setBurn(o, 'base', v) },
+  { id: 'doubling', label: 'Overhead doubles every (s, 0 = never; pass 4: 150)', kind: 'range', min: 0, max: 300, step: 10,
+    get: (c) => c.building.burn.doubling, set: (o, v) => setBurn(o, 'doubling', v) },
   { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',
     get: (c) => !c.tutorial, set: (o, v) => { o.tutorial = !v; } },
 ];

@@ -73,6 +73,15 @@ function drawMoney(ctx, layout, money) {
   ctx.fillStyle = money.falling ? RED : MUTED;
   ctx.fillText(money.rate, x, cy);
   x += ctx.measureText(money.rate).width + 8;
+  // Pass 5 spec 3.2: a thin bar under the cash and its rate that empties as the loan is repaid, so the
+  // loan reads even when the note has no room to name it. Ink, not a band colour: it is not a warning.
+  if (money.loanShare > 0) {
+    const w = x - 8 - layout.meter.x;
+    ctx.fillStyle = TRACK;
+    ctx.fillRect(layout.meter.x, cy * 2 - 5, w, 2);
+    ctx.fillStyle = MUTED;
+    ctx.fillRect(layout.meter.x, cy * 2 - 5, w * money.loanShare, 2);
+  }
   if (money.red) {
     ctx.font = `700 12px ${FONT}`;
     ctx.fillStyle = RED;

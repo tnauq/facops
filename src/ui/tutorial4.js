@@ -10,7 +10,7 @@
 //   trip    - a switchboard with no backup trips: half the hall goes dark; a tech goes by themselves.
 //   backup  - a B switchboard is a backup: it costs upkeep, so buy backups once racks are earning.
 //   grow    - a new hall: switchboard and coolant unit first, then racks; one chiller per 6 racks.
-//   free    - the burn starts and grows: keep adding racks; hire from the crew bar. Then done.
+//   free    - the construction loan starts (pass 5 M32): build racks fast; hire from the crew bar. Then done.
 
 import { raiseAlarm, setScripted, spotState } from '../core/index2.js';
 
@@ -36,6 +36,15 @@ function go(tut, state, step, callout, focus = null) {
 
 /** Alarm ids the current lesson is about, so the screen can keep the callout clear of them. */
 export const lessonAlarms4 = (tut) => tut.ids;
+
+/** The hand-over's callout: the construction loan's terms from config (pass 5 spec 3.2). */
+export function handOverLine(state) {
+  const { loan, loanRate } = state.config.building.burn;
+  if (!loan || !loanRate) return 'Now your costs start. Keep adding racks, and hire techs from the crew bar.';
+  const seconds = loan / loanRate;
+  const span = seconds % 60 === 0 ? `${seconds / 60} minute${seconds === 60 ? '' : 's'}` : `${Math.round(seconds)} s`;
+  return `Your construction loan starts now: $${loanRate} a second for ${span}. Build racks fast, and hire from the crew bar.`;
+}
 
 /** Advance one frame. Returns the callout to show ('' when none). Once `done`, it does nothing. */
 export function updateTutorial4(tut, state, events) {
@@ -71,7 +80,7 @@ export function updateTutorial4(tut, state, events) {
     case 'grow':
       if (waited > READ_TIME) {
         setScripted(state, false);
-        go(tut, state, 'free', 'Now your cash burns, faster and faster. Keep adding racks, and hire techs from the crew bar.');
+        go(tut, state, 'free', handOverLine(state));
       }
       break;
     case 'free':

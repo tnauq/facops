@@ -125,6 +125,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     handoverQueued: false,
     redSince: null, // when the cash went below zero (building mode)
     economyStart: 0, // building mode: when the burn and the alarm tightening started (after the tutorial)
+    loanPaidAt: null, // building mode: when the construction loan was paid off (pass 5 spec 3.1)
     ribbonQueued: false,
   };
   if (building) {
@@ -833,13 +834,29 @@ function earn(state, deliveredMw, dt) {
 /** Seconds since the economy started: the run's start, or the end of the tutorial (pass 4 M27). */
 export const economyTime = (state) => Math.max(0, state.t - (state.economyStart ?? 0));
 
-/** Dollars a second the business burns now (pass 4 spec 2.5, owner 15 Nov). */
+/** Dollars of the construction loan still to repay (pass 5 spec 3.1). 0 when there is no loan. */
+export function loanLeft(state) {
+  const b = state.config.building.burn;
+  if (!b.loan || !b.loanRate) return 0;
+  if (state.scripted) return b.loan; // nothing is repaid while the tutorial's lessons run (M27)
+  return Math.max(0, b.loan - b.loanRate * economyTime(state));
+}
+
+/** Seconds until the loan is paid off, at its fixed rate. 0 when paid off or there is none. */
+export function loanTimeLeft(state) {
+  const left = loanLeft(state);
+  return left > 0 ? left / state.config.building.burn.loanRate : 0;
+}
+
+/** Dollars a second the business burns now (pass 4 spec 2.5; pass 5 spec 3.1). */
 export function burnRate(state) {
   const b = state.config.building.burn;
   const infra = EQUIPMENT.filter((e) => e.type !== 'row' && isBuilt(state, e.id)).length;
-  // The base doubles every `doubling` seconds: gentle while the campus is small, then the pressure
-  // to keep adding compute, and in the end more than a full campus earns, so every run ends.
-  return b.base * Math.pow(2, economyTime(state) / b.doubling) + b.upkeep * infra + b.wages * state.techs.length;
+  // Pass 5: a flat site overhead. With `doubling` set, pass 4's base that doubled every that many
+  // seconds and in the end outgrew a full campus (the owner found it unsatisfactory, 15 Nov).
+  const base = b.doubling > 0 ? b.base * Math.pow(2, economyTime(state) / b.doubling) : b.base;
+  const loan = loanLeft(state) > 0 ? b.loanRate : 0;
+  return loan + base + b.upkeep * infra + b.wages * state.techs.length;
 }
 
 /** Income now, in dollars a second, from the racks delivering. */
@@ -850,6 +867,11 @@ function burn(state, dt) {
   const dollars = burnRate(state) * dt;
   state.cash -= dollars;
   state.stats.burned += dollars;
+  // The loan is repaid by time, so it is paid off at the step its balance reaches zero.
+  if (state.loanPaidAt === null && state.config.building.burn.loan > 0 && loanLeft(state) <= 0) {
+    state.loanPaidAt = state.t;
+    emit(state, 'loanPaid', { t: state.t });
+  }
   if (state.cash >= 0) {
     if (state.redSince !== null) emit(state, 'outOfRed', {});
     state.redSince = null;
@@ -1197,6 +1219,9 @@ export function results(state) {
     burned: buildingOn(state) ? state.stats.burned : 0,
     bankrupt: state.overReason === 'bankrupt',
     built: buildingOn(state) ? state.stats.built : 0,
+    // Pass 5 spec 3.2: when the construction loan was paid off, in economy time; null if not (or none).
+    loanPaidAt: buildingOn(state) && state.loanPaidAt !== null ? state.loanPaidAt - (state.economyStart ?? 0) : null,
+    hasLoan: buildingOn(state) && state.config.building.burn.loan > 0 && state.config.building.burn.loanRate > 0,
   };
 }
 
@@ -1205,6 +1230,12 @@ export function formatClock(seconds) {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }
 const pct = (v) => `${Math.round(v * 100)}%`;
+
+/** "Loan paid off at 4:58", "Loan not paid off", or '' with no loan (pass 5 spec 3.2). */
+export function loanText(r) {
+  if (!r.hasLoan) return '';
+  return r.loanPaidAt === null ? 'Loan not paid off' : `Loan paid off at ${formatClock(r.loanPaidAt)}`;
+}
 
 /** Plain text for the Copy button. */
 export function resultsText(state) {
@@ -1222,7 +1253,7 @@ export function resultsText(state) {
     `Alarms: ${r.raised} raised, ${r.cleared} cleared, average ${r.averageClear.toFixed(1)} s to clear, longest ${Math.round(r.longestAlarm)} s, peak ${r.peakAlarms} at once`,
     `Escalations: ${r.halfDark} half-halls dark, ${r.leakSpreads} leaks spread, ${r.spreads} network spreads, ${r.bursts} pump bursts, ${r.secondChillers} second chillers`,
     `Redirects: ${r.redirects} | Matching-hat fixes: ${pct(r.matchedShare)} | Lowest load: ${pct(r.lowestFraction)}`,
-    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.bankrupt ? ' | Went broke' : ''} | Devices built: ${r.built}`] : []),
+    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.bankrupt ? ' | Went broke' : ''} | Devices built: ${r.built}${loanText(r) ? ` | ${loanText(r)}` : ''}`] : []),
     `Tuning: ${r.tuning.length > 0 ? r.tuning.join(', ') : 'defaults'}`,
   ].join('\n');
 }

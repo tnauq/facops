@@ -65,7 +65,62 @@ The owner approved `docs/pass4-spec.md` (version 0.2, build and manage) on 14 No
 | M30. Yard failures | `m30` | Done |
 | M31. Electricians only | `m31` | Done |
 
+## Pass 5
+
+The owner approved `docs/pass5-spec.md` (version 0.2, manage) on 16 November 2026, after the first outside playtest. It replaces pass 4's doubling burn with a construction loan, and zero tolerance with the CEO's strikes.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M32. The construction loan | `m32` | Done |
+| M33. The CEO's strikes | | Next |
+| M34. Commissioned and selling the campus | | |
+| M35. Crew guidance | | |
+| M36. Inspect card, plus marks, runway | | |
+
 ## Log
+
+### M32. The construction loan
+
+Pass 5 spec 3 (owner, 15 and 16 Nov: the doubling burn was unsatisfactory; the burn should press early, not late).
+
+Built:
+
+- **Rule** (`burnRate`, `loanLeft`, `loanTimeLeft` in `src/core/game2.js`; `building.burn` in `src/core/config2.js`): the burn is now a construction loan of $1,800 repaid at $6 a second from the start of the economy (paid off at 5:00), plus a flat $1 a second site overhead, plus upkeep and wages as before. Nothing doubles. Nothing is repaid while the tutorial runs. A `loanPaid` event fires once.
+- `doubling` above 0 brings back pass 4's curve; its old test now runs with pass 4's numbers.
+- **HUD:** the note reads "Loan $1,240 · 3 halls online" while the loan is owed, shortening to "Loan $1,240" and then to nothing on a narrow screen; a thin grey bar under the cash and its rate empties as it is repaid, so the loan reads at any width.
+- **"Loan paid off. The money is yours now."** for 4 s in the introductions' place, never over a CEO warning. Runs without the tutorial now get this line too (and still no device introductions).
+- **The tutorial's hand-over** says "Your construction loan starts now: $6 a second for 5 minutes. Build racks fast, and hire from the crew bar.", built from the config.
+- **Results:** "Loan: paid off at 4:58" or "not paid off", on the card and in the Copy text.
+- **Drawer:** the loan, its rate, the site overhead, and the doubling (0 = never; 150 was pass 4).
+- 10 new tests (448 in all).
+
+Scripted checks (`scripts/pacing4.mjs`, 12 seeds; zero tolerance still ends runs until M33):
+
+| Player | Run length (range) | Earned | 150 MW at | Halls | Crew | Zero tolerance / fine / broke |
+|---|---|---|---|---|---|---|
+| Compute first, backups from hall 4, hires | 17:06 (4:54 to 23:37) | $111,371 | 7:01 (11/12) | 7.5 | 8.2 | 10 / 0 / 2 |
+| The same, getting ready for the CEO | 18:53 (9:15 to 28:46) | $128,462 | 6:58 | 7.9 | 8.7 | 11 / 0 / 1 |
+| Backups from hall 6 | 13:38 (4:54 to 20:07) | $77,529 | 6:14 (11/12) | 7.3 | 8.1 | 10 / 0 / 2 |
+| Backups early | 6:49 (0:38 to 17:53) | $27,012 | 10:11 (5/12) | 3.6 | 4.6 | 4 / 0 / 8 |
+| Never a backup | 15:59 (4:54 to 24:10) | $90,217 | 6:14 (11/12) | 7.3 | 7.8 | 9 / 0 / 3 |
+| Never hires | 10:57 (4:54 to 19:02) | $51,096 | 6:48 (10/12) | 6.5 | 2.0 | 4 / 0 / 8 |
+| Decides every 4 s | 20:12 (15:32 to 30:00) | $123,619 | 8:00 | 7.9 | 8.8 | 11 / 0 / 0 |
+
+Against the spec's targets: the compute-first builder goes broke in 2 of 12 (target: no more than 2); buying backups early goes broke in 8 of 12 (target: at least half); never hiring earns 54% less (target: well under half of the compute-first builder); and after the loan, with nothing broken, the net rate was never negative. The starting values stand; no tuning was needed.
+
+Worth knowing:
+
+- Runs are longer (about 17 minutes against 12) and the CEO now ends almost all of them. That is expected: M33 replaces zero tolerance with strikes and sets the run length.
+- Mid-game backups now pay clearly: never a backup earns 19% less than backups from hall 4 (10% in M31). Getting ready for the CEO earns most.
+- Two seeds in twelve still go broke at about 4:54, just before the loan ends, after spending everything ahead of the ribbon-cutting fine.
+- The GDD (v0.9) still describes the doubling burn; it is out of date on that until its next version.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the loan shows in the note at 844, and the bar under the cash at both sizes; no console errors.
+
+Owner's checklist:
+
+- The first five minutes feel like a race. The loan in the HUD runs down.
+- When the loan is paid off, money stops being the worry.
+- Later in the run, when the cash rate drops, there is something broken that you can see.
 
 ### M31. Electricians only
 

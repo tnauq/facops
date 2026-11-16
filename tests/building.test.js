@@ -276,7 +276,9 @@ test('compute first wins: a builder who buys backups early earns far less than o
 
 test('the burn doubles over time, and grows with infrastructure and crew', async () => {
   const { burnRate } = await import('../src/core/index2.js');
-  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, building: { enabled: true }, director: { enabled: false } } });
+  // Pass 4's curve, kept behind `doubling` (pass 5 spec 3.1: the owner replaced it with the loan).
+  const PASS4 = { base: 3, doubling: 150, upkeep: 0.15, wages: 0.5 };
+  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, building: { enabled: true, burn: PASS4 }, director: { enabled: false } } });
   const b = s.config.building.burn;
   // At the start: base, plus upkeep on the pump, chiller, dry cooler, RMU, transformer, switchboard
   // and coolant unit, plus 2 techs' wages.

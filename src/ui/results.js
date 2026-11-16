@@ -1,5 +1,7 @@
 // What the round-over card shows (spec section 10), from results(state). Pure.
 
+import { loanText } from '../core/index2.js';
+
 const pct = (v) => `${Math.round(v * 100)}%`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -63,6 +65,7 @@ export function resultsPanel(r, record, formatClock) {
   if (r.building) {
     big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
     lines.splice(0, 0, ['Money', `$${Math.round(r.spent).toLocaleString('en-US')} spent building, $${Math.round(r.burned).toLocaleString('en-US')} burned · ${r.energyGwh.toFixed(2)} GWh`]);
+    if (loanText(r)) lines.splice(1, 0, ['Loan', loanText(r).replace(/^Loan /, '')]); // pass 5 spec 3.2
   }
   const bestScore = Number.isFinite(record.best.earned) ? `$${Math.round(record.best.earned).toLocaleString('en-US')}` : `${record.best.energyGwh.toFixed(2)} GWh`;
   const bestLine = record.isNew ? 'New best!' : `Best: ${bestScore} in ${formatClock(record.best.seconds)}`;

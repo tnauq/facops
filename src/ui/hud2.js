@@ -2,7 +2,7 @@
 // so the same drawing code paints it: the load in MW against online capacity, and a note with
 // "Hall 3 of 8" and how far the next hall's construction has got.
 
-import { buildProgress, buildingOn, burnRate, formatClock, incomeRate, load, redSecondsLeft, stabilityOn } from '../core/index2.js';
+import { buildProgress, buildingOn, burnRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
 
@@ -28,34 +28,50 @@ const dollars = (n) => `$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
 
 /**
  * Building mode (pass 4 spec 2.5, 3.3): the cash, what it is doing a second (income minus burn), and
- * the red countdown. { cash: "$1,240", rate: "+$85/s", falling, red: "0:12" or null }.
+ * the red countdown. { cash: "$1,240", rate: "+$85/s", falling, red: "0:12" or null, loan: "Loan $940"
+ * or null, loanShare: 0..1 still owed }.
  */
 export function moneyModel(state) {
   // Nothing burns while the tutorial's lessons run (pass 4 M27), so the rate shows income only.
   const net = incomeRate(state) - (state.scripted ? 0 : burnRate(state));
   const left = redSecondsLeft(state);
+  const owed = loanLeft(state);
   return {
     cash: `${state.cash < 0 ? '−' : ''}${dollars(state.cash)}`,
     rate: `${net >= 0 ? '+' : '−'}${dollars(net)}/s`,
     falling: net < 0,
     red: left === null ? null : formatClock(Math.ceil(left)),
+    // Pass 5 spec 3.2: what is left on the construction loan, and the share still owed (for the bar).
+    loan: owed > 0 ? `Loan ${dollars(Math.ceil(owed))}` : null,
+    loanShare: owed > 0 ? owed / state.config.building.burn.loan : 0,
   };
+}
+
+/** The HUD note's wordings, longest first: the loan (while owed) ahead of the halls online. */
+function noteWordings(state, extra) {
+  const halls = `${state.halls} hall${state.halls === 1 ? '' : 's'} online`;
+  const short = `${state.halls}/8 halls`;
+  const owed = loanLeft(state);
+  if (owed <= 0) return [halls + extra, short + extra];
+  const loan = `Loan ${dollars(Math.ceil(owed))}`;
+  return [`${loan} · ${halls}${extra}`, `${loan} · ${short}`, loan];
 }
 
 /** { clock, load, band, meter, note, noteShort } and, in building mode, money (moneyModel). */
 export function hudModel2(state, { auto = false } = {}) {
   const l = load(state);
   if (buildingOn(state)) {
-    const halls = `${state.halls} hall${state.halls === 1 ? '' : 's'} online`;
     const extra = auto ? ' · Auto' : '';
+    const [note, ...shorter] = noteWordings(state, extra);
     return {
       clock: formatClock(state.t),
       load: `${Math.round(l.deliveredMw)} / ${Math.round(l.capacityMw)} MW`,
       band: l.band,
       meter: stabilityOn(state) ? Math.max(0, Math.min(100, state.meter)) : null,
       money: moneyModel(state),
-      note: halls + extra,
-      noteShort: `${state.halls}/8 halls${extra}`,
+      note,
+      noteShort: shorter[0],
+      noteShorter: shorter[1] ?? shorter[0],
     };
   }
   const parts = [`Hall ${state.halls} of ${state.config.maxHalls}`];

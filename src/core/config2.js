@@ -111,11 +111,13 @@ export const DEFAULT_CONFIG2 = {
     handoverAt: 600, // ...or at this many seconds, whichever is first
     safeUntil: 120, // the meter cannot empty before this
     darkDrain: 0.25, // replaces meter.darkDrain: lost income is already the main cost of a dark half (M24's checks)
-    // Money is the lifeline (owner, 15 Nov): cash burns every second and the run ends when it runs out.
-    // burn = base doubling every `doubling` seconds + upkeep x infrastructure built + wages x techs.
-    // Infrastructure (switchboards, coolant units, chillers, pumps) costs upkeep and earns nothing, so
-    // backups are a mid-game purchase. Starting values for the scripted checks to settle.
-    burn: { base: 3, doubling: 150, upkeep: 0.15, wages: 0.5 }, // M29's checks (was doubling 140, upkeep 0.25)
+    // The burn (pass 5 spec 3, owner 15 Nov): pressure early, not late. The campus was built on a
+    // construction loan, repaid at `loanRate` dollars a second from the start of the economy until all
+    // `loan` dollars are repaid; then only a small fixed site overhead (`base`), upkeep x infrastructure
+    // built and wages x techs. A full campus covers it easily: the late game's pressure is the CEO.
+    // `doubling` > 0 brings back pass 4's base that doubled every that many seconds, for comparison.
+    // Infrastructure costs upkeep and earns nothing, so backups are still a mid-game purchase.
+    burn: { loan: 1800, loanRate: 6, base: 1, doubling: 0, upkeep: 0.15, wages: 0.5 }, // M32 (pass 4: base 3, doubling 150, no loan)
     debtGrace: 15, // seconds in the red before the run ends: time to recover from a fine or a bad spell
     stability: false, // false: no Stability meter in building mode; outages cost income instead
     ceoFine: 50, // dollars per Stability point a CEO sighting would have cost (15 points: $750)
