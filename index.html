@@ -96,6 +96,10 @@
     .card.shop .choices strong { font-size: 12px; }
     .card.shop .choices span { font-size: 11px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card.shop .choices em { font-style: normal; font-weight: 700; font-size: 12px; }
+    /* Pass 5 (M35): what each trade is faster at, the suggested trade, and the recommended crew. */
+    .card.shop .choices span.role { white-space: normal; font-size: 10px; line-height: 1.15; color: #56606E; }
+    .card.shop .choices b.suggested { font-size: 10px; font-weight: 700; color: #FFFFFF; background: #1F3A5F; border-radius: 6px; padding: 0 5px; }
+    .card.shop .crew.short { background: #D99A1C; color: #1F3A5F; font-weight: 700; border-radius: 6px; padding: 0 5px; } /* the yellow band colour */
     .card.shop .choices button:disabled { opacity: 0.45; cursor: default; }
     .card.shop .buttons { margin-top: 4px; }
     .choices strong { font-size: 14px; }
@@ -173,7 +177,7 @@
     </div>
     <div class="card delivery shop" data-overlay="shop" hidden>
       <h1 data-field="title">Hire and upgrade</h1>
-      <p class="muted" data-field="cash"></p>
+      <p class="muted"><span data-field="crew" class="crew"></span> · <span data-field="cash"></span></p>
       <div class="choices" id="shop-choices"></div>
       <div class="buttons"><button class="primary" data-action="continue">Close</button></div>
     </div>

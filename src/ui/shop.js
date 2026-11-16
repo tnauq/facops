@@ -4,13 +4,19 @@
 // or the upgrade is at its limit.
 
 import { TRADES, UPGRADES, priceOf } from '../core/index2.js';
+import { crewText, suggestedTrade, tradeLine } from './crewAdvice.js';
 
 const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 const HIRE_ORDER = ['electrical', 'mechanical', 'ce', 'network'];
 
-/** { title, cashText, items: [{ action, kind, trade | upgrade, title, detail, priceText, enabled }] }. */
+/**
+ * { title, crew: { text, short }, cashText, items: [{ action, kind, trade | upgrade, title, detail,
+ * note, suggested, priceText, enabled }] }. Hires carry a note on what the trade is faster at, and
+ * one is suggested (pass 5 spec 6.2).
+ */
 export function shopModel(state) {
   const hirePrice = priceOf(state, 'hire');
+  const suggested = suggestedTrade(state); // pass 5 spec 6.2
   const upPrice = priceOf(state, 'upgrade');
   const hires = HIRE_ORDER.map((trade) => {
     const have = state.techs.filter((t) => t.trade === trade).length;
@@ -20,6 +26,8 @@ export function shopModel(state) {
       trade,
       title: TRADES[trade].label,
       detail: have === 0 ? 'None yet' : `${have} on the crew`,
+      note: tradeLine(trade), // what this trade is faster at (pass 5 spec 6.2)
+      suggested: trade === suggested,
       priceText: money(hirePrice),
       enabled: state.cash >= hirePrice,
     };
@@ -37,7 +45,7 @@ export function shopModel(state) {
       enabled: !full && state.cash >= upPrice,
     };
   });
-  return { title: 'Hire and upgrade', cashText: `Cash ${money(state.cash)} · wages $${state.config.building.burn.wages.toFixed(2)}/s a tech`, items: [...hires, ...ups] };
+  return { title: 'Hire and upgrade', crew: crewText(state), cashText: `Cash ${money(state.cash)} · wages $${state.config.building.burn.wages.toFixed(2)}/s a tech`, items: [...hires, ...ups] };
 }
 
 /** The crew bar's Hire card text: { title, price }. */

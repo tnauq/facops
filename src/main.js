@@ -21,6 +21,7 @@
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
 import { EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, sell, step } from './core/index2.js';
+import { drawFocusFrame } from './render/focus.js';
 import { COMMISSION_CARD_DELAY, commissionedCard, sellButton, sellConfirm } from './ui/sale.js';
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
@@ -35,7 +36,7 @@ import { drawUpgrade } from './render/upgrades.js';
 import { deliveryCard } from './ui/delivery.js';
 import { createTutorial, lessonAlarms, updateTutorial } from './ui/tutorial.js';
 import { createIntros, updateIntros } from './ui/intros.js';
-import { createTutorial4, lessonAlarms4, updateTutorial4 } from './ui/tutorial4.js';
+import { createTutorial4, hireCardOpened, lessonAlarms4, updateTutorial4 } from './ui/tutorial4.js';
 import { cardLayout, spotAt, spotInfo } from './ui/spots.js';
 import { hireCardText, shopModel } from './ui/shop.js';
 import { drawBuildCard } from './render/spots.js';
@@ -220,6 +221,7 @@ function act(action) {
   if (action === 'shop') {
     if (mode !== 'playing') return;
     setShop(shopModel(round.state), drawChoice);
+    if (round.tutorial && round.tutorial.building) hireCardOpened(round.tutorial); // the roles lesson moves on
   }
   if (action === 'copy') {
     copyResults();
@@ -369,7 +371,9 @@ function draw() {
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   const hireCard = buildingOn(s);
+  const crewFocus = Boolean(round.tutorial && round.tutorial.crewFocus);
   drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow(), hire: hireCard, alarmType: alarmId !== null ? s.alarms.find((a) => a.id === alarmId)?.type : null }).map((c) => (c.kind === 'hire' ? { ...c, ...hireCardText(s) } : c)));
+  if (crewFocus) drawFocusFrame(ctx, regs.crew, performance.now()); // the roles lesson (pass 5 spec 6.1)
   const rail = railTickets2(s, regs.rail, alarmId, round.railFirst, round.railCompact);
   round.railFirst = rail.first;
   if (rail.compact !== round.railCompact) round.railSwitchedAt = performance.now();

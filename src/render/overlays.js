@@ -166,6 +166,10 @@ export function setShop(model, drawPicture) {
   const root = document.querySelector('[data-overlay="shop"]');
   root.querySelector('[data-field="title"]').textContent = model.title;
   root.querySelector('[data-field="cash"]').textContent = model.cashText;
+  // Pass 5 (spec 6.2): the recommended crew, amber (a band colour) when the crew is short of it.
+  const crew = root.querySelector('[data-field="crew"]');
+  crew.textContent = model.crew ? model.crew.text : '';
+  crew.classList.toggle('short', Boolean(model.crew && model.crew.short));
   const box = document.getElementById('shop-choices');
   box.textContent = '';
   for (const item of model.items) {
@@ -185,7 +189,21 @@ export function setShop(model, drawPicture) {
     detail.textContent = item.detail;
     const price = document.createElement('em');
     price.textContent = item.priceText;
-    button.append(canvas, title, detail, price);
+    // The suggested trade's tag sits on the detail line, so it costs no height on a small screen.
+    if (item.suggested) {
+      const tag = document.createElement('b');
+      tag.className = 'suggested';
+      tag.textContent = 'Suggested';
+      detail.append(' ', tag);
+    }
+    button.append(canvas, title, detail);
+    if (item.note) {
+      const role = document.createElement('span');
+      role.className = 'role';
+      role.textContent = item.note;
+      button.append(role);
+    }
+    button.append(price);
     box.append(button);
   }
 }

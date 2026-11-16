@@ -10,6 +10,8 @@
 //   trip    - a switchboard with no backup trips: half the hall goes dark; a tech goes by themselves.
 //   backup  - a B switchboard is a backup: it costs upkeep, so buy backups once racks are earning.
 //   grow    - a new hall: switchboard and coolant unit first, then racks; one chiller per 6 racks.
+//   roles   - pass 5 M35: any tech fixes anything indoors, a matching hat is faster; only electricians
+//             work on the yard's high voltage. The crew bar is the focus.
 //   free    - the construction loan starts (pass 5 M32): build racks fast; hire from the crew bar. Then done.
 
 import { raiseAlarm, setScripted, spotState } from '../core/index2.js';
@@ -19,7 +21,7 @@ export const READ_TIME = 9; // seconds a lesson with nothing to do stays up
 
 /** A new building tutorial. `verb` is "Tap" on a touch screen, "Click" with a mouse. */
 export function createTutorial4(verb = 'Tap') {
-  return { building: true, step: 'start', verb, ids: [], since: 0, done: false, callout: '', focus: null };
+  return { building: true, step: 'start', verb, ids: [], since: 0, done: false, callout: '', focus: null, crewFocus: false, shopOpened: false };
 }
 
 const started = (state, id) => spotState(state, id) !== 'empty';
@@ -27,7 +29,16 @@ const anyStarted = (state, ids) => ids.some((id) => started(state, id));
 const BOTTOM_ROWS = ['row-1-b-0', 'row-1-b-1', 'row-1-b-2'];
 const BOTTOM_CHAIN = ['rmu-1-b', 'xfmr-1-b-A', 'msb-1-b-A']; // the bottom half's power chain (M29)
 
+// The spec's wording (116 characters) trimmed to the callouts' 110-character limit, same meaning.
+export const ROLES_LINE = 'Any tech fixes anything indoors; a matching hat is faster. Yard high voltage: electricians (yellow) only.';
+
+/** The screen calls this when the Hire card opens: the roles lesson then moves on (spec 6.1). */
+export function hireCardOpened(tut) {
+  if (tut) tut.shopOpened = true;
+}
+
 function go(tut, state, step, callout, focus = null) {
+  tut.crewFocus = step === 'roles'; // the roles lesson points at the crew bar, not the map
   tut.step = step;
   tut.since = state.t;
   tut.callout = callout;
@@ -79,6 +90,12 @@ export function updateTutorial4(tut, state, events) {
       break;
     case 'grow':
       if (waited > READ_TIME) {
+        tut.shopOpened = false;
+        go(tut, state, 'roles', ROLES_LINE);
+      }
+      break;
+    case 'roles':
+      if (waited > READ_TIME || tut.shopOpened) {
         setScripted(state, false);
         go(tut, state, 'free', handOverLine(state));
       }

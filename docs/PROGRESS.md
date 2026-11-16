@@ -74,10 +74,37 @@ The owner approved `docs/pass5-spec.md` (version 0.2, manage) on 16 November 202
 | M32. The construction loan | `m32` | Done |
 | M33. The CEO's strikes | `m33` | Done |
 | M34. Commissioned and selling the campus | `m34` | Done |
-| M35. Crew guidance | | Next |
-| M36. Inspect card, plus marks, runway | | |
+| M35. Crew guidance | `m35` | Done |
+| M36. Inspect card, plus marks, runway | | Next |
 
 ## Log
+
+### M35. Crew guidance
+
+Pass 5 spec 6. Screen only; no rule changes.
+
+Built:
+
+- **The roles lesson**, the tutorial's seventh, between "grow" and the hand-over: "Any tech fixes anything indoors; a matching hat is faster. Yard high voltage: electricians (yellow) only." While it shows, a pulsing ink frame marks the crew bar. It moves on after 9 s, or as soon as you open the Hire card.
+- **The Hire card:**
+  - A line under each trade saying what it is faster at, built from the alarm table in config: "Faster on breaker trips. The only trade for shorts and RMU faults." / "Faster on chillers, pumps and dry coolers." / "Faster on coolant leaks." / "Faster on network failures."
+  - "Crew 3 · 4 recommended" at the top: 2, plus 1 for each hall online after the first (`building.crewBase` and `building.crewPerHall` in config, marked as advice only). It sits on an amber (the yellow band colour) tag when the crew is short of it.
+  - A "Suggested" tag on one trade: Electrical with three or more halls online and only one electrician; otherwise the trade with fewest on the crew, in the scripted builder's order.
+- **When a hall comes online** and the crew is short: "Hall 3 online · crew of 4 recommended".
+- `src/ui/crewAdvice.js` holds the advice (`tradeLine`, `recommendedCrew`, `suggestedTrade`, `hallOnlineText`), with tests.
+- 6 new tests (477 in all). The tutorial's lesson-order test now includes the roles lesson.
+
+Worth knowing:
+
+- **The roles line is shorter than the spec's.** The spec's wording is 116 characters, and the tutorial's callouts are held to 110 so they fit the phone, so the second half reads "Yard high voltage: electricians (yellow) only." It means the same. Say if you want the spec's wording and I will let this one callout run longer.
+- The three-hall threshold for suggesting an electrician is the yard's own (`yardFromHalls`), so the two stay in step.
+- Checked in a headless Chrome at 844 x 390 and 660 x 300: the roles lesson with the crew bar framed, and the Hire card with three halls and a crew of two (amber "Crew 2 · 4 recommended", Electrical suggested). At 660 x 300 the card is a few pixels taller than the screen, so the Close button sits at the bottom edge (the card scrolls); at 844 x 390 it fits. No console errors.
+
+Owner's checklist:
+
+- With the tutorial on, the roles lesson appears before the hand-over and reads in one go.
+- Open the Hire card at 1, 3 and 5 halls online. The recommendation rises, and goes amber when you are short.
+- Does the recommendation match what feels right to keep a hall running?
 
 ### M34. Commissioned and selling the campus
 

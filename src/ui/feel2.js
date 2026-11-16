@@ -5,6 +5,7 @@
 
 import { EQUIPMENT_BY_ID, HALLS, MID_Y, onlineHallIds } from '../core/index2.js';
 import { FLASH_TIME, createFeel as createFeel1, flashAlpha, liveFloats } from './feel.js';
+import { hallOnlineText } from './crewAdvice.js';
 
 export { flashAlpha, liveFloats };
 export const CELEBRATE_TIME = 2; // seconds a new hall's celebration lasts
@@ -52,7 +53,8 @@ export function feelEvents2(feel, events, state) {
     if (e.type === 'band' && e.to === 'red') feel.flashUntil = e.t + FLASH_TIME;
     if (e.type === 'delivery') feel.celebrations.push({ hall: e.hall, born: e.t, mw: hallMw(state) });
     // Building mode (pass 4): a hall the player brought online, and a device a contractor finished.
-    if (e.type === 'hallOnline') feel.celebrations.push({ hall: e.hall, born: e.t, mw: null });
+    // Pass 5 (spec 6.3): with the crew advice when the crew is short of it.
+    if (e.type === 'hallOnline') feel.celebrations.push({ hall: e.hall, born: e.t, mw: null, text: hallOnlineText(state, e.hall) });
     // Pass 5 (spec 5.2): Commissioned is bigger than a hall: every hall lights in turn.
     if (e.type === 'commissioned') {
       onlineHallIds(state).forEach((hall, i) => feel.celebrations.push({ hall, born: e.t + i * COMMISSION_STAGGER, mw: null, text: 'Commissioned' }));

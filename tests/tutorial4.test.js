@@ -36,7 +36,7 @@ const patient = (step, s) => {
 test('a patient learner goes through every lesson, in order, and the game takes over', () => {
   const { s, tut, seen } = play(patient);
   assert.equal(tut.done, true);
-  assert.deepEqual(seen.map((x) => x.step), ['rack', 'half', 'trip', 'backup', 'grow', 'free']);
+  assert.deepEqual(seen.map((x) => x.step), ['rack', 'half', 'trip', 'backup', 'grow', 'roles', 'free']);
   assert.equal(s.scripted, false);
   assert.match(seen[0].callout, /tap a \+ on a rack spot/);
 });
@@ -103,4 +103,28 @@ test('the HUD rate shows no burn while the lessons run', async () => {
   updateTutorial4(tut, s, s.events.splice(0));
   assert.equal(s.scripted, true);
   assert.equal(moneyModel(s).rate, '+$8/s');
+});
+
+test('the roles lesson (pass 5 M35): before the hand-over, the crew bar in focus; opening the Hire card moves on', async () => {
+  const { ROLES_LINE, hireCardOpened } = await import('../src/ui/tutorial4.js');
+  const s = game();
+  const tut = createTutorial4('Tap');
+  while (tut.step !== 'roles' && s.t < 400) {
+    step(s, 0.05);
+    updateTutorial4(tut, s, s.events.splice(0));
+    patient(tut.step, s);
+  }
+  assert.equal(tut.callout, ROLES_LINE);
+  assert.equal(tut.crewFocus, true);
+  assert.equal(s.scripted, true, 'still before the hand-over');
+  const at = s.t;
+  step(s, 0.05);
+  updateTutorial4(tut, s, s.events.splice(0));
+  hireCardOpened(tut);
+  step(s, 0.05);
+  updateTutorial4(tut, s, s.events.splice(0));
+  assert.equal(tut.step, 'free');
+  assert.ok(s.t - at < 1, 'moved on at once');
+  assert.equal(tut.crewFocus, false);
+  assert.equal(s.scripted, false);
 });
