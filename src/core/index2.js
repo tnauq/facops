@@ -6,6 +6,7 @@ export * from './layout2.js';
 export {
   advance,
   alarmCap,
+  lateCapExtra,
   alarmInfo,
   arrivalPoint,
   assign,

@@ -112,6 +112,9 @@ export const DEFAULT_CONFIG2 = {
     firstSpawn: 20, // seconds before the first alarm: time to look round and buy a first backup
     chillersPerHall: 1, // replaces chillersPerHall: one chiller per hall's worth of racks (owner's compute-first economy)
     capExtra: 2, // the director stops at this many alarms plus one per hall's worth of racks online, whatever the crew
+    // Owner, 16 Nov (after M33's checks): the cap rises late so the late game outruns the crew. Each
+    // [seconds on the run's clock, extra alarms]: +2 at 14:00 and +2 more at 17:00. [] = never.
+    capSteps: [[840, 2], [1020, 2]],
     smallStretch: 3, // under a hall's worth of racks, the gap between alarms grows by 6 / rows, up to this
     handoverMw: 200, // the Handover comes once rows in online halls reach this many MW...
     handoverAt: 600, // ...or at this many seconds, whichever is first

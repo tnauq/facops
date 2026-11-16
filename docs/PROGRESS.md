@@ -72,12 +72,35 @@ The owner approved `docs/pass5-spec.md` (version 0.2, manage) on 16 November 202
 | Milestone | Tag | Status |
 |---|---|---|
 | M32. The construction loan | `m32` | Done |
-| M33. The CEO's strikes | `m33` | Done (run length a little over target: see the log) |
+| M33. The CEO's strikes | `m33` | Done |
 | M34. Commissioned and selling the campus | | Next |
 | M35. Crew guidance | | |
 | M36. Inspect card, plus marks, runway | | |
 
 ## Log
+
+### M33 follow-up. The alarm cap rises late (owner, 16 Nov)
+
+After M33's checks the owner agreed to raise the director's alarm cap late in a run: as before until 14:00, then +2, and +2 more at 17:00 (on the run's clock, the one in the HUD).
+
+- **Rule** (`alarmCap` and `lateCapExtra` in `src/core/game2.js`; `building.capSteps: [[840, 2], [1020, 2]]` in `src/core/config2.js`). Building mode only.
+- **Drawer:** "Alarm cap +2 at 14:00 and +2 at 17:00", on by default.
+- Strike visits keep their 20 to 30 s gap: without it the median was 21:19.
+- 1 new test (459 in all).
+
+Scripted checks (12 seeds):
+
+| Player | Run length: median (range) | Earned | Fired / broke before 5:00 / broke later / still running at 30:00 | Strikes |
+|---|---|---|---|---|
+| Compute first, backups from hall 4, hires | 17:52 (4:54 to 27:13) | $109,891 | 10 / 1 / 1 / 0 | 2.5 |
+| The same, getting ready for the CEO | 20:07 (9:15 to 30:00) | $144,782 | 10 / 0 / 1 / 1 | 2.6 |
+| Backups from hall 6 | 17:09 (4:54 to 28:38) | $110,638 | 10 / 1 / 1 / 0 | 2.5 |
+| Backups early | 0:38 (0:38 to 25:25) | $43,101 | 4 / 7 / 1 / 0 | 1.0 |
+| Never a backup | 18:18 (4:54 to 26:19) | $93,536 | 9 / 1 / 2 / 0 | 2.3 |
+| Never hires | 8:37 (4:54 to 28:47) | $55,722 | 4 / 1 / 7 / 0 | 1.0 |
+| Decides every 4 s | 20:38 (17:50 to 30:00) | $136,153 | 11 / 0 / 0 / 1 | 2.9 |
+
+All of spec 4.4's targets are now met except short-handed before 8:00 (25%, target under 25%), which is the early game and unchanged since M32. The median run is 17:52 (target 14 to 20). Getting ready for the CEO lasts longer and earns 32% more, and backups from hall 4 or 6 earn about 18% more than none.
 
 ### M33. The CEO's strikes
 

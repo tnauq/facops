@@ -198,3 +198,20 @@ test('results list the minute of each strike', () => {
   const panel = resultsPanel(r, { isNew: true, best: r }, (x) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`);
   assert.ok(panel.lines.some(([label, value]) => label === 'Strikes' && /^1 of 3 · \d+:\d\d$/.test(value)));
 });
+
+test('the alarm cap rises by 2 at 14:00 and by 2 more at 17:00 (owner, 16 Nov)', async () => {
+  const { alarmCap, lateCapExtra } = await import('../src/core/index2.js');
+  const s = building();
+  const base = alarmCap(s);
+  assert.equal(lateCapExtra(s), 0);
+  s.t = 839.9;
+  assert.equal(alarmCap(s), base);
+  s.t = 840;
+  assert.equal(alarmCap(s), base + 2);
+  s.t = 1019.9;
+  assert.equal(alarmCap(s), base + 2);
+  s.t = 1020;
+  assert.equal(alarmCap(s), base + 4);
+  s.config.building.capSteps = [];
+  assert.equal(alarmCap(s), base, 'the drawer can turn it off');
+});

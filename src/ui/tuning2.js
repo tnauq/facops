@@ -70,6 +70,8 @@ export const TUNING2_FIELDS = [
     get: (c) => c.ceo.strikes, set: (o, v) => { o.ceo = { ...(o.ceo ?? {}), strikes: v }; } },
   { id: 'strikeFine', label: 'Fine per sighting on a strike visit ($)', kind: 'range', min: 0, max: 8000, step: 250,
     get: (c) => c.ceo.strikeFine, set: (o, v) => { o.ceo = { ...(o.ceo ?? {}), strikeFine: v }; } },
+  { id: 'capSteps', label: 'Alarm cap +2 at 14:00 and +2 at 17:00', kind: 'toggle',
+    get: (c) => (c.building.capSteps ?? []).length > 0, set: (o, v) => { o.building = { ...(o.building ?? {}), capSteps: v ? D.building.capSteps : [] }; } },
   { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',
     get: (c) => !c.tutorial, set: (o, v) => { o.tutorial = !v; } },
 ];

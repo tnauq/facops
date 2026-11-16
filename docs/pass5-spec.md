@@ -120,7 +120,7 @@ Run after this milestone, with the loan from M32. 12 seeds. Targets (*starting*)
 
 If runs run long, the first lever is the director's tightening (1.5% every 10 s), then the gap between walkthroughs. Report what was changed.
 
-*M33's result:* tightening had no effect late (the director sits at its alarm cap), so strike visits now come 20 to 30 s apart (`ceo.strikeGap`); the compute-first median is 21:14. The classic game keeps zero tolerance. Details in `docs/PROGRESS.md`.
+*M33's result:* tightening had no effect late (the director sits at its alarm cap), so strike visits now come 20 to 30 s apart (`ceo.strikeGap`); the compute-first median was 21:14. The owner then agreed (16 Nov) to raise the director's alarm cap by 2 at 14:00 and 2 more at 17:00 (`building.capSteps`): median 17:52. The classic game keeps zero tolerance. Details in `docs/PROGRESS.md`.
 
 ### 4.5 Owner's checklist
 

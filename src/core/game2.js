@@ -639,11 +639,18 @@ export function buildingInterval(state) {
   return spawnInterval(state.config, halls, economyTime(state), b.tighten) * stretch;
 }
 
+/** Building mode: the extra alarms the cap allows late in a run (owner, 16 Nov: +2 at 14:00, +2 at 17:00). */
+export function lateCapExtra(state) {
+  let extra = 0;
+  for (const [at, add] of state.config.building.capSteps ?? []) if (state.t >= at - EPS) extra += add;
+  return extra;
+}
+
 /** Largest number of active alarms at which the director still adds one. */
 export function alarmCap(state) {
   const d = state.config.director;
   // Building mode: the cap follows what is built, so a hire is relief, not more alarms (M24's checks).
-  if (buildingOn(state)) return state.config.building.capExtra + Math.ceil(onlineRows(state).length / ROWS_PER_HALL - EPS);
+  if (buildingOn(state)) return state.config.building.capExtra + Math.ceil(onlineRows(state).length / ROWS_PER_HALL - EPS) + lateCapExtra(state);
   const growth = state.fullCampusAt === null || !(d.capGrowEvery > 0) ? 0 : Math.floor((state.t - state.fullCampusAt) / d.capGrowEvery + EPS);
   return state.techs.length + d.capExtra + growth;
 }
