@@ -82,7 +82,7 @@ function drawMoney(ctx, layout, money) {
   }
   // Pass 5 spec 3.2: a thin bar under the cash and its rate that empties as the loan is repaid, so the
   // loan reads even when the note has no room to name it. Ink, not a band colour: it is not a warning.
-  if (money.loanShare > 0) {
+  if (money.loanShare > 0 && !money.uptime) {
     const w = x - 8 - layout.meter.x;
     ctx.fillStyle = TRACK;
     ctx.fillRect(layout.meter.x, cy * 2 - 5, w, 2);
@@ -91,7 +91,13 @@ function drawMoney(ctx, layout, money) {
   }
   // Pass 7 spec 3.5: service credits, small and red beneath the cash, where the loan's bar was (the
   // loan is always paid off before credits start, so the two never share the line).
-  if (money.credits && !money.loanShare) {
+  // Pass 7 spec 4.1 (M42): a minute's uptime bonus takes the same line for 2 s, in ink (over the
+  // loan's bar, which comes back after).
+  if (money.uptime) {
+    ctx.font = `700 9px ${FONT}`;
+    ctx.fillStyle = INK;
+    ctx.fillText(money.uptime, layout.meter.x, cy * 2 - 6);
+  } else if (money.credits && !money.loanShare) {
     ctx.font = `600 9px ${FONT}`;
     ctx.fillStyle = RED;
     ctx.fillText(money.credits, layout.meter.x, cy * 2 - 6);

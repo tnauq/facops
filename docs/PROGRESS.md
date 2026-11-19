@@ -95,12 +95,63 @@ The owner approved `docs/pass7-spec.md` (version 0.3) on 18 November 2026: three
 | Milestone | Tag | Status |
 |---|---|---|
 | M41. Three ways out | `m41` | Done |
-| M42. The uptime bonus | `m42` | |
+| M42. The uptime bonus | `m42` | Done |
 | M43. The advisor mark and bundles | `m43` | |
 | M44. Save and resume | `m44` | |
 | M45. The ledger and the run-over card | `m45` | |
 
 ## Log
+
+### M42. The uptime bonus
+
+Pass 7 spec 4.1.
+
+Built:
+
+- **The rule** (`building.uptime: { enabled, bonus, floor: 0.9 }`). At each full minute of the economy, every rack row that stayed up the whole minute is paid the bonus: online at the start of the minute and never below 90% of full output in it. A hall at 90% (one coolant unit leaking) still counts; a hall without water (50%), a dark row, a row short of cooling below 90% or a row powering up does not. A row built during a minute waits for the next. Paid to the cash at once and counted in money earned and the score. Nothing while the tutorial's lessons run; not in the classic game. Event `uptimeBonus` (minute, rows, total); helpers `uptimeOn`, `rowUp`, `uptimeOnTrack`; results gain `uptime`.
+- **The bonus is $20, not the spec's $40** (see the checks below; spec 4.1 makes the bonus the first lever).
+- **Screen:**
+  - "+$20" rises from every paid row.
+  - The HUD shows "+$1,240 uptime" under the cash for 2 s after each minute (over the loan's bar, which comes back).
+  - A rack row's inspect card adds "Uptime bonus: on track" or "Uptime bonus: missed this minute".
+  - Introduction at the first bonus, in every building run: "Every rack row that stays up a full minute earns a $20 bonus. Backups protect it." (the amount follows the config).
+  - Results: an "Uptime bonuses" line; the Copy text has the total.
+  - Drawer: an "Uptime bonus" switch and the bonus per row.
+- `scripts/pacing4.mjs` reports the bonus as a share of rack income.
+- **Tests:** 6 new in `tests/uptime.test.js`. The strikes test allows the uptime line beside the strike line, as it does the pumps' and M41's. 536 in all.
+
+Scripted checks (spec 4.1, 12 seeds). **At $40** the bonus pushed the compute-first median to 21:09 (over 20), sold/fired/broke to 46% / 29% / 25% (sold over 40%), and the builder who gets ready for the CEO earned less than the one who does not ($153,125 against $160,536). $30 still gave 20:16. **At $20:**
+
+| Player | Median run (range) | Score | Sold / fired / broke early / broke later | 150 MW at | Bonus / income |
+|---|---|---|---|---|---|
+| Compute first, backups from hall 4 | 18:56 (4:52 to 22:59) | $114,829 | 0 / 10 / 1 / 1 | 7:34 (10/12) | 5% |
+| The same, getting ready for the CEO | 22:05 (9:45 to 25:35) | $141,330 | 0 / 5 / 0 / 7 | 7:32 (12/12) | 5% |
+| Backups from hall 6 | 16:54 (4:52 to 21:48) | $79,467 | 0 / 7 / 1 / 4 | 6:32 (10/12) | 4% |
+| Never a backup | 9:24 (4:52 to 19:16) | $53,585 | 0 / 2 / 1 / 9 | | 2% |
+| Never hires | 10:26 (4:52 to 25:16) | $70,344 | 0 / 3 / 1 / 8 | 7:38 (10/12) | 3% |
+| Slow (decides every 4 s) | 20:11 (17:45 to 24:56) | $125,738 | 0 / 8 / 0 / 4 | 8:39 (12/12) | 5% |
+| Bold seller | 15:45 (4:52 to 17:24) | $125,062 | 10 / 0 / 1 / 1 | 7:34 (10/12) | 5% |
+| Cautious seller | 13:45 (9:45 to 15:15) | $103,556 | 10 / 0 / 0 / 2 | 7:32 (12/12) | 4% |
+| Backups early | 0:40 (0:40 to 14:01) | $2,374 | 0 / 0 / 11 / 1 | | 1% |
+
+Against the targets:
+
+- Compute-first median 18:56: **met**.
+- Endings across the four players of spec 3.6: sold 20, fired 15, broke 13 of 48, that is **42% / 31% / 27%**. Fired and broke are inside 25 to 40%; **sold is just over**. Sold depends almost entirely on the two scripted sellers, who sell in 10 of 12 runs each, so it is the mix of players rather than the rules; the owner's runs will say.
+- Never a backup earns at least 25% less: **met** (53% less, up from 36% in M41).
+- Backups early broke in at least half: **met** (11 of 12).
+- Bonus as a share of income: **reported, 5%**, against the design's "about a sixth". Scripted runs are rarely all-up for a whole minute; at $40 it was 10%.
+- Getting ready for the CEO earns more than not: **kept** ($141,330 against $114,829).
+
+Worth knowing:
+
+- The bonus rewards backups strongly (never a backup now earns 53% less), which is its job, but the amount is half the design's. If the owner wants the full $40, the runs need shortening elsewhere: the credits' doubling first.
+- Checked in headless Chrome at 844 x 390 and 660 x 300 on automatic runs: the introduction appears at the first minute; no console errors. The automatic runs never had every row up at the first minute, so the "+$20" floats and the HUD line were checked by the tests, not on screen.
+
+Owner's checklist:
+
+- The first minute's bonus is noticed, and its line says why it matters.
+- A hall with a B switchboard keeps its bonus through a trip; one without loses it.
 
 ### M41. Three ways out
 

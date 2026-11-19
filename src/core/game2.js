@@ -135,6 +135,8 @@ export function createGame({ seed = 1, config = {} } = {}) {
     economyStart: 0, // building mode: when the burn and the alarm tightening started (after the tutorial)
     loanPaidAt: null, // building mode: when the construction loan was paid off (pass 5 spec 3.1)
     customersLive: false, // pass 7 spec 3.2: service credits are charged from this moment
+    uptime: null, // pass 7 spec 4.1: { minute, up: Set of rows still on track this minute }
+    uptimeLast: null, // the last uptime payment: { t, minute, rows: [ids], total }
     ribbonQueued: false,
     commissionedAt: null, // pass 5 spec 5.1: when every rack row first delivered full output at once
     sold: null, // { price, t } once the player handed over the keys
@@ -144,6 +146,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     state.stats.spent = 0;
     state.stats.burned = 0;
     state.stats.credits = 0; // pass 7 M41: service credits charged, part of what was burned
+    state.stats.uptime = 0; // pass 7 M42: uptime bonuses paid, part of what was earned
     state.stats.built = 0;
     state.stats.hallsOnline = [];
     for (const h of refreshSites(state)) state.stats.hallsOnline.push({ hall: h, t: 0 });
@@ -958,6 +961,56 @@ export function burnRate(state) {
   return loan + base + b.upkeep * infra + b.wages * state.techs.length + creditsRate(state);
 }
 
+// The uptime bonus (pass 7 spec 4.1, M42) ------------------------------------------------------
+
+/** Is the uptime bonus in play? Building mode, switched on, and not while the tutorial's lessons run. */
+export function uptimeOn(state) {
+  const u = state.config.building.uptime;
+  return buildingOn(state) && Boolean(u && u.enabled && u.bonus > 0) && !state.scripted;
+}
+
+/** Is this rack row up for the bonus now: online and at or above the floor of full output? */
+export function rowUp(state, id) {
+  const row = EQUIPMENT_BY_ID[id];
+  if (!isOnline(state, row)) return false;
+  return state.equip[id].level * state.thermal >= state.config.building.uptime.floor - EPS;
+}
+
+const rowsUpNow = (state) => new Set(ROWS.filter((r) => rowUp(state, r.id)).map((r) => r.id));
+
+// Each step: a row that drops below the floor is off track for the minute. At each full minute,
+// the rows still on track are paid, and the next minute starts with the rows up at that moment.
+function uptimeStep(state) {
+  if (!uptimeOn(state)) {
+    state.uptime = null; // the tutorial's lessons: the first minute starts at the hand-over
+    return;
+  }
+  const minute = Math.floor(economyTime(state) / 60 + 1e-9);
+  if (!state.uptime) {
+    state.uptime = { minute, up: rowsUpNow(state) };
+    return;
+  }
+  for (const id of state.uptime.up) if (!rowUp(state, id)) state.uptime.up.delete(id);
+  if (minute <= state.uptime.minute) return;
+  const rows = [...state.uptime.up];
+  const bonus = state.config.building.uptime.bonus;
+  const total = rows.length * bonus;
+  if (total > 0) {
+    state.cash += total;
+    state.stats.earned += total;
+    state.stats.uptime += total;
+  }
+  state.uptimeLast = { t: state.t, minute, rows, total };
+  emit(state, 'uptimeBonus', { minute, rows, total });
+  state.uptime = { minute, up: rowsUpNow(state) };
+}
+
+/** Is this row on track for this minute's uptime bonus? null when there is no bonus in play. */
+export function uptimeOnTrack(state, id) {
+  if (!uptimeOn(state) || !state.uptime) return null;
+  return state.uptime.up.has(id);
+}
+
 /** Economy seconds at which customers go live (pass 7 spec 3.2): when the loan is paid off. */
 export function customersLiveAt(state) {
   const b = state.config.building.burn;
@@ -1342,6 +1395,7 @@ export function step(state, dt) {
   state.stats.lowestFraction = Math.min(state.stats.lowestFraction, now.fraction);
   if (buildingOn(state)) {
     earn(state, now.deliveredMw, dt);
+    uptimeStep(state);
     checkCommissioned(state, now.deliveredMw);
     if (!state.scripted) burn(state, dt);
   }
@@ -1443,6 +1497,7 @@ export function results(state) {
     // Pass 7 spec 3.5: service credits charged, and whether they are what broke the bank (after customers went live).
     credits: buildingOn(state) ? state.stats.credits ?? 0 : 0,
     brokeOnCredits: state.overReason === 'bankrupt' && (state.stats.credits ?? 0) > 0,
+    uptime: buildingOn(state) ? state.stats.uptime ?? 0 : 0, // pass 7 M42: uptime bonuses paid
     built: buildingOn(state) ? state.stats.built : 0,
     // Pass 5 spec 3.2: when the construction loan was paid off, in economy time; null if not (or none).
     loanPaidAt: buildingOn(state) && state.loanPaidAt !== null ? state.loanPaidAt - (state.economyStart ?? 0) : null,
@@ -1487,7 +1542,7 @@ export function resultsText(state) {
     ...(r.building ? [`Pumps: ${r.cdusEverDry} CDUs ever dry (${Math.round(r.dryCduSeconds)} CDU-s), ${r.hallsEverDry} halls ever without water (${Math.round(r.dryHallSeconds)} hall-s)`] : []),
     `Redirects: ${r.redirects} | Matching-hat fixes: ${pct(r.matchedShare)} | Lowest load: ${pct(r.lowestFraction)}`,
     ...(r.building ? [`Score: $${Math.round(r.score).toLocaleString('en-US')}${r.sold ? ` | Sold for $${r.salePrice.toLocaleString('en-US')}` : ''} | Reached: ${r.milestone ?? 'none'}${r.commissioned ? ` (Commissioned at ${formatClock(r.commissionedAt)})` : ''}`] : []),
-    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.credits > 0 ? ` (service credits $${Math.round(r.credits).toLocaleString('en-US')})` : ''}${r.bankrupt ? (r.brokeOnCredits ? ' | Went broke: service credits' : ' | Went broke') : ''} | Devices built: ${r.built}${loanText(r) ? ` | ${loanText(r)}` : ''}`] : []),
+    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.uptime > 0 ? ` (uptime bonuses $${Math.round(r.uptime).toLocaleString('en-US')})` : ''}${r.credits > 0 ? ` (service credits $${Math.round(r.credits).toLocaleString('en-US')})` : ''}${r.bankrupt ? (r.brokeOnCredits ? ' | Went broke: service credits' : ' | Went broke') : ''} | Devices built: ${r.built}${loanText(r) ? ` | ${loanText(r)}` : ''}`] : []),
     `Tuning: ${r.tuning.length > 0 ? r.tuning.join(', ') : 'defaults'}`,
   ].join('\n');
 }

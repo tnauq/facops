@@ -4,7 +4,7 @@
 // backup, its upkeep and its state.
 
 import {
-  EQUIPMENT_BY_ID, coolantState, glycolFed, pumpNeeds, waterFed, chillersNeeded, dryCapacity, getAlarm, hallOnline, isBuilt, msbFed, plantHasPump, runningChillers,
+  EQUIPMENT_BY_ID, coolantState, glycolFed, pumpNeeds, waterFed, chillersNeeded, dryCapacity, getAlarm, hallOnline, isBuilt, msbFed, plantHasPump, runningChillers, uptimeOnTrack,
 } from '../core/index2.js';
 import { cameraView } from './camera.js';
 import { extentOf, SPOT_MIN } from './spots.js';
@@ -175,7 +175,11 @@ export function inspectInfo(state, id) {
   const name = e.type === 'msb' ? `Switchboard ${e.side}` : e.type === 'xfmr' ? `Transformer ${e.side}` : e.type === 'pump' ? pumpName(e) : NAMES[e.type];
   if (e.type === 'row') {
     const r = rowStatus(state, id);
-    return { id, type: e.type, name, side: 'A', headline: dollars(r.earning), lines: [r.reason || `Earning in full: 3 racks, ${dollars(state.config.building.income)} at full output`], warn: r.reason !== '' && r.reason !== 'Powering up', lineWarn: r.reason !== '' && r.reason !== 'Powering up' };
+    const lines = [r.reason || `Earning in full: 3 racks, ${dollars(state.config.building.income)} at full output`];
+    // Pass 7 spec 4.1 (M42): whether this row will earn this minute's uptime bonus.
+    const track = uptimeOnTrack(state, id);
+    if (track !== null) lines.push(track ? 'Uptime bonus: on track' : 'Uptime bonus: missed this minute');
+    return { id, type: e.type, name, side: 'A', headline: dollars(r.earning), lines, warn: r.reason !== '' && r.reason !== 'Powering up', lineWarn: r.reason !== '' && r.reason !== 'Powering up' };
   }
   const s = infraStatus(state, id);
   const upkeep = `Upkeep ${dollars(state.config.building.burn.upkeep)}`;

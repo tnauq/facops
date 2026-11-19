@@ -29,12 +29,17 @@ export const INTRO_TEXT = {
   // loan's notice says that instead (customersText below); and two lines of their own.
   sale: "You can sell the campus from the menu. Buyers pay for what it earns, so sell while it's running well.",
   creditsOver: 'Credits are outrunning your income. Fix outages, or sell while you can.',
+  // Pass 7 spec 4.1 (M42): at the first uptime bonus.
+  uptime: '', // the line names the configured bonus (uptimeText below)
   // Pass 5 spec 4.3: once, as the last walkthrough before the strikes leaves (strikesText below).
   strikes: '',
   // Pass 6 spec 5 (M40). The water line names the hall (waterText below).
   dryCdu: 'Not enough glycol pumps: the farthest coolant unit has gone dry. Build another.',
   noWater: '',
 };
+
+/** The uptime bonus's line, for the configured bonus (spec 4.1). */
+export const uptimeText = (bonus) => `Every rack row that stays up a full minute earns a $${bonus} bonus. Backups protect it.`;
 
 /** The loan's notice once customers are live (pass 7 spec 3.5). */
 export const CUSTOMERS_TEXT = "Loan paid off. Customers are live: every rack that's down now costs service credits, and they get stricter.";
@@ -75,6 +80,10 @@ export function updateIntros(intros, state) {
     intros.given.add('sale');
     intros.queue.push({ type: 'sale', id: null });
   }
+  if (!intros.given.has('uptime') && (state.stats.uptime ?? 0) > 0) {
+    intros.given.add('uptime');
+    intros.queue.push({ type: 'uptime', id: null });
+  }
   if (!intros.given.has('creditsOver') && creditsRate(state) > incomeRate(state) && creditsRate(state) > 0) {
     intros.given.add('creditsOver');
     intros.queue.push({ type: 'creditsOver', id: null });
@@ -107,6 +116,7 @@ export function updateIntros(intros, state) {
   if (intros.queue.length > 0 && !warning) {
     const next = intros.queue.shift();
     intros.text = next.type === 'strikes' ? strikesText(strikesToFire(state)) : next.type === 'noWater' ? waterText(next.hall)
+      : next.type === 'uptime' ? uptimeText(state.config.building.uptime.bonus)
       : next.type === 'loan' && creditsOn(state) ? CUSTOMERS_TEXT : INTRO_TEXT[next.type];
     intros.ids = state.alarms.some((a) => a.id === next.id) ? [next.id] : [];
     intros.until = state.t + (next.type === 'loan' && !creditsOn(state) ? NOTICE_SECONDS : INTRO_SECONDS);

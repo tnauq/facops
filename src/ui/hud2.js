@@ -26,6 +26,7 @@ export function ceoNote(state) {
   };
 }
 
+export const UPTIME_SHOW = 2; // seconds the HUD shows a minute's uptime bonus (spec 4.1)
 export const RUNWAY_MAX = 300; // seconds: a runway longer than 5:00 is not shown (spec 7.3)
 
 const dollars = (n) => `$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
@@ -53,6 +54,8 @@ export function moneyModel(state) {
     runway: net < 0 && state.cash > 0 && state.cash / -net <= RUNWAY_MAX ? formatClock(Math.floor(state.cash / -net)) : null,
     // Pass 7 spec 3.5: while service credits are charged, what they cost a second ("credits −$48/s").
     credits: !state.scripted && creditsRate(state) > 0.005 ? `credits −${dollars(creditsRate(state))}/s` : null,
+    // Pass 7 spec 4.1 (M42): for UPTIME_SHOW seconds after a minute's uptime bonus, "+$1,240 uptime".
+    uptime: state.uptimeLast && state.uptimeLast.total > 0 && state.t - state.uptimeLast.t < UPTIME_SHOW ? `+${dollars(state.uptimeLast.total)} uptime` : null,
   };
 }
 

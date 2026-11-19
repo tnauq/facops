@@ -59,6 +59,13 @@ export function feelEvents2(feel, events, state) {
     if (e.type === 'commissioned') {
       onlineHallIds(state).forEach((hall, i) => feel.celebrations.push({ hall, born: e.t + i * COMMISSION_STAGGER, mw: null, text: 'Commissioned' }));
     }
+    // Pass 7 spec 4.1 (M42): "+$40" rises from every rack row paid its uptime bonus.
+    if (e.type === 'uptimeBonus') {
+      for (const id of e.rows) {
+        const eq = EQUIPMENT_BY_ID[id];
+        feel.floats.push({ text: `+$${state.config.building.uptime.bonus}`, x: eq.x, y: eq.y, born: e.t });
+      }
+    }
     if (e.type === 'buildStart') {
       const eq = EQUIPMENT_BY_ID[e.equipId];
       feel.floats.push({ text: `-$${e.price}`, x: eq.x, y: eq.y, born: e.t });
