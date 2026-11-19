@@ -316,7 +316,8 @@ test('in the red, a countdown runs: back out of it in time and the run goes on, 
 });
 
 test('no Stability meter in building mode: the meter never ends a run', () => {
-  const s = game({ meter: { start: 1 } });
+  // Service credits (pass 7, M41) can end a run through the cash; this test is about the meter alone.
+  const s = game({ meter: { start: 1 }, building: { credits: { rate: 0, doubling: 0 } } });
   raiseAlarm(s, 'breaker', 'msb-1-t-A'); // the only half with racks goes dark
   advance(s, 300);
   assert.equal(s.over, false);

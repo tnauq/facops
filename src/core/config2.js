@@ -78,7 +78,7 @@ export const DEFAULT_CONFIG2 = {
     inspect: 4, // seconds at each area: half facing the top, half the bottom
     inspectHandover: 2,
     gap: [45, 60], // seconds between the end of one visit and the next walkthrough's warning
-    strikeGap: [20, 30], // M33's checks: the gap before each strike visit (walkthroughs keep 45 to 60 s), to shorten long runs
+    strikeGap: [12, 18], // the gap before each strike visit (walkthroughs keep 45 to 60 s). M33: 20 to 30; pass 7 spec 3.3 (M41): 12 to 18, so the CEO ends about a third of runs
     ribbonHall: 3, // the ribbon-cutting comes with this hall
     ribbon: { warning: 20, cost: 15 },
     handover: { warning: 20, cost: 35 },
@@ -142,7 +142,16 @@ export const DEFAULT_CONFIG2 = {
     // Pass 5 spec 5.1 (M34): handing over the keys. The sale price is the price of everything built;
     // a Commissioned campus (all rows at full output at once) sells for `commissionedBonus` more.
     // fromHandover false: the campus may be sold at any time (for comparison).
-    sale: { fromHandover: true, commissionedBonus: 0.5 },
+    // Pass 7 spec 3.4 (M41, owner 18 Nov: a third of runs should end in a sale): `anytime` lets the
+    // campus be sold with outages open and during a CEO warning, only not while the CEO walks; the
+    // buyer also pays `incomeSeconds` of the campus's current income. anytime false and incomeSeconds 0
+    // are M34's rules.
+    sale: { fromHandover: true, commissionedBonus: 0.5, anytime: true, incomeSeconds: 150 },
+    // Pass 7 spec 3.2 (M41, owner 17 Nov): service credits. Customers go live when the construction
+    // loan is paid off (at once when there is no loan). From then every online rack row that is short of
+    // full output costs `rate` dollars a second for each row short, doubling every `doubling` seconds
+    // since they went live. Nothing is charged while every row delivers. rate 0 turns them off.
+    credits: { rate: 1, doubling: 210 },
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free

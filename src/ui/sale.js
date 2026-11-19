@@ -1,7 +1,7 @@
 // Handing over the keys (pass 5 spec 5.2). Pure: what the menu's sale button, the confirm card and
 // the Commissioned card say, from the rules in src/core/game2.js (cannotSell, salePrice, score).
 
-import { cannotSell, commissioned, salePrice, score } from '../core/index2.js';
+import { cannotSell, commissioned, formatClock, salePrice, score } from '../core/index2.js';
 
 export const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 
@@ -23,12 +23,18 @@ export function sellButton(state) {
   return { label: `Hand over the keys · ${money(salePrice(state))}`, enabled: reason === null, why: reason ? SELL_WHY[reason] ?? '' : '' };
 }
 
+// Pass 7 (M41): the buyer pays for what the campus earns, so say so (an outage lowers it).
+function incomePart(state) {
+  const secs = state.config.building.sale.incomeSeconds;
+  return secs > 0 ? `: the equipment, plus ${formatClock(secs)} of what it earns now` : '';
+}
+
 /** The confirm card: { title, price, score, note }. */
 export function sellConfirm(state) {
   const price = salePrice(state);
   return {
     title: 'Hand over the keys?',
-    price: `The campus sells for ${money(price)}${commissioned(state) ? ', with the Commissioned bonus' : ''}.`,
+    price: `The campus sells for ${money(price)}${incomePart(state)}${commissioned(state) ? ', with the Commissioned bonus' : ''}.`,
     score: `Your score would be ${money(score(state) + price)}: ${money(state.stats.earned)} earned plus the sale.`,
     note: 'The run ends.',
   };

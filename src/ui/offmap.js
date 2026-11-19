@@ -28,7 +28,7 @@ export function offMapMarkers(points, cam) {
     const dy = sy - cy;
     // Shrink the ray from the centre until it touches the inset edge.
     const t = Math.min(halfW / Math.abs(dx || 1e-9), halfH / Math.abs(dy || 1e-9));
-    raw.push({ x: cx + dx * t, y: cy + dy * t, angle: Math.atan2(dy, dx), ids: [p.id], type: p.type, target: { x: p.x, y: p.y }, dist: Math.hypot(dx, dy), rank: p.rank ?? Infinity, info: p.info ?? null, cost: p.cost ?? 0 });
+    raw.push({ x: cx + dx * t, y: cy + dy * t, angle: Math.atan2(dy, dx), ids: [p.id], type: p.type, target: { x: p.x, y: p.y }, dist: Math.hypot(dx, dy), rank: p.rank ?? Infinity, info: p.info ?? null, cost: p.cost ?? 0, costLabel: p.costLabel ?? null });
   }
   // Nearest alarms first, so a merged marker leads to the closest one.
   raw.sort((a, b) => a.dist - b.dist);
@@ -39,7 +39,7 @@ export function offMapMarkers(points, cam) {
     else if (m.rank < near.rank) {
       // A more urgent alarm leads the marker; the arrow stays where the nearest put it.
       near.ids.unshift(...m.ids);
-      Object.assign(near, { type: m.type, target: m.target, rank: m.rank, info: m.info, cost: m.cost });
+      Object.assign(near, { type: m.type, target: m.target, rank: m.rank, info: m.info, cost: m.cost, costLabel: m.costLabel });
     } else near.ids.push(...m.ids);
   }
   return merged.map(({ dist, rank, ...m }) => ({ ...m, count: m.ids.length }));

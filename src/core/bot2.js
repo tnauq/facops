@@ -6,7 +6,7 @@ import { EQUIPMENT_BY_ID } from './layout2.js';
 import { onCeoRoute } from './ceo.js';
 import { buildMove } from './builder.js';
 import { createRng } from './rng.js';
-import { assign, canFix, choose, createGame, fixDuration, getAlarm, results, spareChillers, step, walkSpeed, walkDistance } from './game2.js';
+import { assign, canFix, choose, createGame, creditsRate, fixDuration, getAlarm, incomeRate, results, sell, spareChillers, step, walkSpeed, walkDistance } from './game2.js';
 
 const otherHalf = (half) => (half === 't' ? 'b' : 't');
 const otherSide = (side) => (side === 'A' ? 'B' : 'A');
@@ -125,11 +125,13 @@ export function pickFor(state, policy = 'first') {
  * Play a whole run and return results(state) plus the final state.
  * `actionGap` is the shortest time between two commands; `maxSeconds` stops a run that never ends.
  */
-export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
+export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
   // builder (pass 4, building mode): a scripted builder plan from builder.js ('builder', 'greedy',
   // 'nohire'), deciding every `buildGap` seconds.
   // policy: 'greedy' (gets ready for the CEO), 'blind' (ignores the CEO), 'random', or 'none' (never
   // gives an order: with auto-dispatch on, the crew runs itself; pass 4 M23).
+  // seller (pass 7 spec 3.6): { strikes, creditShare } hands over the keys as soon as the run has that
+  // many strikes, or service credits pass that share of income, and the sale is allowed.
   const state = createGame({ seed, config });
   const rng = createRng((seed * 31 + 7) >>> 0);
   const move = policy === 'none' ? () => false : policy === 'random'
@@ -145,9 +147,16 @@ export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, 
       buildMove(state, builder);
       nextBuild = state.t + buildGap;
     }
+    if (seller && !state.over && sellerWants(state, seller)) sell(state);
     if (onStep) onStep(state);
   }
   return { ...results(state), finished: state.over, state };
+}
+
+// A scripted seller's nerve (pass 7 spec 3.6).
+function sellerWants(state, s) {
+  if (s.strikes != null && (state.ceoStrikes ?? 0) >= s.strikes) return true;
+  return s.creditShare != null && creditsRate(state) > s.creditShare * Math.max(1, incomeRate(state));
 }
 
 export { ALARMS };

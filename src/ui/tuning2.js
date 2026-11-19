@@ -20,6 +20,12 @@ const setBurn = (o, key, v) => {
 const setPumps = (o, key, v) => {
   o.building = { ...(o.building ?? {}), pumps: { ...D.building.pumps, ...(o.building?.pumps ?? {}), [key]: v } };
 };
+// Pass 7 (M41): nested settings that must keep their other keys when one changes.
+const setNested = (group) => (o, key, v) => {
+  o.building = { ...(o.building ?? {}), [group]: { ...D.building[group], ...(o.building?.[group] ?? {}), [key]: v } };
+};
+const setCredits = setNested('credits');
+const setSale = setNested('sale');
 
 export const TUNING2_FIELDS = [
   { id: 'tighten', label: 'Tightening per 10 s (%)', kind: 'range', min: 0, max: 10, step: 0.5,
@@ -86,6 +92,17 @@ export const TUNING2_FIELDS = [
     get: (c) => c.building.pumps.hallsPerWaterPump, set: (o, v) => setPumps(o, 'hallsPerWaterPump', v) },
   { id: 'noWaterFactor', label: 'Output of a hall without water (%)', kind: 'range', min: 0, max: 100, step: 10,
     get: (c) => c.building.pumps.noWaterFactor * 100, set: (o, v) => setPumps(o, 'noWaterFactor', v / 100) },
+  // Pass 7 spec 3 (M41): the three ways out.
+  { id: 'creditRate', label: 'Service credits per row short ($/s, 0 = off)', kind: 'range', min: 0, max: 5, step: 0.25,
+    get: (c) => c.building.credits.rate, set: (o, v) => setCredits(o, 'rate', v) },
+  { id: 'creditDoubling', label: 'Service credits double every (s)', kind: 'range', min: 60, max: 600, step: 30,
+    get: (c) => c.building.credits.doubling, set: (o, v) => setCredits(o, 'doubling', v) },
+  { id: 'strikeGapMin', label: 'Gap before a strike visit, shortest (s)', kind: 'range', min: 5, max: 60, step: 1,
+    get: (c) => c.ceo.strikeGap[0], set: (o, v) => { o.ceo = { ...(o.ceo ?? {}), strikeGap: [v, Math.max(v, (o.ceo?.strikeGap ?? D.ceo.strikeGap)[1])] }; } },
+  { id: 'saleIncomeSeconds', label: 'Sale price: seconds of income the buyer pays', kind: 'range', min: 0, max: 600, step: 30,
+    get: (c) => c.building.sale.incomeSeconds, set: (o, v) => setSale(o, 'incomeSeconds', v) },
+  { id: 'saleAnytime', label: 'Sell during outages and CEO warnings', kind: 'toggle',
+    get: (c) => c.building.sale.anytime, set: (o, v) => setSale(o, 'anytime', v) },
   { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',
     get: (c) => !c.tutorial, set: (o, v) => { o.tutorial = !v; } },
 ];

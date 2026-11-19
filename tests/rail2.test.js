@@ -139,3 +139,22 @@ test('a tap on the rail just after it changed between tickets and tiles does not
   assert.equal(railTapCounts(1000, 1000 + RAIL_SETTLE_MS - 1), false);
   assert.equal(railTapCounts(1000, 1000 + RAIL_SETTLE_MS), true);
 });
+
+test('M41: in building mode a ticket shows its cost in dollars a second, income plus service credits', async () => {
+  const { costText } = await import('../src/ui/rail2.js');
+  const { creditPerRow } = await import('../src/core/index2.js');
+  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, building: { enabled: true, burn: { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 } } } });
+  assert.equal(costText(s, 0), '');
+  advance(s, 1);
+  const row = s.config.rowMw;
+  assert.equal(costText(s, row), `−$${Math.round(s.config.building.income + creditPerRow(s))}/s`);
+  assert.equal(costText(quiet(), 6), '−6 MW', 'the classic game keeps MW');
+});
+
+test('M41: the short cost for tiles and edge arrows', async () => {
+  const { costShort } = await import('../src/ui/rail2.js');
+  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, building: { enabled: true } } });
+  assert.match(costShort(s, 6), /^−\$\d+$/);
+  assert.equal(costShort(quiet(), 6), '−6');
+  assert.equal(costShort(s, 0), '');
+});

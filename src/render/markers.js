@@ -56,9 +56,10 @@ export function drawMarker(ctx, m) {
     ctx.lineJoin = 'round';
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#FFFFFF';
-    ctx.strokeText(`−${m.cost}`, lx, ly);
+    const label = m.costLabel || `−${m.cost}`; // pass 7 (M41): "−$4" in building mode
+    ctx.strokeText(label, lx, ly);
     ctx.fillStyle = INK;
-    ctx.fillText(`−${m.cost}`, lx, ly);
+    ctx.fillText(label, lx, ly);
   }
   if (m.count > 1) {
     ctx.beginPath();

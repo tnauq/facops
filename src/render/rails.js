@@ -161,7 +161,7 @@ function drawTile(ctx, t) {
     ctx.fillStyle = INK;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`−${t.cost}`, t.x + t.w / 2, t.y + t.h - 7);
+    ctx.fillText(t.costShort || `−${t.cost}`, t.x + t.w / 2, t.y + t.h - 7); // pass 7 (M41): "−$4" in building mode
   }
 }
 

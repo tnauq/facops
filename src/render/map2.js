@@ -17,6 +17,7 @@ import { cameraView } from '../ui/camera.js';
 import { fannedCrew } from '../ui/crew.js';
 import { bobOffset, popScale } from '../ui/feel.js';
 import { offMapMarkers } from '../ui/offmap.js';
+import { costShort } from '../ui/rail2.js';
 import { bubbles2, equipmentStatus, hallPlate } from '../ui/view2.js';
 import { triageOrder } from '../ui/cost.js';
 
@@ -113,7 +114,7 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   for (const c of fx.celebrations ?? []) drawCelebration(ctx, v, c);
   drawFloats(ctx, v, fx.floats ?? [], cam.rect.y);
   // Off-map arrows lead with the most urgent alarm by the rail's order and show its cost (pass 3 spec 2.4).
-  const rank = new Map(triageOrder(state).map((x, i) => [x.alarm.id, { rank: i, cost: x.cost }]));
+  const rank = new Map(triageOrder(state).map((x, i) => [x.alarm.id, { rank: i, cost: x.cost, costLabel: costShort(state, x.cost) }]));
   const markers = offMapMarkers(list.map((b) => ({ ...b, ...rank.get(b.id) })), cam);
   for (const m of markers) drawMarker(ctx, m);
   // The CEO's own edge arrow, also while only announced (it points to where the CEO will appear).

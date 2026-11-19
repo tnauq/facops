@@ -89,6 +89,13 @@ function drawMoney(ctx, layout, money) {
     ctx.fillStyle = MUTED;
     ctx.fillRect(layout.meter.x, cy * 2 - 5, w * money.loanShare, 2);
   }
+  // Pass 7 spec 3.5: service credits, small and red beneath the cash, where the loan's bar was (the
+  // loan is always paid off before credits start, so the two never share the line).
+  if (money.credits && !money.loanShare) {
+    ctx.font = `600 9px ${FONT}`;
+    ctx.fillStyle = RED;
+    ctx.fillText(money.credits, layout.meter.x, cy * 2 - 6);
+  }
   if (money.red) {
     ctx.font = `700 12px ${FONT}`;
     ctx.fillStyle = RED;

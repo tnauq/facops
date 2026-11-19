@@ -5,7 +5,7 @@
 // page (owner, 14 Nov: no pages to tab through). Only if even the tiles overflow can the rail be
 // dragged, a row of tiles at a time; a "+N" note (not a button) then says how many are below.
 
-import { alarmInfo, getTech, locationTag } from '../core/index2.js';
+import { alarmInfo, buildingOn, creditPerRow, getTech, locationTag } from '../core/index2.js';
 import { triageOrder } from './cost.js';
 import { ALARM_SHORT, GAP, TICKET_HEIGHT, TICKET_WIDTH, ticketBar } from './rail.js';
 
@@ -52,6 +52,23 @@ export function maxFirst(railHeight, count, wasCompact = false) {
 
 export const clampFirst = (first, railHeight, count, wasCompact = false) => Math.max(0, Math.min(Math.round(first), maxFirst(railHeight, count, wasCompact)));
 
+/**
+ * What an outage costs, for its ticket: "−6 MW" in the classic game; in building mode dollars a second
+ * (pass 7 spec 3.5, v0.9 open decision 8): the income it stops plus the service credits it runs up.
+ */
+export function costText(state, cost) {
+  if (!(cost > 0)) return '';
+  if (!buildingOn(state)) return `−${cost} MW`;
+  const rows = cost / state.config.rowMw;
+  return `−$${Math.max(1, Math.round(rows * (state.config.building.income + creditPerRow(state)))).toLocaleString('en-US')}/s`;
+}
+
+/** The short form, for tiles and edge arrows: "−6" (MW) in the classic game, "−$4" (a second) in building mode. */
+export function costShort(state, cost) {
+  const t = costText(state, cost);
+  return t.replace(/ MW$/, '').replace(/\/s$/, '');
+}
+
 function ticketOf(state, alarm, cost, selectedAlarmId, box) {
   const info = alarmInfo(state, alarm);
   const tech = info.techId !== null ? getTech(state, info.techId) : null;
@@ -62,7 +79,8 @@ function ticketOf(state, alarm, cost, selectedAlarmId, box) {
     name: ALARM_SHORT[info.type],
     place: locationTag(info.equipId),
     cost,
-    costText: cost > 0 ? `−${cost} MW` : '',
+    costText: costText(state, cost),
+    costShort: costShort(state, cost),
     trade: info.trade,
     bar: ticketBar(info),
     assignedTrade: tech ? tech.trade : null,
@@ -74,7 +92,7 @@ function ticketOf(state, alarm, cost, selectedAlarmId, box) {
 
 /**
  * { tickets, compact, more, first }. Tickets as in rail.js, plus `cost` (whole MW, 0 when free),
- * `costText` ("−6 MW" or "") and `info`. compact: whether they are tiles. more: null, or the note
+ * `costText` ("−6 MW", in building mode "−$4/s", or "") and `info`. compact: whether they are tiles. more: null, or the note
  * { x, y, w, h, text: "+N" } over the bottom of the rail when tiles are hidden below. first: the
  * scroll position (rows of tiles) after clamping. wasCompact: whether the rail showed tiles last
  * frame (the screen keeps it; see BACK_TO_TICKETS).

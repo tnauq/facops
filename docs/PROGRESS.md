@@ -88,7 +88,74 @@ The owner approved `docs/pass6-spec.md` (version 0.1) on 16 November 2026: a blu
 | M39. Pump rules | `m39` | Done |
 | M40. Teaching and the balance check | `m40` | Done |
 
+## Pass 7
+
+The owner approved `docs/pass7-spec.md` (version 0.3) on 18 November 2026: three ways out of a run (service credits, a quicker CEO, a sale you can make), the uptime bonus, the advisor mark and bundles, save and resume, the ledger and the run-over card.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M41. Three ways out | `m41` | Done |
+| M42. The uptime bonus | `m42` | |
+| M43. The advisor mark and bundles | `m43` | |
+| M44. Save and resume | `m44` | |
+| M45. The ledger and the run-over card | `m45` | |
+
 ## Log
+
+### M41. Three ways out
+
+Pass 7 spec 3. The owner asked on 17 and 18 November for runs to end about a third each by outages, the CEO and a sale, not mostly by the CEO.
+
+Built:
+
+- **Service credits** (`building.credits: { rate: 1, doubling: 210 }`). Customers go live when the construction loan is paid off (5:00). From then every online rack row short of full output costs $1 a second for each row short, doubling every 3:30: a dark row the full rate, a row at 90% a tenth, a hall without water half. Nothing is charged while every row delivers. Credits are part of `burnRate`, so they count in the runway, the red countdown and going broke. Helpers `creditsOn`, `creditPerRow`, `creditsRate`, `rowsShort`, `customersLiveAt`; events `customersLive` and `credits`; results gain `credits` and `brokeOnCredits`.
+- **A quicker CEO:** strike visits come 12 to 18 s apart (from 20 to 30). Still three strikes.
+- **A sale you can make** (`building.sale.anytime: true, incomeSeconds: 150`): allowed with outages open and during a CEO warning, only not while the CEO walks; the buyer pays for everything built plus 2:30 of current income, so an outage lowers the price. `anytime: false, incomeSeconds: 0` is M34's rule, and M34's tests now pin it that way.
+- **Screen:**
+  - The HUD shows `credits −$48/s` in red beneath the cash while credits are charged.
+  - In building mode alarm tickets show what an outage costs in dollars a second (income plus credits): `−$16/s`; tiles and edge arrows show `−$16`. The classic game keeps MW.
+  - Introductions: the loan's notice becomes "Loan paid off. Customers are live: every rack that's down now costs service credits, and they get stricter."; at the Handover, "You can sell the campus from the menu. Buyers pay for what it earns, so sell while it's running well."; the first time credits pass income, "Credits are outrunning your income. Fix outages, or sell while you can."
+  - The sale's confirm card says the price is "the equipment, plus 2:30 of what it earns now".
+  - Results: a "Service credits" line, and "Went broke: service credits" as the heading when they did it.
+  - Tuning drawer: credits per row, their doubling, the shortest strike gap, the sale's seconds of income, and a switch for selling during outages.
+- **Scripted players:** `playRun` takes a `seller` (sells at a number of strikes, or when credits pass a share of income). `scripts/pacing4.mjs` adds a bold and a cautious seller, a "sold" cause, the score and the credits.
+- **Tests:** 14 new (`tests/credits.test.js`, and in `sale.test.js` and `rail2.test.js`). 530 in all.
+
+Scripted checks (spec 3.7, 12 seeds):
+
+| Player | Median run (range) | Score | Sold / fired / broke early / broke later | 150 MW at |
+|---|---|---|---|---|
+| Compute first, backups from hall 4 | 18:25 (5:04 to 23:03) | $90,759 | 0 / 6 / 0 / 6 | 8:04 (9/12) |
+| The same, getting ready for the CEO | 20:11 (10:14 to 24:44) | $122,111 | 0 / 5 / 0 / 7 | 8:05 (12/12) |
+| Backups from hall 6 | 19:34 (5:04 to 23:48) | $90,190 | 0 / 5 / 0 / 7 | 6:45 (9/12) |
+| Never a backup | 16:19 (5:04 to 18:44) | $57,925 | 0 / 3 / 0 / 9 | 6:45 (9/12) |
+| Never hires | 15:14 (5:04 to 25:50) | $69,508 | 0 / 3 / 0 / 9 | 8:24 (9/12) |
+| Slow (decides every 4 s) | 21:34 (18:30 to 22:58) | $121,753 | 0 / 10 / 0 / 2 | 9:00 (12/12) |
+| Bold seller | 15:04 (5:04 to 17:01) | $92,801 | 8 / 0 / 0 / 4 | 8:04 (9/12) |
+| Cautious seller | 12:32 (9:37 to 15:18) | $89,681 | 10 / 0 / 0 / 2 | 8:05 (12/12) |
+| Backups early | 0:40 (0:40 to 4:06) | $751 | 0 / 0 / 12 / 0 | - |
+
+Against the targets:
+
+- Compute-first median 18:25: **met** (14 to 20).
+- Endings across the four players of spec 3.6 (48 runs): sold 18, fired 11, broke 19, that is **38%, 23%, 40%**. Sold and broke are inside 25 to 40%; **fired is just under**. The spec's first lever, a strike gap of 10 to 15 s, gives fired 25% but the compute-first median 20:26, over 20. So the gap stays at 12 to 18; the owner's runs, not scripted sellers, will say what the split really is.
+- Bold seller's score within 10% of compute first's: **met** ($92,801 against $90,759).
+- Getting ready for the CEO earns more: **met** ($122,111).
+- Never a backup earns at least 25% less: **met** (36% less).
+- Backups early broke in at least half: **met** (12 of 12).
+- 150 MW in 6 to 9 minutes: **met** (8:04).
+
+Worth knowing:
+
+- Credits double on a clock, so long runs that never sell end within a few minutes of each other. The drawer's "Service credits double every" is the lever if that feels fixed.
+- With no loan (the drawer at $0), customers are live from the start.
+- Checked in headless Chrome at 844 x 390 and 660 x 300, playing an automatic run past 5:00: the credits line under the cash, dollar tickets and edge arrows. No console errors.
+
+Owner's checklist:
+
+- At 5:00 the line says customers are live, and from then a dark rack shows its credits.
+- After the Handover, the menu's sale price rises and falls with your income, and works in the middle of an outage.
+- Over a few runs, do you end by each of the three ways? When you go broke or get fired, can you name what did it?
 
 ### M40. Teaching and the balance check
 

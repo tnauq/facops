@@ -11,7 +11,7 @@
 // a line once each, in every building run like the loan line: they are new rules, and a player who
 // learned the game before them skips the tutorial.
 
-import { strikesToFire } from '../core/index2.js';
+import { cannotSell, creditsOn, creditsRate, incomeRate, strikesToFire } from '../core/index2.js';
 
 export const INTRO_SECONDS = 6;
 export const NOTICE_SECONDS = 4; // the loan line (pass 5 spec 3.2)
@@ -25,12 +25,19 @@ export const INTRO_TEXT = {
   fan: "A dry cooler's fan stopped: with no spare, its plant's chillers stop too. Left alone, the next one goes.",
   // Not a device: the construction loan (pass 5 spec 3.2).
   loan: 'Loan paid off. The money is yours now.',
+  // Pass 7 spec 3.5 (M41): customers go live as the loan is paid off, so with service credits on the
+  // loan's notice says that instead (customersText below); and two lines of their own.
+  sale: "You can sell the campus from the menu. Buyers pay for what it earns, so sell while it's running well.",
+  creditsOver: 'Credits are outrunning your income. Fix outages, or sell while you can.',
   // Pass 5 spec 4.3: once, as the last walkthrough before the strikes leaves (strikesText below).
   strikes: '',
   // Pass 6 spec 5 (M40). The water line names the hall (waterText below).
   dryCdu: 'Not enough glycol pumps: the farthest coolant unit has gone dry. Build another.',
   noWater: '',
 };
+
+/** The loan's notice once customers are live (pass 7 spec 3.5). */
+export const CUSTOMERS_TEXT = "Loan paid off. Customers are live: every rack that's down now costs service credits, and they get stricter.";
 
 /** The first hall without water (pass 6 spec 5). */
 export const waterText = (hall) => `Water pumps serve two halls each. Hall ${hall} has none: it runs at half.`;
@@ -63,6 +70,15 @@ export function updateIntros(intros, state) {
     intros.given.add('loan');
     intros.queue.push({ type: 'loan', id: null });
   }
+  // Pass 7 (M41): the sale, once the Handover has come; credits passing income, once.
+  if (state.handoverQueued && !intros.given.has('sale') && cannotSell(state) !== 'off') {
+    intros.given.add('sale');
+    intros.queue.push({ type: 'sale', id: null });
+  }
+  if (!intros.given.has('creditsOver') && creditsRate(state) > incomeRate(state) && creditsRate(state) > 0) {
+    intros.given.add('creditsOver');
+    intros.queue.push({ type: 'creditsOver', id: null });
+  }
   if (!intros.given.has('strikes') && strikesNext(state)) {
     intros.given.add('strikes');
     intros.queue.push({ type: 'strikes', id: null });
@@ -90,9 +106,10 @@ export function updateIntros(intros, state) {
   const warning = state.ceo !== null && state.ceo !== undefined && state.ceo.phase === 'warning';
   if (intros.queue.length > 0 && !warning) {
     const next = intros.queue.shift();
-    intros.text = next.type === 'strikes' ? strikesText(strikesToFire(state)) : next.type === 'noWater' ? waterText(next.hall) : INTRO_TEXT[next.type];
+    intros.text = next.type === 'strikes' ? strikesText(strikesToFire(state)) : next.type === 'noWater' ? waterText(next.hall)
+      : next.type === 'loan' && creditsOn(state) ? CUSTOMERS_TEXT : INTRO_TEXT[next.type];
     intros.ids = state.alarms.some((a) => a.id === next.id) ? [next.id] : [];
-    intros.until = state.t + (next.type === 'loan' ? NOTICE_SECONDS : INTRO_SECONDS);
+    intros.until = state.t + (next.type === 'loan' && !creditsOn(state) ? NOTICE_SECONDS : INTRO_SECONDS);
     // The strikes line must be gone before the first strike visit's warning (45 s away at least).
   }
   return intros.text;

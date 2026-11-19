@@ -134,6 +134,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     redSince: null, // when the cash went below zero (building mode)
     economyStart: 0, // building mode: when the burn and the alarm tightening started (after the tutorial)
     loanPaidAt: null, // building mode: when the construction loan was paid off (pass 5 spec 3.1)
+    customersLive: false, // pass 7 spec 3.2: service credits are charged from this moment
     ribbonQueued: false,
     commissionedAt: null, // pass 5 spec 5.1: when every rack row first delivered full output at once
     sold: null, // { price, t } once the player handed over the keys
@@ -142,6 +143,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     state.stats.earned = 0;
     state.stats.spent = 0;
     state.stats.burned = 0;
+    state.stats.credits = 0; // pass 7 M41: service credits charged, part of what was burned
     state.stats.built = 0;
     state.stats.hallsOnline = [];
     for (const h of refreshSites(state)) state.stats.hallsOnline.push({ hall: h, t: 0 });
@@ -953,7 +955,42 @@ export function burnRate(state) {
   // seconds and in the end outgrew a full campus (the owner found it unsatisfactory, 15 Nov).
   const base = b.doubling > 0 ? b.base * Math.pow(2, economyTime(state) / b.doubling) : b.base;
   const loan = loanLeft(state) > 0 ? b.loanRate : 0;
-  return loan + base + b.upkeep * infra + b.wages * state.techs.length;
+  return loan + base + b.upkeep * infra + b.wages * state.techs.length + creditsRate(state);
+}
+
+/** Economy seconds at which customers go live (pass 7 spec 3.2): when the loan is paid off. */
+export function customersLiveAt(state) {
+  const b = state.config.building.burn;
+  return b.loan > 0 && b.loanRate > 0 ? b.loan / b.loanRate : 0;
+}
+
+/** Are service credits being charged for outages yet? Not in the tutorial's lessons, not before the loan is paid. */
+export function creditsOn(state) {
+  const c = state.config.building.credits;
+  if (!buildingOn(state) || !c || !(c.rate > 0) || state.scripted) return false;
+  return economyTime(state) >= customersLiveAt(state) - EPS;
+}
+
+/** Dollars a second charged for each rack row short of full output (pass 7 spec 3.2). 0 before customers go live. */
+export function creditPerRow(state) {
+  if (!creditsOn(state)) return 0;
+  const c = state.config.building.credits;
+  const since = Math.max(0, economyTime(state) - customersLiveAt(state));
+  return c.doubling > 0 ? c.rate * Math.pow(2, since / c.doubling) : c.rate;
+}
+
+/** Rack rows' worth of output the online rows are short: a dark row 1, a row at 90% 0.1, a hall without water 0.5 a row. */
+export function rowsShort(state) {
+  const l = load(state);
+  return Math.max(0, (l.capacityMw - l.deliveredMw) / state.config.rowMw);
+}
+
+/** Service credits now, in dollars a second. Nothing while every online row delivers. */
+export function creditsRate(state) {
+  const per = creditPerRow(state);
+  if (per <= 0) return 0;
+  const short = rowsShort(state);
+  return short > EPS ? per * short : 0;
 }
 
 /** Income now, in dollars a second, from the racks delivering. */
@@ -961,9 +998,17 @@ export const incomeRate = (state) => (load(state).deliveredMw / state.config.row
 
 // Money out. In the red, a countdown runs: still in the red when it ends, the run is over.
 function burn(state, dt) {
+  const credits = creditsRate(state);
   const dollars = burnRate(state) * dt;
   state.cash -= dollars;
   state.stats.burned += dollars;
+  state.stats.credits = (state.stats.credits ?? 0) + credits * dt;
+  if (!state.customersLive && creditsOn(state)) {
+    state.customersLive = true;
+    emit(state, 'customersLive', { t: state.t });
+  }
+  // Once a second while any are charged, for the screen (pass 7 spec 3.2).
+  if (credits > 0 && Math.floor(state.t) !== Math.floor(state.t - dt)) emit(state, 'credits', { rate: credits });
   // The loan is repaid by time, so it is paid off at the step its balance reaches zero.
   if (state.loanPaidAt === null && state.config.building.burn.loan > 0 && loanLeft(state) <= 0) {
     state.loanPaidAt = state.t;
@@ -1041,22 +1086,29 @@ function checkCommissioned(state, deliveredMw) {
 /** Has the campus been Commissioned? */
 export const commissioned = (state) => state.commissionedAt !== null && state.commissionedAt !== undefined;
 
-/** What the campus sells for now: the price of everything built, half as much again if Commissioned. */
+/** What the campus sells for now: the price of everything built, plus `incomeSeconds` of current income (M41), half as much again if Commissioned. */
 export function salePrice(state) {
   if (!buildingOn(state)) return 0;
   let total = 0;
   for (const e of EQUIPMENT) if (isBuilt(state, e.id)) total += priceOf(state, e.id);
-  return Math.round(total * (commissioned(state) ? 1 + state.config.building.sale.commissionedBonus : 1));
+  const sale = state.config.building.sale;
+  // Pass 7 (M41): the buyer pays for what the campus earns now, so an outage lowers the price.
+  if (sale.incomeSeconds > 0) total += incomeRate(state) * sale.incomeSeconds;
+  return Math.round(total * (commissioned(state) ? 1 + sale.commissionedBonus : 1));
 }
 
 /**
  * Why the campus cannot be sold now, or null if it can: 'off' (classic game), 'over', 'early' (before
- * the Handover), 'ceo' (a visit or its warning) or 'outage' (an alarm costing power is open).
+ * the Handover), 'ceo' (a visit or its warning; with `sale.anytime`, only the visit itself) or 'outage'
+ * (an alarm costing power is open; never with `sale.anytime`).
  */
 export function cannotSell(state) {
   if (!buildingOn(state)) return 'off';
   if (state.over) return 'over';
-  if (state.config.building.sale.fromHandover && !state.handoverQueued) return 'early';
+  const sale = state.config.building.sale;
+  if (sale.fromHandover && !state.handoverQueued) return 'early';
+  // Pass 7 (M41): outages and a CEO warning no longer stop a sale; only the CEO on the floor does.
+  if (sale.anytime) return state.ceo && state.ceo.phase === 'visit' ? 'ceo' : null;
   if (state.ceo) return 'ceo';
   if (state.alarms.some((a) => alarmCost(state, a) > 0)) return 'outage';
   return null;
@@ -1388,6 +1440,9 @@ export function results(state) {
     spent: buildingOn(state) ? state.stats.spent : 0,
     burned: buildingOn(state) ? state.stats.burned : 0,
     bankrupt: state.overReason === 'bankrupt',
+    // Pass 7 spec 3.5: service credits charged, and whether they are what broke the bank (after customers went live).
+    credits: buildingOn(state) ? state.stats.credits ?? 0 : 0,
+    brokeOnCredits: state.overReason === 'bankrupt' && (state.stats.credits ?? 0) > 0,
     built: buildingOn(state) ? state.stats.built : 0,
     // Pass 5 spec 3.2: when the construction loan was paid off, in economy time; null if not (or none).
     loanPaidAt: buildingOn(state) && state.loanPaidAt !== null ? state.loanPaidAt - (state.economyStart ?? 0) : null,
@@ -1432,7 +1487,7 @@ export function resultsText(state) {
     ...(r.building ? [`Pumps: ${r.cdusEverDry} CDUs ever dry (${Math.round(r.dryCduSeconds)} CDU-s), ${r.hallsEverDry} halls ever without water (${Math.round(r.dryHallSeconds)} hall-s)`] : []),
     `Redirects: ${r.redirects} | Matching-hat fixes: ${pct(r.matchedShare)} | Lowest load: ${pct(r.lowestFraction)}`,
     ...(r.building ? [`Score: $${Math.round(r.score).toLocaleString('en-US')}${r.sold ? ` | Sold for $${r.salePrice.toLocaleString('en-US')}` : ''} | Reached: ${r.milestone ?? 'none'}${r.commissioned ? ` (Commissioned at ${formatClock(r.commissionedAt)})` : ''}`] : []),
-    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.bankrupt ? ' | Went broke' : ''} | Devices built: ${r.built}${loanText(r) ? ` | ${loanText(r)}` : ''}`] : []),
+    ...(r.building ? [`Money: $${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent, $${Math.round(r.burned).toLocaleString('en-US')} burned${r.credits > 0 ? ` (service credits $${Math.round(r.credits).toLocaleString('en-US')})` : ''}${r.bankrupt ? (r.brokeOnCredits ? ' | Went broke: service credits' : ' | Went broke') : ''} | Devices built: ${r.built}${loanText(r) ? ` | ${loanText(r)}` : ''}`] : []),
     `Tuning: ${r.tuning.length > 0 ? r.tuning.join(', ') : 'defaults'}`,
   ].join('\n');
 }

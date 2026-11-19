@@ -15,6 +15,8 @@ const game = (config = {}) => createGame({
   seed: 1,
   config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ...config, building: { enabled: true, startCash: 100000, burn: NO_BURN, ...(config.building ?? {}) } },
 });
+// M34's sale rules, which pass 7 (M41) replaced: kept to check them as they were.
+const M34_SALE = { fromHandover: true, commissionedBonus: 0.5, anytime: false, incomeSeconds: 0 };
 const builtPrice = (s) => EQUIPMENT.filter((e) => s.equip[e.id].built).reduce((sum, e) => sum + priceOf(s, e.id), 0);
 const eventsOf = (s, type) => s.events.filter((e) => e.type === type);
 
@@ -43,22 +45,22 @@ test('Commissioned: the first moment all 48 rows deliver full output, recorded o
   assert.equal(milestone(s), 'commissioned');
 });
 
-test('the sale price is the price of everything built, half as much again once Commissioned', () => {
-  const s = game();
+test('the sale price is the price of everything built, half as much again once Commissioned (M34 rules)', () => {
+  const s = game({ building: { sale: M34_SALE } });
   const start = builtPrice(s);
   assert.ok(start > 0);
   assert.equal(salePrice(s), start);
   build(s, 'row-1-t-2');
   advance(s, 8.2);
   assert.equal(salePrice(s), start + s.config.building.prices.row);
-  const c = everything();
+  const c = everything({ building: { sale: M34_SALE } });
   while (!commissioned(c) && c.t < 120) step(c, 0.05);
   assert.equal(salePrice(c), Math.round(builtPrice(c) * 1.5));
   assert.equal(eventsOf(c, 'commissioned')[0].price, salePrice(c));
 });
 
-test('selling: not before the Handover, not during a CEO visit, not with an outage open', () => {
-  const s = game({ ceo: { enabled: true }, building: { handoverAt: 30 } });
+test('selling: not before the Handover, not during a CEO visit, not with an outage open (M34 rules)', () => {
+  const s = game({ ceo: { enabled: true }, building: { handoverAt: 30, sale: M34_SALE } });
   assert.equal(cannotSell(s), 'early');
   assert.equal(sell(s).ok, false);
   advance(s, 30.1); // the Handover comes at 30 s here, with its warning
@@ -129,21 +131,21 @@ test('the highest milestone: none, then the ribbon-cutting, then the Handover', 
   assert.equal(milestone(s), 'handover');
 });
 
-test('the menu offers the sale after the Handover, greyed with the reason when it cannot be done', () => {
-  const s = game();
+test('the menu offers the sale after the Handover, greyed with the reason when it cannot be done (M34 rules)', () => {
+  const s = game({ building: { sale: M34_SALE } });
   assert.deepEqual(sellButton(s), { label: `Hand over the keys · $${salePrice(s).toLocaleString('en-US')}`, enabled: false, why: 'You can sell after the Handover' });
   s.handoverQueued = true;
   assert.equal(sellButton(s).enabled, true);
   raiseAlarm(s, 'network', 'row-1-t-0');
   assert.equal(sellButton(s).why, 'Not with an outage open');
   assert.equal(sellButton(createGame({ seed: 1, config: { tutorial: false } })), null, 'none in the classic game');
-  const c = sellConfirm(game());
+  const c = sellConfirm(game({ building: { sale: M34_SALE } }));
   assert.match(c.price, /^The campus sells for \$[\d,]+\.$/);
   assert.match(c.score, /^Your score would be \$[\d,]+: \$[\d,]+ earned plus the sale\.$/);
 });
 
-test('the Commissioned card: the CEO\'s line, the price, and a greyed sale while an outage is open', () => {
-  const s = everything();
+test('the Commissioned card: the CEO\'s line, the price, and a greyed sale while an outage is open (M34 rules)', () => {
+  const s = everything({ building: { sale: M34_SALE } });
   while (!commissioned(s) && s.t < 120) step(s, 0.05);
   s.handoverQueued = true;
   const card = commissionedCard(s);
@@ -198,4 +200,45 @@ test('the main menu\'s best names the highest milestone (pass 6 M37)', () => {
   assert.equal(buildingBestText(r.best, null, formatClock), '$142,300 in 18:10 · Commissioned');
   const plain = recordBest(null, { building: true, energyGwh: 1, seconds: 60, earned: 10, score: 10, milestone: null });
   assert.equal(buildingBestText(plain.best, null, formatClock), '$10 in 1:00');
+});
+
+// Pass 7 spec 3.4 (M41): a sale you can make.
+test('M41: the sale price adds 2:30 of current income, so an outage lowers it', async () => {
+  const { incomeRate } = await import('../src/core/index2.js');
+  const s = game();
+  assert.equal(s.config.building.sale.incomeSeconds, 150);
+  advance(s, 5); // the start's rows power up
+  const income = incomeRate(s);
+  assert.ok(income > 0);
+  assert.equal(salePrice(s), Math.round(builtPrice(s) + income * 150));
+  raiseAlarm(s, 'network', 'row-1-t-0');
+  advance(s, 4);
+  assert.ok(incomeRate(s) < income);
+  assert.equal(salePrice(s), Math.round(builtPrice(s) + incomeRate(s) * 150));
+  assert.ok(salePrice(s) < Math.round(builtPrice(s) + income * 150));
+  const c = everything();
+  while (!commissioned(c) && c.t < 120) step(c, 0.05);
+  assert.equal(salePrice(c), Math.round((builtPrice(c) + incomeRate(c) * 150) * 1.5));
+});
+
+test('M41: selling is allowed with an outage open and during a CEO warning, not while the CEO walks', () => {
+  const s = game({ ceo: { enabled: true }, building: { handoverAt: 30 } });
+  assert.equal(cannotSell(s), 'early');
+  advance(s, 30.1);
+  assert.ok(s.handoverQueued);
+  assert.equal(s.ceo.phase, 'warning');
+  assert.equal(cannotSell(s), null, 'the warning does not stop a sale');
+  while (s.ceo && s.ceo.phase === 'warning' && s.t < 300) step(s, 0.05);
+  assert.equal(s.ceo.phase, 'visit');
+  assert.equal(cannotSell(s), 'ceo');
+  assert.equal(sell(s).ok, false);
+  while (s.ceo && s.t < 300) step(s, 0.05);
+  raiseAlarm(s, 'network', 'row-1-t-0');
+  assert.equal(cannotSell(s), null, 'an open outage does not stop a sale');
+  assert.equal(sell(s).ok, true);
+});
+
+test('M41: the confirm card says the buyer pays for what the campus earns', () => {
+  const c = sellConfirm(game());
+  assert.match(c.price, /^The campus sells for \$[\d,]+: the equipment, plus 2:30 of what it earns now\.$/);
 });

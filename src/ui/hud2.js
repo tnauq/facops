@@ -2,7 +2,7 @@
 // so the same drawing code paints it: the load in MW against online capacity, and a note with
 // "Hall 3 of 8" and how far the next hall's construction has got.
 
-import { buildProgress, buildingOn, burnRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
+import { buildProgress, buildingOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
 
@@ -33,7 +33,7 @@ const dollars = (n) => `$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
 /**
  * Building mode (pass 4 spec 2.5, 3.3): the cash, what it is doing a second (income minus burn), and
  * the red countdown. { cash: "$1,240", rate: "+$85/s", falling, red: "0:12" or null, loan: "Loan $940"
- * or null, loanShare: 0..1 still owed, runway: "0:38" or null }.
+ * or null, loanShare: 0..1 still owed, runway: "0:38" or null, credits: "credits −$48/s" or null }.
  */
 export function moneyModel(state) {
   // Nothing burns while the tutorial's lessons run (pass 4 M27), so the rate shows income only.
@@ -51,6 +51,8 @@ export function moneyModel(state) {
     // Pass 5 spec 7.3: while the cash is falling, how long it lasts at this rate ("0:38"); none when
     // rising, already in the red (the red countdown says it), or more than RUNWAY_MAX away.
     runway: net < 0 && state.cash > 0 && state.cash / -net <= RUNWAY_MAX ? formatClock(Math.floor(state.cash / -net)) : null,
+    // Pass 7 spec 3.5: while service credits are charged, what they cost a second ("credits −$48/s").
+    credits: !state.scripted && creditsRate(state) > 0.005 ? `credits −${dollars(creditsRate(state))}/s` : null,
   };
 }
 

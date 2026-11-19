@@ -93,6 +93,8 @@ export function resultsPanel(r, record, formatClock) {
     if (!Number.isFinite(r.score)) big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
     lines.splice(r.sold ? 1 : 0, 0, ['Money', `$${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent building, $${Math.round(r.burned).toLocaleString('en-US')} burned · ${r.energyGwh.toFixed(2)} GWh`]);
     if (loanText(r)) lines.splice(r.sold ? 2 : 1, 0, ['Loan', loanText(r).replace(/^Loan /, '')]); // pass 5 spec 3.2
+    // Pass 7 spec 3.5 (M41): service credits, only when any were charged.
+    if (r.credits > 0.5) lines.push(['Service credits', dollars(r.credits)]);
     // Pass 6 (M39): only when the pumps ever fell short, so a clean run keeps a short card.
     if (r.cdusEverDry > 0 || r.hallsEverDry > 0) lines.push(['Pumps short', pumpsShortText(r)]);
   }
@@ -101,6 +103,6 @@ export function resultsPanel(r, record, formatClock) {
   // Pass 5 spec 4.2: the minute of each strike.
   if (r.strikes > 0) lines.splice(r.building ? 1 : 0, 0, ['Strikes', `${r.strikes} of ${r.strikesToFire} · ${r.strikeTimes.map(formatClock).join(', ')}`]);
   // The card's heading: who ended the run.
-  const title = r.sold ? (r.commissioned ? 'Commissioned and sold' : 'Sold') : r.firedByCeo ? firedTitle(r) : r.bankrupt ? 'Went broke' : 'Round over';
+  const title = r.sold ? (r.commissioned ? 'Commissioned and sold' : 'Sold') : r.firedByCeo ? firedTitle(r) : r.bankrupt ? (r.brokeOnCredits ? 'Went broke: service credits' : 'Went broke') : 'Round over';
   return { big, lines, bestLine, title };
 }
