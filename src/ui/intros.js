@@ -11,7 +11,7 @@
 // a line once each, in every building run like the loan line: they are new rules, and a player who
 // learned the game before them skips the tutorial.
 
-import { buildingOn, cannotSell, creditsOn, creditsRate, incomeRate, strikesToFire } from '../core/index2.js';
+import { buildingOn, cannotSell, creditsOn, creditsRate, incomeRate, postsOn, strikesToFire } from '../core/index2.js';
 import { anyHallAffordable } from './bundles.js';
 
 export const INTRO_SECONDS = 6;
@@ -34,6 +34,8 @@ export const INTRO_TEXT = {
   uptime: '', // the line names the configured bonus (uptimeText below)
   // Pass 7 spec 4.2 (M43): once, when the cash first covers opening a hall in one go.
   bundles: "Tap a hall's name to buy what it needs in one go.",
+  // Pass 8 spec 3.2 (M46): once, when the crew reaches four.
+  posts: 'Tap a tech, then a hall on the strip, to post them there.',
   // Pass 5 spec 4.3: once, as the last walkthrough before the strikes leaves (strikesText below).
   strikes: '',
   // Pass 6 spec 5 (M40). The water line names the hall (waterText below).
@@ -87,6 +89,11 @@ export function updateIntros(intros, state) {
   if (intros.bundles && !intros.given.has('bundles') && buildingOn(state) && !state.scripted && state.halls < 8 && anyHallAffordable(state)) {
     intros.given.add('bundles');
     intros.queue.push({ type: 'bundles', id: null });
+  }
+  // The screen's hints (`bundles` on): posts once the crew is four.
+  if (intros.bundles && !intros.given.has('posts') && postsOn(state) && !state.scripted && state.techs.length >= 4) {
+    intros.given.add('posts');
+    intros.queue.push({ type: 'posts', id: null });
   }
   if (!intros.given.has('uptime') && (state.stats.uptime ?? 0) > 0) {
     intros.given.add('uptime');

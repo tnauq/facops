@@ -10,9 +10,9 @@
 // lessons run, since those teach the player to send techs themselves.
 
 import { EQUIPMENT_BY_ID } from './layout2.js';
-import { onCeoRoute } from './ceo.js';
+import { areaOf, onCeoRoute } from './ceo.js';
 import { triageOrder } from './cost.js';
-import { assign, canFix, fixDuration, walkDistance, walkSpeed } from './game2.js';
+import { assign, canFix, fixDuration, isFree, postsOn, walkDistance, walkSpeed } from './game2.js';
 import { buildingOn } from './sites.js';
 
 const finishTime = (state, tech, alarm) => walkDistance(state, tech, alarm) / walkSpeed(state) + fixDuration(state, alarm.type, tech.trade);
@@ -34,11 +34,13 @@ function soonestTech(state, techs, alarm) {
 /** Alarms waiting for a tech, most important first, as auto-dispatch sees them. */
 export function autoOrder(state) {
   const delay = state.config.autoDispatch.delay;
-  const waiting = triageOrder(state).filter(({ alarm }) => alarm.techId === null && state.t - alarm.born >= delay - 1e-9);
-  if (!state.ceo) return waiting.map((x) => x.alarm);
-  const route = (a) => onCeoRoute(state, EQUIPMENT_BY_ID[a.equipId]);
+  const waiting = triageOrder(state).filter(({ alarm }) => alarm.techId === null && state.t - alarm.born >= delay - 1e-9).map((x) => x.alarm);
+  // Pass 8 (M46): the priority area's alarms come first, after the CEO's route during a visit.
+  const area = postsOn(state) ? state.priorityArea : null;
+  const first = (a) => (area && areaOf(EQUIPMENT_BY_ID[a.equipId]) === area ? 1 : 0);
+  const route = (a) => (state.ceo ? Number(onCeoRoute(state, EQUIPMENT_BY_ID[a.equipId])) : 0);
   // A stable sort keeps the triage order within each group.
-  return waiting.map((x) => x.alarm).sort((a, b) => Number(route(b)) - Number(route(a)));
+  return waiting.sort((a, b) => route(b) - route(a) || first(b) - first(a));
 }
 
 /** Send free techs to waiting alarms. Returns how many it sent. */
@@ -49,7 +51,7 @@ export function autoDispatch(state) {
   if (!auto || !auto.enabled || state.over || (state.scripted && !buildingOn(state))) return 0;
   let sent = 0;
   for (const alarm of autoOrder(state)) {
-    const idle = state.techs.filter((t) => t.state === 'idle');
+    const idle = state.techs.filter(isFree); // pass 8: a tech walking back to its post is free
     if (idle.length === 0) break;
     const tech = soonestTech(state, idle, alarm);
     if (tech && assign(state, tech.id, alarm.id).ok) {

@@ -10,7 +10,7 @@ export const CARD_MAX_HEIGHT = 88;
 export const GAP = 4;
 
 export const TRADE_SHORT = { electrical: 'Elec', mechanical: 'Mech', ce: 'CE', network: 'Net' };
-const STATE_WORD = { idle: 'Idle', walking: 'Walking', fixing: 'Fixing' };
+const STATE_WORD = { idle: 'Idle', walking: 'Walking', fixing: 'Fixing', returning: 'Walking' }; // pass 8: walking back to a post
 
 /**
  * One entry per tech: its card rectangle { id, x, y, w, h } (also its tap target) and what the card
@@ -51,6 +51,7 @@ export function crewCards(state, rect, selectedTechId = null, { columns = 1, hir
       progress: alarm ? alarm.progress : null,
       selected: tech.id === selectedTechId,
       unable: unableFor(alarmType, tech.trade),
+      post: tech.post ? tech.post.toUpperCase() : '', // pass 8 (M46): "H5"
     };
   });
   if (hire) cards.push({ id: 'hire', kind: 'hire', ...at(state.techs.length), w: CARD_WIDTH, h, selected: false });

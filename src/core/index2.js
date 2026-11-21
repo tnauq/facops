@@ -3,6 +3,7 @@
 export { ALARMS2, DEFAULT_CONFIG2, TRADES, UPGRADES, YARD_ALARMS, gameDefaults2, makeConfig2 } from './config2.js';
 export { createRng } from './rng.js';
 export { SAVE_VERSION, loadGame, saveGame } from './save.js';
+export { AREAS, postPoint } from './posts.js';
 export * from './layout2.js';
 export {
   advance,
@@ -13,6 +14,10 @@ export {
   assign,
   bandOf,
   burnRate,
+  isFree,
+  postTech,
+  postsOn,
+  setPriority,
   burnParts,
   creditPerRow,
   creditsOn,

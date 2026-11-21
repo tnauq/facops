@@ -68,6 +68,9 @@ import { advisorSpot } from './ui/advisor.js';
 import { drawAdvisor } from './render/advisor.js';
 import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
 import { setBundles, setLedger } from './render/overlays.js';
+import { postTech, postsOn, setPriority } from './core/index2.js';
+import { areaAtStrip, flagTarget, postFor, stripPins, stripWithFlag } from './ui/postsView.js';
+import { drawPostsOnStrip } from './render/posts.js';
 import { ledger } from './ui/ledger.js';
 import { partingLine, soFarLines, soFarText } from './ui/runOver.js';
 import { OLD_SAVE_TEXT, SAVE_EVERY, clearSave, readSave, restoreRun, resumeLabel, writeSave } from './ui/savedRun.js';
@@ -431,7 +434,11 @@ function copyResults() {
 const crewCount = () => round.state.techs.length + (buildingOn(round.state) ? 1 : 0);
 const columnsNow = () => crewColumns(size.h, crewCount());
 // Pass 3: the overview strip takes 30 px off the bottom of the map region (spec 3.2).
-const layout = () => regions3(size.w, size.h, { crewColumns: columnsNow() });
+// Pass 8 (M46): with posts in play the strip gives up its right end to the priority flag button.
+const layout = () => {
+  const r = regions3(size.w, size.h, { crewColumns: columnsNow() });
+  return round && postsOn(round.state) ? { ...r, strip: stripWithFlag(r.strip, true) } : r;
+};
 
 // The zoom is pass 1's on this screen (one crew column); a second crew column only narrows the view.
 function syncCamera() {
@@ -524,6 +531,7 @@ function draw() {
   const look = inspectCard();
   if (look) drawInspectCard(ctx, look.layout, look.info);
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
+  if (postsOn(s)) drawPostsOnStrip(ctx, regs.strip, stripPins(s, regs.strip), s.priorityArea, flagTarget(regs.strip), Boolean(round.flagging));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   const hireCard = buildingOn(s);
   const crewFocus = Boolean(round.tutorial && round.tutorial.crewFocus);
@@ -672,6 +680,24 @@ function onDown(e) {
   if (hit.kind !== 'empty') {
     applyTap(hit);
     revealFor(hit);
+    return;
+  }
+  // Pass 8 (M46): the flag button arms the priority area; then a tap on the strip marks (or clears) it.
+  if (postsOn(round.state) && inside(p, flagTarget(regs.strip))) {
+    round.flagging = !round.flagging;
+    return;
+  }
+  if (inStripTarget(regs.strip, p) && postsOn(round.state) && (round.flagging || round.selection.kind === 'tech')) {
+    const area = areaAtStrip(regs.strip, p.x);
+    if (round.flagging) {
+      setPriority(round.state, round.state.priorityArea === area ? null : area);
+      round.flagging = false;
+    } else {
+      // A tech selected: post it there, or clear its post if it is posted there already.
+      const tech = round.state.techs.find((t) => t.id === round.selection.id);
+      if (tech) postTech(round.state, tech.id, postFor(tech, area));
+      round.selection = NOTHING;
+    }
     return;
   }
   if (inStripTarget(regs.strip, p)) {

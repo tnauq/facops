@@ -12,6 +12,7 @@
 import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, YARD_ALARMS, makeConfig2 } from './config2.js';
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
+import { AREAS, postPoint } from './posts.js';
 import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
 import { alarmCost } from './cost.js';
@@ -35,7 +36,8 @@ const otherSide = (side) => (side === 'A' ? 'B' : 'A');
 // ---------------------------------------------------------------- creation
 
 function makeTech(trade, index, at) {
-  return { id: `tech-${index}`, index, trade, x: at.x, y: at.y, state: 'idle', alarmId: null, path: [], leg: 0 };
+  // Pass 8 (M46): `post` is the area the tech waits in (or null), `idleAt` when it last became free.
+  return { id: `tech-${index}`, index, trade, x: at.x, y: at.y, state: 'idle', alarmId: null, path: [], leg: 0, post: null, idleAt: null };
 }
 
 /** Where a tech who joins with hall `hallId` appears: that hall's top outer door, on the corridor. */
@@ -135,6 +137,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     economyStart: 0, // building mode: when the burn and the alarm tightening started (after the tutorial)
     loanPaidAt: null, // building mode: when the construction loan was paid off (pass 5 spec 3.1)
     customersLive: false, // pass 7 spec 3.2: service credits are charged from this moment
+    priorityArea: null, // pass 8 (M46): the area whose alarms are taken first, or null
     uptime: null, // pass 7 spec 4.1: { minute, up: Set of rows still on track this minute }
     uptimeLast: null, // the last uptime payment: { t, minute, rows: [ids], total }
     ribbonQueued: false,
@@ -443,7 +446,7 @@ export function nearestIdleTech(state, alarmId) {
   let best = null;
   let bestDist = Infinity;
   for (const tech of state.techs) {
-    if (tech.state !== 'idle' || !canFix(alarm.type, tech.trade)) continue;
+    if (!isFree(tech) || !canFix(alarm.type, tech.trade)) continue;
     const d = walkDistance(state, tech, alarm);
     if (d < bestDist - EPS) {
       best = tech;
@@ -569,6 +572,7 @@ function runningAt(state, plant) {
 }
 
 function freeTech(tech) {
+  tech.idleAt = null; // set again on the next step (M46: a posted tech walks back after a while)
   tech.state = 'idle';
   tech.alarmId = null;
   tech.path = [];
@@ -1323,7 +1327,53 @@ function moveTech(state, tech, dt) {
       budget = 0;
     }
   }
-  if (tech.leg >= tech.path.length) tech.state = 'fixing';
+  // Arrived: at the job, or (M46) back at the post.
+  if (tech.leg >= tech.path.length) tech.state = tech.state === 'returning' ? 'idle' : 'fixing';
+}
+
+// ---------------------------------------------------------------- posts (pass 8 spec 3, M46)
+
+/** Are posts and the priority area in play? Building mode, switched on. */
+export const postsOn = (state) => buildingOn(state) && Boolean(state.config.building.posts && state.config.building.posts.enabled);
+
+/** A tech with no job, standing or walking back to its post: free for auto-dispatch. */
+export const isFree = (tech) => tech.state === 'idle' || tech.state === 'returning';
+
+/** Post a tech to an area ('h5', 'pA'), or clear the post with null. Returns { ok } or { ok: false, reason }. */
+export function postTech(state, techId, area) {
+  if (!postsOn(state)) return { ok: false, reason: 'off' };
+  const tech = getTech(state, techId);
+  if (!tech) return { ok: false, reason: 'no such tech' };
+  if (area !== null && !AREAS.includes(area)) return { ok: false, reason: 'no such area' };
+  tech.post = area;
+  if (tech.state === 'returning') freeTech(tech); // stop walking to the old post
+  emit(state, 'posted', { techId, area });
+  return { ok: true };
+}
+
+/** Mark one area's alarms to be taken first, or clear it with null. */
+export function setPriority(state, area) {
+  if (!postsOn(state)) return { ok: false, reason: 'off' };
+  if (area !== null && !AREAS.includes(area)) return { ok: false, reason: 'no such area' };
+  state.priorityArea = area;
+  emit(state, 'priority', { area });
+  return { ok: true };
+}
+
+// A posted tech idle for `returnAfter` seconds walks back to its post.
+function postsStep(state) {
+  if (!postsOn(state)) return;
+  const after = state.config.building.posts.returnAfter;
+  for (const tech of state.techs) {
+    if (tech.state !== 'idle') continue;
+    if (tech.idleAt === null || tech.idleAt === undefined) tech.idleAt = state.t;
+    if (!tech.post || state.t - tech.idleAt < after - EPS) continue;
+    const r = route({ x: tech.x, y: tech.y }, postPoint(tech.post));
+    if (r.length < EPS) continue;
+    tech.path = r.points;
+    tech.leg = 1;
+    tech.state = 'returning';
+  }
 }
 
 /** Advance the rules by dt seconds. Does nothing once the run is over or while a pick is waiting. */
@@ -1353,7 +1403,7 @@ export function step(state, dt) {
   else if (state.thermal > target) state.thermal = Math.max(target, state.thermal - drift);
 
   for (const tech of state.techs) {
-    if (tech.state === 'walking') moveTech(state, tech, dt);
+    if (tech.state === 'walking' || tech.state === 'returning') moveTech(state, tech, dt);
     else if (tech.state === 'fixing') {
       const alarm = getAlarm(state, tech.alarmId);
       if (!alarm) {
@@ -1369,6 +1419,7 @@ export function step(state, dt) {
   }
   serviceQueue(state);
   autoDispatch(state); // techs pick their own jobs (pass 4 spec 2.6)
+  postsStep(state); // pass 8 (M46): free posted techs walk back to their posts
 
   // Building mode: devices that contractors finish, and halls coming online (pass 4 spec 2.1).
   if (buildingOn(state)) buildingStep(state);

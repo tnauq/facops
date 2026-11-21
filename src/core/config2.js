@@ -157,6 +157,11 @@ export const DEFAULT_CONFIG2 = {
     // The spec's starting value was $40; M42's checks lowered it to $20 (spec 4.1: the bonus is the
     // first lever): at $40 runs ran to 21:09 and getting ready for the CEO stopped paying.
     uptime: { enabled: true, bonus: 20, floor: 0.9 },
+    // Pass 8 spec 3 (M46): posts and the priority area. A posted tech idle for `returnAfter` seconds
+    // walks back to its post; alarms in the priority area are taken first. enabled false: neither.
+    // Off by default: M46's check (a builder who posts its crew loses less income) did not pass
+    // without warnings (M47), so the owner turns it on in the drawer to try it.
+    posts: { enabled: false, returnAfter: 3 },
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free

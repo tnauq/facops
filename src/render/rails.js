@@ -39,8 +39,8 @@ function bar(ctx, x, y, w, h, fraction, color) {
   }
 }
 
-function text(ctx, s, x, y, { weight = 400, color = INK, align = 'left' } = {}) {
-  ctx.font = `${weight} 11px ${FONT}`;
+function text(ctx, s, x, y, { weight = 400, color = INK, align = 'left', size = 11 } = {}) {
+  ctx.font = `${weight} ${size}px ${FONT}`;
   ctx.fillStyle = color;
   ctx.textAlign = align;
   ctx.textBaseline = 'middle';
@@ -110,6 +110,8 @@ export function drawCrewBar(ctx, cards) {
       text(ctx, c.status, c.x + 33, mid + 7, { color: MUTED });
     }
     if (c.progress !== null) bar(ctx, c.x + 8, c.y + c.h - 5, c.w - 16, 3, c.progress, WORK);
+    // Pass 8 (M46): the tech's post, small in the card's top right corner.
+    if (c.post) text(ctx, c.post, c.x + c.w - 4, c.y + 9, { weight: 700, align: 'right', size: 10 });
     ctx.restore();
   }
 }

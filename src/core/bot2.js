@@ -6,7 +6,8 @@ import { EQUIPMENT_BY_ID } from './layout2.js';
 import { onCeoRoute } from './ceo.js';
 import { buildMove } from './builder.js';
 import { createRng } from './rng.js';
-import { assign, canFix, choose, createGame, creditsRate, fixDuration, getAlarm, incomeRate, results, sell, spareChillers, step, walkSpeed, walkDistance } from './game2.js';
+import { assign, canFix, choose, createGame, creditsRate, fixDuration, getAlarm, incomeRate, onlineRows, postTech, postsOn, results, sell, setPriority, spareChillers, step, walkSpeed, walkDistance } from './game2.js';
+import { onlineHallIds } from './sites.js';
 
 const otherHalf = (half) => (half === 't' ? 'b' : 't');
 const otherSide = (side) => (side === 'A' ? 'B' : 'A');
@@ -125,11 +126,12 @@ export function pickFor(state, policy = 'first') {
  * Play a whole run and return results(state) plus the final state.
  * `actionGap` is the shortest time between two commands; `maxSeconds` stops a run that never ends.
  */
-export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
+export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, posts = false, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
   // builder (pass 4, building mode): a scripted builder plan from builder.js ('builder', 'greedy',
   // 'nohire'), deciding every `buildGap` seconds.
   // policy: 'greedy' (gets ready for the CEO), 'blind' (ignores the CEO), 'random', or 'none' (never
   // gives an order: with auto-dispatch on, the crew runs itself; pass 4 M23).
+  // posts (pass 8 spec 3.3): post the crew along the online halls every 10 s, priority on the busiest.
   // seller (pass 7 spec 3.6): { strikes, creditShare } hands over the keys as soon as the run has that
   // many strikes, or service credits pass that share of income, and the sale is allowed.
   const state = createGame({ seed, config });
@@ -139,6 +141,7 @@ export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, 
     : () => greedyMove(state, { reaction, ceo: policy !== 'blind' });
   let nextAction = 0;
   let nextBuild = 0;
+  let nextPosts = 0;
   while (!state.over && state.t < maxSeconds) {
     if (state.pendingPick) choose(state, pickFor(state, picks));
     step(state, dt);
@@ -148,9 +151,30 @@ export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, 
       nextBuild = state.t + buildGap;
     }
     if (seller && !state.over && sellerWants(state, seller)) sell(state);
+    if (posts && state.t >= nextPosts) {
+      postCrew(state, posts !== 'nopriority');
+      nextPosts = state.t + 10;
+    }
     if (onStep) onStep(state);
   }
   return { ...results(state), finished: state.over, state };
+}
+
+// Pass 8 spec 3.3 (M46): a scripted player who posts its crew, spread evenly along the online halls,
+// with the priority on the hall with the most rack rows online.
+function postCrew(state, priority = true) {
+  if (!postsOn(state)) return;
+  const halls = onlineHallIds(state);
+  if (halls.length === 0) return;
+  const n = state.techs.length;
+  state.techs.forEach((t, i) => {
+    const area = `h${halls[Math.min(halls.length - 1, Math.floor(((i + 0.5) * halls.length) / n))]}`;
+    if (t.post !== area) postTech(state, t.id, area);
+  });
+  if (!priority) return;
+  const rows = (h) => onlineRows(state).filter((r) => r.hall === h).length;
+  const busiest = halls.reduce((a, b) => (rows(b) > rows(a) ? b : a));
+  if (state.priorityArea !== `h${busiest}`) setPriority(state, `h${busiest}`);
 }
 
 // A scripted seller's nerve (pass 7 spec 3.6).

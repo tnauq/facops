@@ -100,7 +100,62 @@ The owner approved `docs/pass7-spec.md` (version 0.3) on 18 November 2026: three
 | M44. Save and resume | `m44` | Done |
 | M45. The ledger and the run-over card | `m45` | Done |
 
+## Pass 8
+
+The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every question as recommended: posts and the priority area, warnings, busy and quiet spells, the CEO's promises and surges, the pick of two and the rescue call, layers, and a balance check.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M46. Posts and the priority area | `m46` | Done (switched off by default: see the entry) |
+| M47. Warnings before failures | `m47` | |
+| M48. Busy and quiet spells | `m48` | |
+| M49. The CEO's promises | `m49` | |
+| M50. Surges | `m50` | |
+| M51. The pick of two and the rescue call | `m51` | |
+| M52. Layers | `m52` | |
+| M53. The balance check | `m53` | |
+
 ## Log
+
+### M46. Posts and the priority area
+
+Pass 8 spec 3.
+
+Built:
+
+- **Rules** (`src/core/posts.js`, game2.js, auto.js; config `building.posts: { enabled, returnAfter: 3 }`). The ten areas of the strip (Plant A, halls 1 to 8, Plant B; the yard belongs to its hall or plant). `postTech(state, techId, area | null)` and `setPriority(state, area | null)`, events `posted` and `priority`.
+  - A posted tech idle for 3 s walks back to its post (the hall's middle lane, or the plant's lane, at mid-height) and waits there. A new tech state, `returning`, counts as free: auto-dispatch (and one-tap dispatch) take it on the way.
+  - A posted tech still answers anywhere: who takes an alarm is unchanged.
+  - Auto-dispatch takes the priority area's alarms first, after the CEO's route during a visit. The rail's order is unchanged.
+  - Not in the classic game. `SAVE_VERSION` is `m46`.
+- **Screen:**
+  - Tap a tech (map or crew card), then an area on the strip: it is posted there. Tap the tech, then its own area, to clear it. With no tech selected the strip moves the view, as before.
+  - A pin in the tech's hat colour under its area on the strip; the crew card shows the post ("H5") in its top right corner; a tech walking back reads "Walking".
+  - The **flag button** (44 x 44) at the strip's right end; the strip is narrowed to make room while posts are in play. Tap it (it turns ink), then an area: a flag marks it. The same again clears it.
+  - Introduction once the crew reaches four: "Tap a tech, then a hall on the strip, to post them there."
+  - Drawer: "Posts and the priority area".
+- **Scripted player:** `playRun` takes `posts` (post the crew evenly along the online halls every 10 s, priority on the hall with the most racks; or `'nopriority'`). `scripts/posts8.mjs` compares income lost to outages with and without.
+- **Tests:** 7 new in `tests/posts.test.js`. 571 in all.
+
+**The check did not pass, so posts are switched off by default.** The spec's target: a builder who posts techs loses less income to outages. Compute-first builder, first 10:00, income lost to outages a minute of run:
+
+| Seeds | No posts | Posts, priority on the busiest hall | Posts, no priority |
+|---|---|---|---|
+| 12 | $579 | $659 | $629 |
+| 24 | $592 | $664 | $618 |
+
+A 15 s wait before walking back gave the same picture. Without warnings, a tech is best left where its last job ended, which is where the next alarm usually is; walking back to a post takes it away. The priority area makes it slightly worse again, because it pulls techs off the costliest alarm. The spec (section 0) keeps a rule off until its checks pass, so the switch is in the drawer, off. **M47's warnings are what posts are for** (a posted tech walks to warnings in its area): M47 reruns this check with warnings on and switches posts on by default if posting then pays.
+
+Since posts are off by default and no scripted player posts, pass 8's standing targets are unchanged from M45.
+
+Worth knowing:
+
+- Checked in headless Chrome at 844 x 390 and 660 x 300 with posts switched on: a tech posted from its crew card to Hall 2 (pin, "H2", walking back), and the flag set on Hall 1. No console errors.
+
+Owner's checklist (switch on "Posts and the priority area" in the drawer first):
+
+- Post a tech to Hall 5: they walk back there after each job.
+- Mark a priority area: its alarms are taken first.
 
 ### M45. The ledger and the run-over card
 
