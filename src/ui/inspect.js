@@ -7,6 +7,7 @@ import {
   EQUIPMENT_BY_ID, coolantState, glycolFed, pumpNeeds, waterFed, chillersNeeded, dryCapacity, getAlarm, hallOnline, isBuilt, msbFed, plantHasPump, runningChillers, uptimeOnTrack,
 } from '../core/index2.js';
 import { cameraView } from './camera.js';
+import { warningLine } from './warningsView.js';
 import { extentOf, SPOT_MIN } from './spots.js';
 
 const HALF = { t: 'top', b: 'bottom' };
@@ -179,9 +180,12 @@ export function inspectInfo(state, id) {
     // Pass 7 spec 4.1 (M42): whether this row will earn this minute's uptime bonus.
     const track = uptimeOnTrack(state, id);
     if (track !== null) lines.push(track ? 'Uptime bonus: on track' : 'Uptime bonus: missed this minute');
+    const warned = warningLine(state, id); // pass 8 (M47)
+    if (warned) lines.push(warned);
     return { id, type: e.type, name, side: 'A', headline: dollars(r.earning), lines, warn: r.reason !== '' && r.reason !== 'Powering up', lineWarn: r.reason !== '' && r.reason !== 'Powering up' };
   }
   const s = infraStatus(state, id);
   const upkeep = `Upkeep ${dollars(state.config.building.burn.upkeep)}`;
-  return { id, type: e.type, name, side: e.side ?? 'A', headline: s.state, lines: [s.feeds, `${s.role} · ${upkeep}`], warn: s.warn, lineWarn: Boolean(s.lineWarn) };
+  const warned = warningLine(state, id); // pass 8 (M47)
+  return { id, type: e.type, name, side: e.side ?? 'A', headline: s.state, lines: [s.feeds, `${s.role} · ${upkeep}`, ...(warned ? [warned] : [])], warn: s.warn, lineWarn: Boolean(s.lineWarn) };
 }

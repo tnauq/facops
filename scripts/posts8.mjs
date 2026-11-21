@@ -16,13 +16,17 @@ for (const posts of [false, true, 'nopriority']) {
   let total = 0;
   let earned = 0;
   let len = 0;
+  let warned = 0;
+  let caught = 0;
   for (let seed = 1; seed <= seeds; seed++) {
     const r = playRun({ seed, config, builder: 'builder', policy: 'none', posts, maxSeconds: minutes * 60 });
     total += lost(r);
     earned += r.earned;
     len += r.seconds;
+    warned += r.state.stats.warned ?? 0;
+    caught += r.state.stats.caught ?? 0;
   }
-  rows.push({ posts, lost: total / seeds, rate: total / (len / 60), earned: earned / seeds, seconds: len / seeds });
+  rows.push({ posts, lost: total / seeds, rate: total / (len / 60), earned: earned / seeds, seconds: len / seeds, caught: warned ? caught / warned : 0 });
 }
 console.log(`Seeds 1 to ${seeds}, first ${minutes}:00, compute-first builder.`);
-for (const r of rows) console.log(`| ${r.posts === 'nopriority' ? 'Posts, no priority' : r.posts ? 'Posts its crew, priority on the busiest hall' : 'No posts'} | income lost to outages $${Math.round(r.lost).toLocaleString('en-US')} ($${Math.round(r.rate)} a minute) | earned $${Math.round(r.earned).toLocaleString('en-US')} | ran ${(r.seconds / 60).toFixed(1)} min |`);
+for (const r of rows) console.log(`| ${r.posts === 'nopriority' ? 'Posts, no priority' : r.posts ? 'Posts its crew, priority on the busiest hall' : 'No posts'} | income lost to outages $${Math.round(r.lost).toLocaleString('en-US')} ($${Math.round(r.rate)} a minute) | earned $${Math.round(r.earned).toLocaleString('en-US')} | ran ${(r.seconds / 60).toFixed(1)} min | warnings caught ${Math.round(r.caught * 100)}% |`);

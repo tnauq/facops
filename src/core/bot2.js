@@ -126,7 +126,7 @@ export function pickFor(state, policy = 'first') {
  * Play a whole run and return results(state) plus the final state.
  * `actionGap` is the shortest time between two commands; `maxSeconds` stops a run that never ends.
  */
-export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, posts = false, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
+export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, posts = false, maxCrew = 9, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
   // builder (pass 4, building mode): a scripted builder plan from builder.js ('builder', 'greedy',
   // 'nohire'), deciding every `buildGap` seconds.
   // policy: 'greedy' (gets ready for the CEO), 'blind' (ignores the CEO), 'random', or 'none' (never
@@ -147,7 +147,7 @@ export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, 
     step(state, dt);
     if (state.t >= nextAction && move()) nextAction = state.t + actionGap;
     if (builder && state.t >= nextBuild) {
-      buildMove(state, builder);
+      buildMove(state, builder, { maxCrew });
       nextBuild = state.t + buildGap;
     }
     if (seller && !state.over && sellerWants(state, seller)) sell(state);

@@ -28,6 +28,7 @@ const setCredits = setNested('credits');
 const setSale = setNested('sale');
 const setUptime = setNested('uptime');
 const setPosts = setNested('posts');
+const setWarnings = setNested('warnings');
 
 export const TUNING2_FIELDS = [
   { id: 'tighten', label: 'Tightening per 10 s (%)', kind: 'range', min: 0, max: 10, step: 0.5,
@@ -113,6 +114,11 @@ export const TUNING2_FIELDS = [
   // Pass 8 spec 3 (M46).
   { id: 'postsOn', label: 'Posts and the priority area', kind: 'toggle',
     get: (c) => c.building.posts.enabled, set: (o, v) => setPosts(o, 'enabled', v) },
+  // Pass 8 spec 4 (M47).
+  { id: 'warningsOn', label: 'Warnings before failures', kind: 'toggle',
+    get: (c) => c.building.warnings.enabled, set: (o, v) => setWarnings(o, 'enabled', v) },
+  { id: 'warnFor', label: 'Warning before a failure (s)', kind: 'range', min: 5, max: 30, step: 1,
+    get: (c) => c.building.warnings.warnFor, set: (o, v) => setWarnings(o, 'warnFor', v) },
   // Pass 7 spec 4.2 (M43): the advisor mark all run long (it shows by itself only early in a first
   // run). Screen only; also the Settings card's switch.
   { id: 'advisorMark', label: 'Advisor mark all run', kind: 'toggle',

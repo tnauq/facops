@@ -17,6 +17,15 @@ export function reduceTap(selection, hit, { oneTap = false } = {}) {
   const pick = { selection: { kind: hit.kind, id: hit.id }, assign: null };
 
   if (hit.kind === 'empty') return none;
+  // Pass 8 (M47): a warning and a tech, in either order, send the tech to check it.
+  if (hit.kind === 'warning') {
+    if (selection.kind === 'tech') return { selection: NOTHING, assign: null, warn: { techId: selection.id, warnId: hit.id } };
+    return selection.kind === 'warning' && selection.id === hit.id ? none : pick;
+  }
+  if (selection.kind === 'warning') {
+    if (hit.kind === 'tech') return { selection: NOTHING, assign: null, warn: { techId: hit.id, warnId: selection.id } };
+    return hit.kind === 'alarm' ? pick : keep;
+  }
   if (hit.kind !== 'alarm' && hit.kind !== 'tech') return keep; // HUD buttons do their own thing
 
   if (selection.kind === 'none') return pick;
@@ -30,5 +39,6 @@ export function reduceTap(selection, hit, { oneTap = false } = {}) {
 export function pruneSelection(selection, state) {
   if (selection.kind === 'alarm' && !state.alarms.some((a) => a.id === selection.id)) return NOTHING;
   if (selection.kind === 'tech' && !state.techs.some((t) => t.id === selection.id)) return NOTHING;
+  if (selection.kind === 'warning' && !(state.warnings ?? []).some((w) => w.id === selection.id)) return NOTHING;
   return selection;
 }

@@ -72,10 +72,9 @@ function build2(s) {
   raiseAlarm(s, 'chiller', 'chiller-A-0');
 }
 
-test('posts are off by default (until warnings make them pay), when switched off, and in the classic game', () => {
+test('posts are on by default since warnings (M47), off when switched off, and in the classic game', () => {
   const plain = createGame({ seed: 1, config: { tutorial: false, building: { enabled: true } } });
-  assert.equal(plain.config.building.posts.enabled, false);
-  assert.equal(postTech(plain, plain.techs[0].id, 'h1').ok, false);
+  assert.equal(plain.config.building.posts.enabled, true);
   const s = game({ posts: { enabled: false, returnAfter: 3 } });
   assert.deepEqual(postTech(s, s.techs[0].id, 'h1'), { ok: false, reason: 'off' });
   assert.deepEqual(setPriority(s, 'h1'), { ok: false, reason: 'off' });

@@ -13,7 +13,7 @@ import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, YARD_ALARMS, makeConfig2 
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
 import { AREAS, postPoint } from './posts.js';
-import { ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
+import { areaOf, ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
 import { alarmCost } from './cost.js';
 import { runningPumps, supply } from './supply.js';
@@ -37,7 +37,8 @@ const otherSide = (side) => (side === 'A' ? 'B' : 'A');
 
 function makeTech(trade, index, at) {
   // Pass 8 (M46): `post` is the area the tech waits in (or null), `idleAt` when it last became free.
-  return { id: `tech-${index}`, index, trade, x: at.x, y: at.y, state: 'idle', alarmId: null, path: [], leg: 0, post: null, idleAt: null };
+  // Pass 8 (M47): `warnId`, the warning the tech is walking to or checking.
+  return { id: `tech-${index}`, index, trade, x: at.x, y: at.y, state: 'idle', alarmId: null, path: [], leg: 0, post: null, idleAt: null, warnId: null };
 }
 
 /** Where a tech who joins with hall `hallId` appears: that hall's top outer door, on the corridor. */
@@ -87,6 +88,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     thermal: 1, // campus cooling factor, 0..1
     alarms: [],
     nextAlarmId: 1,
+    warnings: [], // pass 8 (M47): [{ id, type, equipId, born, ends, techId, progress }]
     techs,
     meter: cfg.meter.start,
     band: 'green',
@@ -527,7 +529,7 @@ export function eligibleEquipment(state, type) {
   // Fairness (pass 3 spec 4.3): once the CEO has arrived, no new alarms on anything the CEO could
   // still see. During the warning alarms still come there: that is what getting ready is for.
   const shielded = (e) => state.ceo !== null && state.ceo.phase === 'visit' && onCeoRoute(state, e);
-  const ok = (e) => isOnline(state, e) && state.equip[e.id].alarmId === null && !shielded(e);
+  const ok = (e) => isOnline(state, e) && state.equip[e.id].alarmId === null && !warned(state, e.id) && !shielded(e);
   switch (type) {
     case 'network':
       return ROWS.filter((e) => ok(e) && !state.equip[e.id].netDown);
@@ -573,6 +575,7 @@ function runningAt(state, plant) {
 
 function freeTech(tech) {
   tech.idleAt = null; // set again on the next step (M46: a posted tech walks back after a while)
+  tech.warnId = null; // M47
   tech.state = 'idle';
   tech.alarmId = null;
   tech.path = [];
@@ -769,15 +772,112 @@ export function alarmCap(state) {
 }
 
 function directorSpawnOne(state) {
-  if (state.alarms.length >= alarmCap(state)) return null;
+  // Pass 8 (M47): with `capCounts`, warnings count toward the cap as the alarms they will become.
+  const pending = state.config.building.warnings?.capCounts ? (state.warnings ?? []).length : 0;
+  if (state.alarms.length + pending >= alarmCap(state)) return null;
   const options = Object.values(ALARMS)
     .map((def) => ({ def, weight: def.weight, pool: eligibleEquipment(state, def.id) }))
     .filter((o) => o.pool.length > 0);
   if (options.length === 0) return null;
   const choice = state.rng.weighted(options);
   const target = state.rng.pick(choice.pool);
+  if (warningsOn(state)) return warn(state, choice.def.id, target.id);
   return spawnAlarm(state, choice.def.id, target.id, 'director');
 }
+
+// ---------------------------------------------------------------- warnings (pass 8 spec 4, M47)
+
+/** Are warnings in play? Building mode, switched on. */
+export const warningsOn = (state) => buildingOn(state) && Boolean(state.config.building.warnings && state.config.building.warnings.enabled);
+
+const warned = (state, equipId) => (state.warnings ?? []).some((w) => w.equipId === equipId);
+
+/** The warning with this id, or undefined. */
+export const getWarning = (state, id) => (state.warnings ?? []).find((w) => w.id === id);
+
+// The director's pick, shown as a wrench for `warnFor` seconds before the alarm starts.
+function warn(state, type, equipId) {
+  const w = { id: state.nextAlarmId++, type, equipId, born: state.t, ends: state.t + state.config.building.warnings.warnFor, techId: null, progress: 0 };
+  state.warnings.push(w);
+  state.stats.warned = (state.stats.warned ?? 0) + 1;
+  emit(state, 'warning', { warningId: w.id, alarmType: type, equipId });
+  return w;
+}
+
+function dropWarning(state, w) {
+  state.warnings = state.warnings.filter((x) => x !== w);
+  const tech = w.techId ? getTech(state, w.techId) : null;
+  if (tech && tech.warnId === w.id) freeTech(tech);
+}
+
+/** Send a tech to check a warning (the player's command, or a posted tech's own). */
+export function sendToWarning(state, techId, warnId) {
+  if (state.over) return { ok: false, reason: 'over' };
+  const tech = getTech(state, techId);
+  const w = getWarning(state, warnId);
+  if (!tech) return { ok: false, reason: 'no such tech' };
+  if (!w) return { ok: false, reason: 'no such warning' };
+  if (!canFix(w.type, tech.trade)) return { ok: false, reason: 'trade', trade: ALARMS[w.type].trade };
+  if (tech.alarmId !== null) {
+    // Redirected off an alarm: as assign() does, the alarm keeps its progress a while.
+    const old = getAlarm(state, tech.alarmId);
+    if (old) {
+      old.techId = null;
+      old.holdUntil = state.t + progressHold(state);
+    }
+  }
+  if (tech.warnId !== null && tech.warnId !== w.id) {
+    const other = getWarning(state, tech.warnId);
+    if (other) other.techId = null;
+  }
+  if (w.techId && w.techId !== tech.id) {
+    const previous = getTech(state, w.techId);
+    if (previous) freeTech(previous);
+  }
+  const r = route({ x: tech.x, y: tech.y }, serviceOf(state, { type: w.type, equipId: w.equipId }));
+  tech.alarmId = null;
+  tech.warnId = w.id;
+  tech.path = r.points;
+  tech.leg = 1;
+  tech.state = r.length < EPS ? 'checking' : 'walking';
+  w.techId = tech.id;
+  emit(state, 'warningSent', { techId: tech.id, warningId: w.id });
+  return { ok: true };
+}
+
+// Each step: checks in progress, posted techs walking to warnings in their area, and warnings that
+// ran out turning into alarms (or dropped, if the device can no longer take that alarm).
+function warningsStep(state, dt) {
+  if (!state.warnings || state.warnings.length === 0) return;
+  for (const w of [...state.warnings]) {
+    const tech = w.techId ? getTech(state, w.techId) : null;
+    if (tech && tech.state === 'checking') {
+      w.progress += dt / state.config.building.warnings.checkTime;
+      if (w.progress >= 1 - EPS) {
+        dropWarning(state, w);
+        state.stats.caught = (state.stats.caught ?? 0) + 1;
+        emit(state, 'caughtInTime', { warningId: w.id, equipId: w.equipId, techId: tech.id });
+      }
+      continue; // a check under way holds the warning's clock
+    }
+    if (state.t >= w.ends - EPS) {
+      dropWarning(state, w);
+      const still = eligibleEquipment(state, w.type).some((e) => e.id === w.equipId);
+      if (still) spawnAlarm(state, w.type, w.equipId, 'director');
+      continue;
+    }
+    if (w.techId === null && postsOn(state)) {
+      const area = areaOf(EQUIPMENT_BY_ID[w.equipId]);
+      const free = state.techs.filter((t) => t.post === area && (t.state === 'idle' || t.state === 'returning') && canFix(w.type, t.trade));
+      if (free.length > 0) {
+        const near = free.reduce((a, b) => (walkDistanceTo(state, b, w) < walkDistanceTo(state, a, w) ? b : a));
+        sendToWarning(state, near.id, w.id);
+      }
+    }
+  }
+}
+
+const walkDistanceTo = (state, tech, w) => route({ x: tech.x, y: tech.y }, serviceOf(state, { type: w.type, equipId: w.equipId })).length;
 
 function directorStep(state) {
   const d = state.config.director;
@@ -1241,6 +1341,15 @@ export function assign(state, techId, alarmId) {
   if (!alarm) return { ok: false, reason: 'no such alarm' };
   if (tech.alarmId === alarm.id) return { ok: true, unchanged: true };
   if (!canFix(alarm.type, tech.trade)) return { ok: false, reason: 'trade', trade: ALARMS[alarm.type].trade };
+  // Pass 8 (M47): a tech on the way to a warning drops it for the alarm.
+  if (tech.warnId !== null && tech.warnId !== undefined) {
+    const w = getWarning(state, tech.warnId);
+    if (w) {
+      w.techId = null;
+      w.progress = 0;
+    }
+    tech.warnId = null;
+  }
   if (tech.alarmId !== null) {
     const old = getAlarm(state, tech.alarmId);
     if (old) {
@@ -1328,7 +1437,8 @@ function moveTech(state, tech, dt) {
     }
   }
   // Arrived: at the job, or (M46) back at the post.
-  if (tech.leg >= tech.path.length) tech.state = tech.state === 'returning' ? 'idle' : 'fixing';
+  // Pass 8 (M47): or at a warning, to check it.
+  if (tech.leg >= tech.path.length) tech.state = tech.state === 'returning' ? 'idle' : tech.warnId !== null && tech.warnId !== undefined ? 'checking' : 'fixing';
 }
 
 // ---------------------------------------------------------------- posts (pass 8 spec 3, M46)
@@ -1337,7 +1447,8 @@ function moveTech(state, tech, dt) {
 export const postsOn = (state) => buildingOn(state) && Boolean(state.config.building.posts && state.config.building.posts.enabled);
 
 /** A tech with no job, standing or walking back to its post: free for auto-dispatch. */
-export const isFree = (tech) => tech.state === 'idle' || tech.state === 'returning';
+// Pass 8 (M47): so is one walking to or checking a warning: a job comes first.
+export const isFree = (tech) => tech.state === 'idle' || tech.state === 'returning' || (tech.warnId !== null && tech.warnId !== undefined);
 
 /** Post a tech to an area ('h5', 'pA'), or clear the post with null. Returns { ok } or { ok: false, reason }. */
 export function postTech(state, techId, area) {
@@ -1404,6 +1515,7 @@ export function step(state, dt) {
 
   for (const tech of state.techs) {
     if (tech.state === 'walking' || tech.state === 'returning') moveTech(state, tech, dt);
+    else if (tech.state === 'checking') continue; // pass 8 (M47): warningsStep moves the check on
     else if (tech.state === 'fixing') {
       const alarm = getAlarm(state, tech.alarmId);
       if (!alarm) {
@@ -1419,6 +1531,7 @@ export function step(state, dt) {
   }
   serviceQueue(state);
   autoDispatch(state); // techs pick their own jobs (pass 4 spec 2.6)
+  warningsStep(state, dt); // pass 8 (M47): checks, posted techs to warnings, warnings that ran out
   postsStep(state); // pass 8 (M46): free posted techs walk back to their posts
 
   // Building mode: devices that contractors finish, and halls coming online (pass 4 spec 2.1).

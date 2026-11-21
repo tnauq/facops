@@ -151,7 +151,7 @@ export const DEFAULT_CONFIG2 = {
     // loan is paid off (at once when there is no loan). From then every online rack row that is short of
     // full output costs `rate` dollars a second for each row short, doubling every `doubling` seconds
     // since they went live. Nothing is charged while every row delivers. rate 0 turns them off.
-    credits: { rate: 1, doubling: 210 },
+    credits: { rate: 1, doubling: 180 }, // M41: 210; M47: 180, as warnings lengthened runs
     // Pass 7 spec 4.1 (M42): the uptime bonus. At each full minute of the economy, every rack row that
     // stayed up the whole minute (online at its start, never below `floor` of full output) pays `bonus`.
     // The spec's starting value was $40; M42's checks lowered it to $20 (spec 4.1: the bonus is the
@@ -159,9 +159,14 @@ export const DEFAULT_CONFIG2 = {
     uptime: { enabled: true, bonus: 20, floor: 0.9 },
     // Pass 8 spec 3 (M46): posts and the priority area. A posted tech idle for `returnAfter` seconds
     // walks back to its post; alarms in the priority area are taken first. enabled false: neither.
-    // Off by default: M46's check (a builder who posts its crew loses less income) did not pass
-    // without warnings (M47), so the owner turns it on in the drawer to try it.
-    posts: { enabled: false, returnAfter: 3 },
+    // M46's check (a builder who posts its crew loses less income) failed without warnings, so it
+    // shipped off; with M47's warnings it passes (29 to 34% less lost), so it is on.
+    posts: { enabled: true, returnAfter: 3 },
+    // Pass 8 spec 4 (M47): warnings. The director's pick shows a wrench for `warnFor` seconds before
+    // the alarm starts; a tech who gets there clears it with a `checkTime` check. enabled false: none.
+    // M47's checks: 20 s (the spec's 10 s caught under a third), and warnings do not hold a place under
+    // the director's cap (`capCounts` true made runs much longer): see docs/PROGRESS.md.
+    warnings: { enabled: true, warnFor: 20, checkTime: 2, capCounts: false },
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free

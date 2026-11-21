@@ -106,8 +106,8 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 
 | Milestone | Tag | Status |
 |---|---|---|
-| M46. Posts and the priority area | `m46` | Done (switched off by default: see the entry) |
-| M47. Warnings before failures | `m47` | |
+| M46. Posts and the priority area | `m46` | Done (on since M47) |
+| M47. Warnings before failures | `m47` | Done |
 | M48. Busy and quiet spells | `m48` | |
 | M49. The CEO's promises | `m49` | |
 | M50. Surges | `m50` | |
@@ -116,6 +116,71 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M53. The balance check | `m53` | |
 
 ## Log
+
+### M47. Warnings before failures
+
+Pass 8 spec 4.
+
+Built:
+
+- **Rules** (game2.js; config `building.warnings: { enabled, warnFor: 20, checkTime: 2, capCounts: false }`).
+  - The director's pick shows a **warning** before the alarm starts. When it runs out, the alarm starts if the device can still take it (the director's mercy and the CEO's shield are checked again then), else it is dropped.
+  - A tech who reaches it clears it with a **2 s check**, and no alarm follows (event `caughtInTime`, `stats.caught`). A check under way holds the warning's clock.
+  - A **posted tech** with no job walks by itself to warnings in its post's area (the nearest who can fix that kind). A tech with no post goes only when sent: `sendToWarning(state, techId, warnId)`.
+  - **A job comes first:** a tech walking to or checking a warning counts as free, and an alarm given to it takes it off the warning.
+  - Escalations never warn. Not in the classic game. New tech states `checking`; `SAVE_VERSION` is `m47`.
+- **Screen:**
+  - A wrench in a white disc over the device, raised like an alarm bubble, with an ink ring for the time left (the work blue while a tech checks it). A small wrench on the strip. Warnings stay off the rail.
+  - Tap a wrench, then a tech (or a tech, then a wrench) to send the tech. "Caught in time" floats up when one is cleared. The crew card says "Checking".
+  - The inspect card on a warned device: "Warning: will fail in 0:07".
+  - Introduction at the first warning: "A wrench means a device is about to fail. A tech who gets there in time stops it."
+  - Drawer: "Warnings before failures" and "Warning before a failure (s)".
+- **Posts are now on by default** (M46's check passes with warnings; below).
+- Scripted checks: `scripts/posts8.mjs` reports the share of warnings caught; `scripts/crew8.mjs` (new) compares crews of 5, 7 and 9; `playRun` takes `maxCrew`.
+- **Tests:** 6 new in `tests/warnings.test.js`; the posts test now expects posts on by default; the warning test reads `warnFor` from config. 577 in all.
+
+Three changes from the spec's starting values, each from the checks:
+
+1. **Warnings last 20 s, not 10.** With 10 s a posting builder caught 22% of picks (target a third to a half); 15 s caught 30%; 20 s caught 34%.
+2. **Warnings do not take a place under the director's cap** (`capCounts: false`). The spec said they count as the alarms they will become; with that, open alarms fell so far that most runs reached 30:00 (compute-first median 25:21 even at 10 s). Without it the director keeps the same pressure, 20 s later.
+3. **Service credits double every 3:00, not 3:30** (spec 4.3's first lever): with warnings, the compute-first median was 20:17; at 3:00 it is 19:00.
+
+Checks (12 seeds unless stated):
+
+| Check | Result |
+|---|---|
+| A posting builder prevents a third to a half of the director's picks | **34%** (24 seeds) |
+| Posting cuts income lost to outages (M46's check, first 10:00, 24 seeds) | **Yes:** $558 a minute without posts, $397 with posts and the priority area, $367 with posts and no priority |
+| A sixth and seventh tech still pay (posting builder) | **Yes:** up to 5 techs $131,694, up to 7 $180,886, up to 9 $230,757 |
+
+Pass 8's standing targets:
+
+| Player | Median run (range) | Score | Sold / fired / broke early / broke later |
+|---|---|---|---|
+| Compute first, backups from hall 4 | 19:00 (15:31 to 23:29) | $137,167 | 0 / 10 / 0 / 2 |
+| The same, getting ready for the CEO | 22:33 (16:44 to 23:30) | $150,566 | 0 / 5 / 0 / 7 |
+| Backups from hall 6 | 21:36 (16:51 to 24:49) | $152,908 | 0 / 8 / 0 / 4 |
+| Never a backup | 17:36 (7:48 to 19:17) | $88,131 | 0 / 1 / 0 / 11 |
+| Never hires | 13:04 (8:49 to 17:57) | $57,621 | 0 / 0 / 0 / 12 |
+| Slow (decides every 4 s) | 21:10 (17:51 to 24:13) | $133,232 | 0 / 5 / 0 / 7 |
+| Bold seller | 15:22 (13:40 to 16:29) | $156,458 | 12 / 0 / 0 / 0 |
+| Cautious seller | 12:22 (10:45 to 14:08) | $123,026 | 12 / 0 / 0 / 0 |
+| Backups early | 2:58 (1:04 to 13:41) | $7,721 | 0 / 0 / 7 / 5 |
+
+- Compute-first median 19:00: **met**. 150 MW at about 7:30: **met**.
+- Getting ready for the CEO earns more ($150,566 against $137,167): **met**. Never a backup earns 36% less: **met**. Backups early broke in 12 of 12: **met**.
+- Endings across the four players: sold 24, fired 15, broke 9 of 48: **50% / 31% / 19%**. Sold is over 40% and broke under 25%. Runs are richer with warnings, so both scripted sellers now sell every time, which sets sold at half by itself; among the two players who never sell, fired and broke are 15 and 9. A 2:45 doubling gave 48% / 19% / 33% but a 21:23 median. Left for M53's balance check, with everything on.
+- **Worth knowing:** a builder who posts its crew lasts much longer (25:36 with up to 9 techs): posting is now strong. M53 checks the player who uses every pass 8 tool against the one who uses none.
+
+Worth knowing:
+
+- A warning out of view has no edge arrow (alarms do); the strip's small wrench shows where it is.
+- Checked in headless Chrome at 844 x 390 and 660 x 300: the first warning and its introduction, then the electrician's crew card and a wrench tapped: the tech walked over, checked it, "caught" counted one, and no alarm followed. No console errors.
+
+Owner's checklist:
+
+- A posted tech walks to a wrench in their hall and stops the failure.
+- An unposted tech ignores a wrench until you send them.
 
 ### M46. Posts and the priority area
 

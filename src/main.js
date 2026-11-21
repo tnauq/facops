@@ -71,6 +71,9 @@ import { setBundles, setLedger } from './render/overlays.js';
 import { postTech, postsOn, setPriority } from './core/index2.js';
 import { areaAtStrip, flagTarget, postFor, stripPins, stripWithFlag } from './ui/postsView.js';
 import { drawPostsOnStrip } from './render/posts.js';
+import { sendToWarning } from './core/index2.js';
+import { stripWrenches, warningAt, warningMarks } from './ui/warningsView.js';
+import { drawStripWrenches, drawWarnings } from './render/warnings.js';
 import { ledger } from './ui/ledger.js';
 import { partingLine, soFarLines, soFarText } from './ui/runOver.js';
 import { OLD_SAVE_TEXT, SAVE_EVERY, clearSave, readSave, restoreRun, resumeLabel, writeSave } from './ui/savedRun.js';
@@ -520,6 +523,8 @@ function draw() {
   // The CEO's banner across the top of the map (pass 3 spec 4.7): one line when the map is narrow.
   drawBanner(ctx, cam.rect, bannerModel(s, cam.rect.w < 560));
   for (const m of markers) if (m.ceo) drawCeoMarker(ctx, m); // never hidden by the banner
+  // Pass 8 (M47): warnings' wrenches, over the map and under the cards.
+  drawWarnings(ctx, warningMarks(s, cam), sel.kind === 'warning' ? sel.id : null);
   // Pass 7 (M43): the advisor mark, under the cards; its edge arrow taps like an alarm's.
   const advise = advisorNow();
   if (advise) {
@@ -531,6 +536,7 @@ function draw() {
   const look = inspectCard();
   if (look) drawInspectCard(ctx, look.layout, look.info);
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
+  drawStripWrenches(ctx, stripWrenches(s, regs.strip)); // pass 8 (M47)
   if (postsOn(s)) drawPostsOnStrip(ctx, regs.strip, stripPins(s, regs.strip), s.priorityArea, flagTarget(regs.strip), Boolean(round.flagging));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   const hireCard = buildingOn(s);
@@ -638,6 +644,8 @@ function applyTap(hit) {
     }
   }
   if (result.dispatch !== undefined) dispatch(round.state, result.dispatch);
+  // Pass 8 (M47): a warning and a tech: send the tech to check it.
+  if (result.warn) sendToWarning(round.state, result.warn.techId, result.warn.warnId);
 }
 
 // A ticket or card for something out of view also brings it into view (spec 7.1).
@@ -824,6 +832,14 @@ function onUp(e) {
   const tap = endGesture(gesture);
   gesture = null;
   if (e.type === 'pointercancel' || !tap || !canPlay()) return;
+  // Pass 8 (M47): a warning's wrench, before spots and devices (it sits over its device).
+  const warnHit = warningAt(warningMarks(round.state, cam), tap);
+  if (warnHit !== null && hitTest(tap, mapTargets2(round.state, cam)).kind === 'empty') {
+    round.card = null;
+    round.inspect = null;
+    applyTap({ kind: 'warning', id: warnHit });
+    return;
+  }
   if (buildingTap(tap)) return;
   const m = markerAt(markers, tap);
   if (m) {

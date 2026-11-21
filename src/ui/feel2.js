@@ -66,6 +66,11 @@ export function feelEvents2(feel, events, state) {
         feel.floats.push({ text: `+$${state.config.building.uptime.bonus}`, x: eq.x, y: eq.y, born: e.t });
       }
     }
+    // Pass 8 spec 4.2 (M47): a warning cleared in time.
+    if (e.type === 'caughtInTime') {
+      const eq = EQUIPMENT_BY_ID[e.equipId];
+      feel.floats.push({ text: 'Caught in time', x: eq.x, y: eq.y, born: e.t });
+    }
     if (e.type === 'buildStart') {
       const eq = EQUIPMENT_BY_ID[e.equipId];
       feel.floats.push({ text: `-$${e.price}`, x: eq.x, y: eq.y, born: e.t });

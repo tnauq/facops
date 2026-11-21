@@ -10,7 +10,7 @@ export const CARD_MAX_HEIGHT = 88;
 export const GAP = 4;
 
 export const TRADE_SHORT = { electrical: 'Elec', mechanical: 'Mech', ce: 'CE', network: 'Net' };
-const STATE_WORD = { idle: 'Idle', walking: 'Walking', fixing: 'Fixing', returning: 'Walking' }; // pass 8: walking back to a post
+const STATE_WORD = { idle: 'Idle', walking: 'Walking', fixing: 'Fixing', returning: 'Walking', checking: 'Checking' }; // pass 8: walking back to a post (M46), checking a warning (M47)
 
 /**
  * One entry per tech: its card rectangle { id, x, y, w, h } (also its tap target) and what the card
