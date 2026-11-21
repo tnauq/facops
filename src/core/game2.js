@@ -785,6 +785,44 @@ function directorSpawnOne(state) {
   return spawnAlarm(state, choice.def.id, target.id, 'director');
 }
 
+// ---------------------------------------------------------------- spells (pass 8 spec 5, M48)
+
+/** Are busy and quiet spells in play? Building mode, switched on. */
+export const spellsOn = (state) => buildingOn(state) && Boolean(state.config.building.spells && state.config.building.spells.enabled);
+
+/** 'busy' | 'quiet' while spells are in play, else null. */
+export const spellNow = (state) => (spellsOn(state) && state.director.spell ? state.director.spell.kind : null);
+
+// Outages open with nobody free for them, and halls entirely dark: the director eases off.
+function swamped(state) {
+  const outages = state.alarms.filter((a) => alarmCost(state, a) > 0).length;
+  const free = state.techs.filter((t) => isFree(t)).length;
+  return outages > free;
+}
+const hallDark = (state) => onlineHallIds(state).some((h) => coolantState(state, h) === 'shut' || (isHalfDark(state, h, 't') && isHalfDark(state, h, 'b')));
+
+function startSpell(state, kind) {
+  const sp = state.config.building.spells;
+  const [lo, hi] = kind === 'busy' ? sp.busy : sp.quiet;
+  state.director.spell = { kind, until: state.t + state.rng.range(lo, hi), swampedSince: null };
+  emit(state, 'spell', { kind });
+}
+
+// Move the spells on. Returns the spell now ('busy' | 'quiet'), or null when spells are off.
+function spellStep(state) {
+  if (!spellsOn(state)) return null;
+  const d = state.director;
+  if (!d.spell) startSpell(state, 'busy');
+  const sp = d.spell;
+  if (sp.kind === 'busy') {
+    if (swamped(state)) sp.swampedSince ??= state.t;
+    else sp.swampedSince = null;
+    const eased = (sp.swampedSince !== null && state.t - sp.swampedSince >= state.config.building.spells.easeAfter - EPS) || hallDark(state);
+    if (eased || state.t >= sp.until - EPS) startSpell(state, 'quiet');
+  } else if (state.t >= sp.until - EPS) startSpell(state, 'busy');
+  return d.spell.kind;
+}
+
 // ---------------------------------------------------------------- warnings (pass 8 spec 4, M47)
 
 /** Are warnings in play? Building mode, switched on. */
@@ -882,10 +920,16 @@ const walkDistanceTo = (state, tech, w) => route({ x: tech.x, y: tech.y }, servi
 function directorStep(state) {
   const d = state.config.director;
   if (!d.enabled || state.scripted) return;
+  // Pass 8 (M48): in a quiet spell, or in the red, the director starts nothing new; what is due
+  // waits for the busy spell (or for the cash to recover).
+  const spell = spellStep(state);
+  if (spell === 'quiet') return;
+  if (buildingOn(state) && state.redSince !== null && state.redSince !== undefined && spellsOn(state)) return;
+  const factor = spell === 'busy' ? state.config.building.spells.busyFactor : 1;
   if (state.t >= state.director.nextSpawn - EPS) {
     directorSpawnOne(state);
     const base = buildingOn(state) ? buildingInterval(state) : spawnInterval(state.config, state.halls, state.t - state.phaseStart);
-    state.director.nextSpawn = state.t + base * (1 + d.jitter * state.rng.range(-1, 1));
+    state.director.nextSpawn = state.t + base * factor * (1 + d.jitter * state.rng.range(-1, 1));
   }
   if (d.waveEvery > 0 && state.halls >= d.waveFromHalls && state.t >= state.director.nextWave - EPS) {
     for (let i = 0; i < d.waveSize; i++) directorSpawnOne(state);

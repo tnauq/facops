@@ -14,6 +14,8 @@ export {
   assign,
   bandOf,
   burnRate,
+  spellNow,
+  spellsOn,
   getWarning,
   sendToWarning,
   warningsOn,

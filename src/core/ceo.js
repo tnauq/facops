@@ -354,6 +354,12 @@ function finish(state, c) {
 export function ceoStep(state, dt) {
   const cfg = state.config.ceo;
   if (!cfg.enabled || state.scripted || state.over) return;
+  // Pass 8 (M48): with busy and quiet spells, a visit is only announced in a quiet spell; one that
+  // falls due in a busy spell waits for the next quiet one.
+  const spell = state.director && state.director.spell;
+  const sp = state.config.building && state.config.building.spells;
+  const busy = buildingOn(state) && sp && sp.enabled && sp.ceoWaits !== false && spell && spell.kind === 'busy';
+  if (!state.ceo && busy) return;
   if (!state.ceo) {
     if (state.ceoQueue.length > 0) startVisit(state, state.ceoQueue.shift());
     else if (state.ceoNext && state.t >= state.ceoNext.at - EPS) {

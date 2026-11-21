@@ -108,7 +108,7 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 |---|---|---|
 | M46. Posts and the priority area | `m46` | Done (on since M47) |
 | M47. Warnings before failures | `m47` | Done |
-| M48. Busy and quiet spells | `m48` | |
+| M48. Busy and quiet spells | `m48` | Done (switched off by default: waits for the owner) |
 | M49. The CEO's promises | `m49` | |
 | M50. Surges | `m50` | |
 | M51. The pick of two and the rescue call | `m51` | |
@@ -116,6 +116,67 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M53. The balance check | `m53` | |
 
 ## Log
+
+### M48. Busy and quiet spells
+
+Pass 8 spec 5.
+
+Built:
+
+- **Rules** (game2.js, ceo.js; config `building.spells: { enabled, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true }`).
+  - The director alternates a **busy spell** of 35 to 45 s, its gaps times `busyFactor`, with a **quiet spell** of 15 to 25 s in which it starts nothing new: no picks, no warnings, no waves. What falls due waits for the busy spell.
+  - **Easing off:** a busy spell ends early after 10 s with more outages open than free techs, or the moment a whole hall is dark.
+  - **Mercy:** nothing new while the red countdown runs.
+  - **The CEO** is announced only in a quiet spell (`ceoWaits`); a visit due in a busy spell waits for the next quiet one.
+  - Escalations, warnings already showing, a CEO visit and service credits carry on through a quiet spell. Event `spell`; helpers `spellsOn`, `spellNow`. Nothing on screen. `SAVE_VERSION` is `m48`.
+- Drawer: "Busy and quiet spells" and "The CEO waits for a quiet spell".
+- `scripts/spells8.mjs` compares director picks a minute and building windows (15 s or more with no new pick).
+- **Tests:** 7 new in `tests/spells.test.js`; one warnings test now counts spawned alarms (with spells, an alarm may be fixed and the spell quiet by the time it looked). 584 in all.
+
+**The checks did not pass, so spells are switched off by default, and one decision is the owner's.**
+
+Picks and building windows (compute-first builder, 12 seeds):
+
+| | Picks a minute | Building windows per 10 min | Mean run |
+|---|---|---|---|
+| No spells | 23.15 | 2.1 | 19.5 min |
+| Spells, busy gaps × 0.67 | 18.86 | 11.3 | 17.5 min |
+| Spells, × 0.5 (chosen) | 20.21 | 11.1 | 19.4 min |
+| Spells, × 0.4 | 14.71 | 9.8 | 12.5 min |
+
+- Building windows: **five times as many**. Picks a minute: 13% fewer at best, against "within a tenth". Below 0.5 the busy spells overwhelm the crew and runs collapse; the director's cap, not the gaps, decides the busy spells' rate.
+
+Pass 8's standing targets with spells on (12 seeds):
+
+| Player | Median run | Score | Sold / fired / broke early / broke later |
+|---|---|---|---|
+| Compute first | 20:44 | $124,337 | 0 / 2 / 0 / 10 |
+| Getting ready for the CEO | 20:15 | $107,958 | 0 / 2 / 0 / 10 |
+| Bold seller | 13:27 | $116,369 | 11 / 0 / 0 / 1 |
+| Cautious seller | 10:57 | $79,478 | 10 / 0 / 0 / 2 |
+| Never a backup | 15:58 | $60,776 | 0 / 1 / 0 / 11 |
+| Backups early | 1:33 | $3,863 | 0 / 0 / 9 / 3 |
+
+- **Getting ready for the CEO stopped paying** ($107,958 against $124,337), and **the CEO fired 4 runs in 48 (8%)**. With visits announced in the quiet, the CEO walks a floor with few new outages, so preparing for a visit costs more than it saves.
+- **The spec's lever, a shorter strike gap, does not fix it:** 4 to 8 s gave compute first 4 fired of 12 and still left getting ready behind ($110,687 against $122,136). The wait for a quiet spell decides when a visit comes, not the gap.
+- **Without the wait** (`ceoWaits: false`), getting ready pays again ($141,627 against $115,364, median 19:57); with a 6 to 10 s strike gap as well, compute first runs 18:51, getting ready $146,842 against $108,973, and the CEO fires 6 of the 24 runs of the two players who never sell (about 13% across all four players).
+
+So the owner's answer to the spec's question 2 ("keep the wait, win the time back with the strike gap") cannot be met as asked. **The owner's choice** (spells stay off until then):
+
+1. Spells on, the CEO **not** waiting for a quiet spell, strike gap 6 to 10 s (recommended): rhythm for building, getting ready still pays, the CEO fires about one run in eight.
+2. Spells on with the wait, as the spec says: rhythm, but the CEO matters little.
+3. Spells off.
+
+Either 1 or 2 is a config change; the drawer already has both switches to try them.
+
+Worth knowing:
+
+- With spells off (the default), the game plays exactly as after M47.
+- Checked in headless Chrome at 844 x 390 and 660 x 300 with spells switched on: three minutes of play, the spell changing, no console errors.
+
+Owner's checklist (switch on "Busy and quiet spells" in the drawer; try it with and without "The CEO waits for a quiet spell"):
+
+- The run has a rhythm: a rush, then a breather to build in.
 
 ### M47. Warnings before failures
 

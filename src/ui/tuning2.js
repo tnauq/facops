@@ -29,6 +29,7 @@ const setSale = setNested('sale');
 const setUptime = setNested('uptime');
 const setPosts = setNested('posts');
 const setWarnings = setNested('warnings');
+const setSpells = setNested('spells');
 
 export const TUNING2_FIELDS = [
   { id: 'tighten', label: 'Tightening per 10 s (%)', kind: 'range', min: 0, max: 10, step: 0.5,
@@ -119,6 +120,11 @@ export const TUNING2_FIELDS = [
     get: (c) => c.building.warnings.enabled, set: (o, v) => setWarnings(o, 'enabled', v) },
   { id: 'warnFor', label: 'Warning before a failure (s)', kind: 'range', min: 5, max: 30, step: 1,
     get: (c) => c.building.warnings.warnFor, set: (o, v) => setWarnings(o, 'warnFor', v) },
+  // Pass 8 spec 5 (M48).
+  { id: 'spellsOn', label: 'Busy and quiet spells', kind: 'toggle',
+    get: (c) => c.building.spells.enabled, set: (o, v) => setSpells(o, 'enabled', v) },
+  { id: 'ceoWaits', label: 'The CEO waits for a quiet spell', kind: 'toggle',
+    get: (c) => c.building.spells.ceoWaits, set: (o, v) => setSpells(o, 'ceoWaits', v) },
   // Pass 7 spec 4.2 (M43): the advisor mark all run long (it shows by itself only early in a first
   // run). Screen only; also the Settings card's switch.
   { id: 'advisorMark', label: 'Advisor mark all run', kind: 'toggle',

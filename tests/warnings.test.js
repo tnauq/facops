@@ -71,7 +71,7 @@ test('escalations never warn, and warnings are off when switched off and in the 
   const off = game({ warnings: { enabled: false, warnFor: 10, checkTime: 2 } });
   advance(off, 60);
   assert.equal(off.warnings.length, 0);
-  assert.ok(off.alarms.length > 0, 'alarms start at once');
+  assert.ok(off.stats.spawned > 0, 'alarms start at once'); // (M48: by then it may be fixed and the spell quiet)
   const s = game();
   const leak = raiseAlarm(s, 'leak', 'cdu-1-t'); // a lone unit: left alone, the hall shuts (an escalation, no new pick)
   assert.ok(leak);

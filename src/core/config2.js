@@ -167,6 +167,14 @@ export const DEFAULT_CONFIG2 = {
     // M47's checks: 20 s (the spec's 10 s caught under a third), and warnings do not hold a place under
     // the director's cap (`capCounts` true made runs much longer): see docs/PROGRESS.md.
     warnings: { enabled: true, warnFor: 20, checkTime: 2, capCounts: false },
+    // Pass 8 spec 5 (M48): busy and quiet spells. The director alternates a busy spell (its gaps times
+    // `busyFactor`) with a quiet one in which it starts nothing new. A busy spell ends early after
+    // `easeAfter` seconds with more outages open than free techs, or with a whole hall dark. The CEO is
+    // announced only in a quiet spell (`ceoWaits`). Never shown to the player.
+    // M48's checks: busyFactor 0.5 (0.67 lost a fifth of the picks; under 0.5 runs collapse). Off by
+    // default: with the CEO waiting for the quiet, getting ready for the CEO stopped paying and the
+    // CEO fired under a tenth of runs (docs/PROGRESS.md, M48); the owner decides.
+    spells: { enabled: false, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true },
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free
