@@ -240,3 +240,31 @@ export function setBundles(model, describe) {
     box.append(button);
   }
 }
+
+/**
+ * The ledger card (pass 7 spec 6.1): "Now, a second" and "The run so far", two columns that become
+ * one on a narrow screen. model: ledger(...) from src/ui/ledger.js.
+ */
+export function setLedger(model) {
+  const fill = (id, rows) => {
+    const list = document.getElementById(id);
+    list.textContent = '';
+    for (const r of rows) {
+      const row = document.createElement('div');
+      if (r.out) row.className = 'out';
+      const dt = document.createElement('dt');
+      dt.textContent = r.label;
+      if (r.note) {
+        const note = document.createElement('small');
+        note.textContent = r.note;
+        dt.append(note);
+      }
+      const dd = document.createElement('dd');
+      dd.textContent = r.value;
+      row.append(dt, dd);
+      list.append(row);
+    }
+  };
+  fill('ledger-now', [...model.now, { label: 'Net', value: model.netText, out: false }]);
+  fill('ledger-sofar', [{ label: 'Starting cash', value: model.startText }, ...model.soFar.filter((x) => Math.abs(x.raw) >= 0.5), { label: 'Cash now', value: model.cashText }]);
+}

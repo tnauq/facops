@@ -162,6 +162,18 @@
     #bundle-list em { font-style: normal; font-weight: 700; font-size: 12px; }
     #bundle-list:empty::after { content: 'Nothing left to build here.'; color: #56606E; font-size: 12px; }
     .card.bundles .buttons { margin-top: 4px; }
+    /* Pass 7 (M45): the ledger, two columns of lines, one on a narrow screen, scrolling in the card. */
+    .card.ledger { width: min(700px, 98vw); max-width: none; max-height: 97vh; overflow-y: auto; padding: 6px 14px 8px; box-sizing: border-box; }
+    .card.ledger h1 { font-size: 17px; margin: 0; }
+    .card.ledger .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); column-gap: 18px; text-align: left; }
+    .card.ledger h2 { font-size: 13px; margin: 4px 0 2px; color: #56606E; }
+    .card.ledger dl { margin: 0; font-size: 12px; }
+    .card.ledger dl div { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; border-bottom: 1px solid #EEF1F5; }
+    .card.ledger dt small { display: block; font-size: 10px; color: #56606E; }
+    .card.ledger dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .card.ledger .out dd { color: #D9483B; }
+    .card.ledger .buttons { margin-top: 4px; }
+    .card.results { overflow-y: auto; }
     .choices strong { font-size: 14px; }
     .choices span { color: #56606E; font-size: 12px; }
     /* Spec 6.7: shown whenever the page is taller than it is wide, over everything else. */
@@ -277,6 +289,14 @@
       <h1 data-field="title">Hall</h1>
       <p class="muted" data-field="cash"></p>
       <div id="bundle-list"></div>
+      <div class="buttons"><button class="primary" data-action="continue">Close</button></div>
+    </div>
+    <div class="card ledger" data-overlay="ledger" hidden>
+      <h1>Ledger</h1>
+      <div class="cols">
+        <div><h2>Now, a second</h2><dl id="ledger-now"></dl></div>
+        <div><h2>The run so far</h2><dl id="ledger-sofar"></dl></div>
+      </div>
       <div class="buttons"><button class="primary" data-action="continue">Close</button></div>
     </div>
     <div class="card tuning" data-overlay="tuning" hidden>

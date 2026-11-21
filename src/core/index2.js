@@ -13,6 +13,7 @@ export {
   assign,
   bandOf,
   burnRate,
+  burnParts,
   creditPerRow,
   creditsOn,
   creditsRate,

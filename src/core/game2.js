@@ -147,6 +147,11 @@ export function createGame({ seed = 1, config = {} } = {}) {
     state.stats.burned = 0;
     state.stats.credits = 0; // pass 7 M41: service credits charged, part of what was burned
     state.stats.uptime = 0; // pass 7 M42: uptime bonuses paid, part of what was earned
+    // Pass 7 M45, for the ledger: what was spent on building and on the crew, and the burn by part.
+    state.stats.spentBuild = 0;
+    state.stats.spentCrew = 0;
+    state.stats.burnParts = { loan: 0, overhead: 0, upkeep: 0, wages: 0 };
+    state.stats.troubled = {}; // pass 7 M45: halves ('3-t') and halls ('3') that had a failure a backup covers
     state.stats.built = 0;
     state.stats.hallsOnline = [];
     for (const h of refreshSites(state)) state.stats.hallsOnline.push({ hall: h, t: 0 });
@@ -454,6 +459,16 @@ function emit(state, type, data = {}) {
   state.events.push({ t: state.t, type, ...data });
 }
 
+// Pass 7 M45, for the CEO's parting line: the halves whose power and the halls whose coolant ever
+// had a failure a backup could have covered, so the run-over card can price backups never needed.
+function noteTrouble(state, type, equipId) {
+  if (!buildingOn(state)) return;
+  const e = EQUIPMENT_BY_ID[equipId];
+  const t = (state.stats.troubled ??= {});
+  if ((type === 'breaker' || type === 'short') && e.hall) t[`${e.hall}-${e.half}`] = true;
+  if (type === 'leak' && e.hall) t[`${e.hall}`] = true;
+}
+
 function spawnAlarm(state, type, equipId, cause) {
   const def = ALARMS[type];
   const dyn = state.equip[equipId];
@@ -480,6 +495,7 @@ function spawnAlarm(state, type, equipId, cause) {
   };
   if (type === 'short') alarm.stage = 'disconnect'; // M30: disconnect at the RMU, then repair
   dyn.alarmId = alarm.id;
+  noteTrouble(state, type, equipId);
   state.alarms.push(alarm);
   if (cause === 'escalation') state.stats.escalationSpawns += 1;
   else state.stats.spawned += 1;
@@ -891,6 +907,7 @@ export function build(state, equipId) {
   const price = priceOf(state, equipId);
   state.cash -= price;
   state.stats.spent += price;
+  state.stats.spentBuild = (state.stats.spentBuild ?? 0) + price; // pass 7 M45: for the ledger
   const until = state.t + state.config.building.buildTime;
   state.equip[equipId].buildEnd = until;
   emit(state, 'buildStart', { equipId, price, until });
@@ -906,6 +923,7 @@ export function hire(state, trade) {
   if (state.cash + EPS < price) return { ok: false, reason: 'cash' };
   state.cash -= price;
   state.stats.spent += price;
+  state.stats.spentCrew = (state.stats.spentCrew ?? 0) + price; // pass 7 M45: for the ledger
   const tech = addTech(state, trade, 1);
   return { ok: true, techId: tech.id };
 }
@@ -921,6 +939,7 @@ export function buyUpgrade(state, id) {
   if (state.cash + EPS < price) return { ok: false, reason: 'cash' };
   state.cash -= price;
   state.stats.spent += price;
+  state.stats.spentCrew = (state.stats.spentCrew ?? 0) + price; // pass 7 M45: for the ledger
   state.upgrades[id] += 1;
   emit(state, 'upgrade', { upgrade: id, level: state.upgrades[id] });
   return { ok: true };
@@ -952,13 +971,22 @@ export function loanTimeLeft(state) {
 
 /** Dollars a second the business burns now (pass 4 spec 2.5; pass 5 spec 3.1). */
 export function burnRate(state) {
+  const p = burnParts(state);
+  return p.loan + p.overhead + p.upkeep + p.wages + p.credits;
+}
+
+/**
+ * The burn now, in its parts (pass 7 M45, for the ledger): { loan, overhead, upkeep, wages, credits }
+ * in dollars a second, and { devices, crew } the counts upkeep and wages are paid on.
+ */
+export function burnParts(state) {
   const b = state.config.building.burn;
-  const infra = EQUIPMENT.filter((e) => e.type !== 'row' && isBuilt(state, e.id)).length;
+  const devices = EQUIPMENT.filter((e) => e.type !== 'row' && isBuilt(state, e.id)).length;
   // Pass 5: a flat site overhead. With `doubling` set, pass 4's base that doubled every that many
   // seconds and in the end outgrew a full campus (the owner found it unsatisfactory, 15 Nov).
-  const base = b.doubling > 0 ? b.base * Math.pow(2, economyTime(state) / b.doubling) : b.base;
+  const overhead = b.doubling > 0 ? b.base * Math.pow(2, economyTime(state) / b.doubling) : b.base;
   const loan = loanLeft(state) > 0 ? b.loanRate : 0;
-  return loan + base + b.upkeep * infra + b.wages * state.techs.length + creditsRate(state);
+  return { loan, overhead, upkeep: b.upkeep * devices, wages: b.wages * state.techs.length, credits: creditsRate(state), devices, crew: state.techs.length };
 }
 
 // The uptime bonus (pass 7 spec 4.1, M42) ------------------------------------------------------
@@ -1051,11 +1079,18 @@ export const incomeRate = (state) => (load(state).deliveredMw / state.config.row
 
 // Money out. In the red, a countdown runs: still in the red when it ends, the run is over.
 function burn(state, dt) {
-  const credits = creditsRate(state);
-  const dollars = burnRate(state) * dt;
+  const parts = burnParts(state);
+  const credits = parts.credits;
+  const dollars = (parts.loan + parts.overhead + parts.upkeep + parts.wages + parts.credits) * dt;
   state.cash -= dollars;
   state.stats.burned += dollars;
   state.stats.credits = (state.stats.credits ?? 0) + credits * dt;
+  // Pass 7 M45: the burn so far, in its parts, for the ledger.
+  const so = (state.stats.burnParts ??= { loan: 0, overhead: 0, upkeep: 0, wages: 0 });
+  so.loan += parts.loan * dt;
+  so.overhead += parts.overhead * dt;
+  so.upkeep += parts.upkeep * dt;
+  so.wages += parts.wages * dt;
   if (!state.customersLive && creditsOn(state)) {
     state.customersLive = true;
     emit(state, 'customersLive', { t: state.t });
@@ -1529,7 +1564,7 @@ export function resultsText(state) {
   const r = results(state);
   const count = (list) => Object.entries(list.reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {})).map(([k, n]) => `${n} ${k}`).join(', ');
   return [
-    'FacOps pass 3 results',
+    'FacOps results', // pass 7 M45 (it said "pass 3" until then)
     `Mode: ${r.mode} | Seed: ${r.seed}`,
     `Survived: ${formatClock(r.seconds)} | Halls: ${r.halls} of ${state.config.maxHalls}${r.fullCampus ? ' | Full campus' : ''}`,
     `Delivered: ${r.energyGwh.toFixed(2)} GWh (${pct(r.shareOfPossible)} of possible)`,

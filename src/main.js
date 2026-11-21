@@ -67,7 +67,9 @@ import { markerAt } from './ui/offmap.js';
 import { advisorSpot } from './ui/advisor.js';
 import { drawAdvisor } from './render/advisor.js';
 import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
-import { setBundles } from './render/overlays.js';
+import { setBundles, setLedger } from './render/overlays.js';
+import { ledger } from './ui/ledger.js';
+import { partingLine, soFarLines, soFarText } from './ui/runOver.js';
 import { OLD_SAVE_TEXT, SAVE_EVERY, clearSave, readSave, restoreRun, resumeLabel, writeSave } from './ui/savedRun.js';
 
 const SITE = buildingSite(BUILDING); // the building and the ground round it (pass 3 spec 4b.3); pass 6: wall to wall
@@ -271,7 +273,8 @@ const speedButtons = () => round && (!round.state.config.realtime || held);
 function pressButton(id) {
   if (id === 'hold') held = !held;
   else if (id === 'speed') speed = speed === 1 ? 2 : 1;
-  else if (id === 'settings') act('pause'); // the gear opens the pause menu, which has Settings (pass 6 M37)
+  else if (id === 'settings') act('pause');
+  else if (id === 'cash') act('ledger'); // pass 7 (M45): the cash opens the ledger // the gear opens the pause menu, which has Settings (pass 6 M37)
   else act('pause');
   draw();
 }
@@ -302,6 +305,15 @@ function act(action) {
     const b = bundleCard(round.state, round.bundleHall).bundles.find((x) => x.key === action.slice(7));
     if (buyBundle(round.state, b).ok) act('continue');
     else showBundles();
+    return;
+  }
+  if (action === 'ledger') {
+    if (mode !== 'playing' || !buildingOn(round.state)) return;
+    mode = reduceFlow(mode, 'ledger').mode;
+    setLedger(ledger(round.state));
+    showOverlay('ledger');
+    round.selection = NOTHING;
+    draw();
     return;
   }
   if (action === 'bundles') {
@@ -395,6 +407,12 @@ function roundOver() {
   // When the CEO ended the run, the card carries the CEO's parting line (spec 4.7).
   const panel = resultsPanel(r, record, formatClock);
   if (r.firedByCeo) panel.quote = `“${pickLine(LINES.fire, round.state.seed)}”`;
+  // Pass 7 (M45): in building mode the CEO always has a parting line, chosen from the run's own
+  // numbers, and the card adds the ledger's run so far.
+  if (r.building) {
+    panel.quote = `“${partingLine(round.state, r)}”`;
+    panel.lines.push(...soFarLines(round.state));
+  }
   setResults(panel);
   showOverlay('over');
   markTutorialSeen();
@@ -402,7 +420,8 @@ function roundOver() {
 
 // Runs inside the button's click handler: Safari only allows clipboard writes during a tap.
 function copyResults() {
-  copyText(resultsText(round.state), { clipboard: navigator.clipboard, selectFallback: selectResultsText })
+  const extra = buildingOn(round.state) ? `\n${soFarText(round.state)}` : ''; // pass 7 (M45)
+  copyText(resultsText(round.state) + extra, { clipboard: navigator.clipboard, selectFallback: selectResultsText })
     .then((outcome) => setCopyLabel(copyLabel(outcome)));
 }
 
@@ -631,7 +650,7 @@ function onDown(e) {
   e.preventDefault();
   const p = point(e);
   const regs = layout();
-  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst, round.railCompact);
+  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst, round.railCompact, { speedButtons: Boolean(speedButtons()) });
   // A rail that overflows scrolls with a drag, so its tickets and chips act when the finger lifts
   // (pass 3 spec 2.3). Otherwise HUD buttons, crew cards and tickets act at finger-down, as in pass 1.
   const onRail = p.x >= regs.rail.x && p.y >= regs.rail.y && !hitTest(p, { buttons: targets.buttons }).id;

@@ -7,7 +7,7 @@ import { BUBBLE_RAISE } from './bubbles.js';
 import { fannedCrew } from './crew.js';
 import { crewCards } from './crewbar.js';
 import { railTickets2 } from './rail2.js';
-import { hudButtonTargets } from './regions.js';
+import { BUTTON_TAP_HEIGHT, hudButtonTargets, hudLayout } from './regions.js';
 
 const rectOf = ({ id, x, y, w, h }) => ({ id, x, y, w, h });
 const inRect = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
@@ -29,6 +29,12 @@ export function mapTargets2(state, cam) {
   return { bubbles, techs };
 }
 
+/** The cash readout as a tap target (pass 7 M45): "Cash", the cash, its rate; 44 px tall. */
+export function cashTarget(W) {
+  const l = hudLayout(W);
+  return { id: 'cash', x: l.meterLabel.x, y: 0, w: l.meter.x + l.meter.w - l.meterLabel.x, h: BUTTON_TAP_HEIGHT };
+}
+
 // The HUD buttons reach 10 px below the strip; a drawn ticket wins over that extra reach.
 function trimAbove(button, tickets) {
   let h = button.h;
@@ -44,11 +50,13 @@ function trimAbove(button, tickets) {
  * scroll position (pass 3 spec 4b.2). `scrolls` says whether the rail overflows even as tiles
  * (then it acts on finger-up, so a drag can scroll it). There are no chips any more.
  */
-export function railTargets2(state, regs, crewColumns, railFirst = 0, railCompact = false) {
+export function railTargets2(state, regs, crewColumns, railFirst = 0, railCompact = false, { speedButtons = !state.config.realtime } = {}) {
   const rail = railTickets2(state, regs.rail, null, railFirst, railCompact);
   const tickets = rail.tickets.map(rectOf);
+  // Pass 7 (M45): in building mode the cash readout is a button too: it opens the ledger.
+  const cash = buildingOn(state) ? [cashTarget(regs.hud.w)] : [];
   return {
-    buttons: hudButtonTargets(regs.hud.w, { speedButtons: !state.config.realtime }).map((b) => trimAbove(b, tickets)),
+    buttons: [...hudButtonTargets(regs.hud.w, { speedButtons }).map((b) => trimAbove(b, tickets)), ...cash],
     cards: crewCards(state, regs.crew, null, { columns: crewColumns, hire: buildingOn(state) }).map(rectOf),
     tickets,
     scrolls: rail.more !== null || rail.first > 0,

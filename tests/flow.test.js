@@ -64,3 +64,9 @@ test('M44: Resume run carries on without a new round; with a save, New run asks 
   assert.deepEqual(reduceFlow('startOver', 'back'), { mode: 'menu', newRound: false });
   assert.equal(reduceFlow('playing', 'resume').mode, 'playing');
 });
+
+test('M45: the ledger opens from play, holds the game, and Close carries on', () => {
+  assert.equal(reduceFlow('playing', 'ledger').mode, 'ledger');
+  assert.equal(reduceFlow('ledger', 'continue').mode, 'playing');
+  assert.equal(reduceFlow('paused', 'ledger').mode, 'paused');
+});

@@ -424,7 +424,7 @@ test('results and the Copy text include halls, Deliveries, crew and picks', () =
   assert.equal(r.deliveries.length, r.halls - 1);
   assert.equal(r.crew.length, r.state.techs.length);
   const text = resultsText(r.state);
-  assert.match(text, /^FacOps pass 3 results/);
+  assert.match(text, /^FacOps results/); // pass 7 M45: no longer "pass 3"
   assert.match(text, /CEO: \d+ visits survived, \d+ unattended alarms seen/);
   assert.match(text, /Halls: \d of 8/);
   assert.match(text, /Deliveries: H2 \d+:\d\d/);

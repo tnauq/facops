@@ -98,9 +98,35 @@ The owner approved `docs/pass7-spec.md` (version 0.3) on 18 November 2026: three
 | M42. The uptime bonus | `m42` | Done |
 | M43. The advisor mark and bundles | `m43` | Done |
 | M44. Save and resume | `m44` | Done |
-| M45. The ledger and the run-over card | `m45` | |
+| M45. The ledger and the run-over card | `m45` | Done |
 
 ## Log
+
+### M45. The ledger and the run-over card
+
+Pass 7 spec 6. **Pass 7 is complete.**
+
+Built:
+
+- **The ledger** (`src/ui/ledger.js`). Tap the cash in the HUD (a 254 x 44 px button, building mode only) and a card opens, holding the game like the Hire card.
+  - **Now, a second:** income by online hall, last minute's uptime bonus, then the burn: loan repayment (what is left and when it is paid off), site overhead, upkeep (with the number of devices), wages (with the crew) and service credits (the rate a row short and when it next doubles, or "from 5:00" before customers go live), and the net.
+  - **The run so far:** starting cash, earned from racks, uptime bonuses, spent on building, spent on hiring and upgrades, loan repaid, site overhead, upkeep, wages, service credits, CEO fines, and the cash now. Lines that are $0 are left out.
+  - Two columns, one on a narrow window, scrolling inside the card.
+- **Rules state for it:** the run now keeps what was spent on building and on the crew, the burn by part, and which halves and halls ever had a failure a backup covers (`stats.spentBuild`, `spentCrew`, `burnParts`, `troubled`). `burnRate` is now the sum of `burnParts(state)`. No rule changed. `SAVE_VERSION` is now `m45`, so a run saved by M44 is dropped once, with the menu's note.
+- **The run-over card** (`src/ui/runOver.js`): in building mode the CEO always has a parting line, the first that applies: Commissioned and sold; fired with no B switchboard; fired with backups that never had anything to cover ("You spent $475 on backups that never tripped."); broke before the loan was paid; broke on service credits; halls without water; otherwise "I'll get an AI to run this." The headline, score and milestone were already in the spec's order (M34, M41). The ledger's run so far follows the stats.
+- **Copy** is headed "FacOps results" and ends with a "Ledger:" line.
+- Fixed on the way: in Real-time mode a resumed, held run (M44) drew the hold button but the tap target was missing; the HUD's targets now follow the screen.
+- **Tests:** 7 new (`tests/ledger.test.js`: the run so far adds up to the cash through the loan, credits, bonuses and fines over two whole scripted runs; the now lines and their notes; the parting lines in order; the card's and Copy's totals; the cash button; one in `flow.test.js`). The Copy heading test now expects "FacOps results". 564 in all.
+
+Worth knowing:
+
+- "Backups that never tripped" counts a half's B transformer and switchboard when that half never had a breaker trip or transformer short, and a hall's second coolant unit when neither unit ever leaked.
+- Checked in headless Chrome at 844 x 390 and 660 x 300: the ledger at 0:20 (Hall 1, the loan with $1,680 left, net −$9.35/s; the run so far adding up to $772), and a run that went broke at 0:35 with "The loan wanted its money. So did I." and the ledger lines on the card. No console errors.
+
+Owner's checklist:
+
+- Tap the cash mid-run: the card explains where the money goes in one look.
+- The run-over line makes you smile at least once in three runs.
 
 ### M44. Save and resume
 
