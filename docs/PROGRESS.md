@@ -96,11 +96,43 @@ The owner approved `docs/pass7-spec.md` (version 0.3) on 18 November 2026: three
 |---|---|---|
 | M41. Three ways out | `m41` | Done |
 | M42. The uptime bonus | `m42` | Done |
-| M43. The advisor mark and bundles | `m43` | |
+| M43. The advisor mark and bundles | `m43` | Done |
 | M44. Save and resume | `m44` | |
 | M45. The ledger and the run-over card | `m45` | |
 
 ## Log
+
+### M43. The advisor mark and bundles
+
+Pass 7 spec 4.2. Screen only, apart from one screen-only default in config (`advisorMark: false`, like `realtime`).
+
+Built:
+
+- **The advisor mark** (`src/ui/advisor.js`, `src/render/advisor.js`). A slowly pulsing ring, white with an ink outline, round the empty spot the compute-first scripted builder would buy next (`nextWanted(state, 'builder')`). It never buys.
+  - It shows by itself for the first 3:00 of economy time in a player's **first run**: no building best yet and no run finished (the flag that turns Skip tutorial on). It never shows while the tutorial's lessons run, so after the tutorial the 3:00 count from the hand-over.
+  - After that only with **Settings, Advisor mark** (also in the drawer), which shows it all run long.
+  - Hidden while a build, inspect, hire or bundle card is open, during a CEO warning, under `#auto`, and when the builder wants nothing it could ring.
+  - Out of view, an arrow at the map's edge in the alarm arrows' style, with a "+" and no clock; tapping it glides there.
+- **Bundles** (`src/ui/bundles.js`). Tap a hall's name (a 120 x 44 px target, online or not; spots, alarms and techs win over it) and the bundles card opens, holding the game like the Hire card. Two to a row, each one button with its pieces, its extras with their reasons, and its price, or "Need $X more" greyed:
+  - Bring the hall online (RMU, transformer A, switchboard A and coolant unit, top half), plus a water pump when the halls would outnumber what the water pumps serve, and a glycol pump when the coolant unit would outrun the glycol pumps.
+  - Power the other half (RMU, transformer A, switchboard A).
+  - Fill the racks: every empty row in a half with a switchboard, plus the chillers the cooling needs, each with the glycol pump and dry cooler its plant needs to run it.
+  - Back up each half's power (transformer B, switchboard B), and back up the coolant (the second unit, plus a glycol pump if needed).
+  - The same prices, each piece through the build command (8 s each), all or nothing. Buying closes the card.
+- **Introduction**, once per run, when the cash first covers opening a hall in one go (usually at the start): "Tap a hall's name to buy what it needs in one go."
+- **Tests:** 12 new (`tests/bundles.test.js`, one in `flow.test.js`). 548 in all.
+
+Worth knowing:
+
+- The bundles card is centred like the Hire card, not beside the hall's name: the list is too big to sit beside a name on a phone.
+- The mark follows the scripted builder exactly, so it rings a rack row before the bottom half's switchboard when the top half has an empty row, and pumps and chillers before the racks that need them.
+- Checked in headless Chrome at 844 x 390 and 660 x 300 on a first run: the ring on Hall 1's empty rack row, the introduction, Hall 1's bundles card, and buying "Power the bottom half" ($325 taken, the card closed). No console errors.
+
+Owner's checklist:
+
+- On a first run the ring always points at something sensible, and stops after three minutes.
+- Opening a new hall takes one tap on its name and one on Buy.
+- Does the mark make the game feel like it plays itself? (If so, shorten it.)
 
 ### M42. The uptime bonus
 

@@ -48,3 +48,10 @@ test('Settings opens from the menu and the pause menu, and Back returns there (p
   assert.deepEqual(drawer, { mode: 'tuning', newRound: false, back: 'settings' });
   assert.deepEqual(reduceFlow('tuning', 'done', drawer.back), { mode: 'settings', newRound: false });
 });
+
+test('M43: the bundles card opens from play, holds the game, and Close carries on', () => {
+  assert.equal(reduceFlow('playing', 'bundles').mode, 'bundles');
+  assert.equal(reduceFlow('bundles', 'continue').mode, 'playing');
+  assert.equal(reduceFlow('bundles', 'togglePause').mode, 'playing');
+  assert.equal(reduceFlow('menu', 'bundles').mode, 'menu');
+});

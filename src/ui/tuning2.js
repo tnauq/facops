@@ -109,6 +109,10 @@ export const TUNING2_FIELDS = [
     get: (c) => c.building.uptime.enabled, set: (o, v) => setUptime(o, 'enabled', v) },
   { id: 'uptimeBonus', label: 'Uptime bonus per rack row a minute ($)', kind: 'range', min: 0, max: 120, step: 5,
     get: (c) => c.building.uptime.bonus, set: (o, v) => setUptime(o, 'bonus', v) },
+  // Pass 7 spec 4.2 (M43): the advisor mark all run long (it shows by itself only early in a first
+  // run). Screen only; also the Settings card's switch.
+  { id: 'advisorMark', label: 'Advisor mark all run', kind: 'toggle',
+    get: (c) => Boolean(c.advisorMark), set: (o, v) => { o.advisorMark = v; } },
   { id: 'skipTutorial', label: 'Skip tutorial', kind: 'toggle',
     get: (c) => !c.tutorial, set: (o, v) => { o.tutorial = !v; } },
 ];

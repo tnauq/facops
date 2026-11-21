@@ -64,6 +64,10 @@ import { buildingSite, centreOn, createCamera, glide, isVisible, panBy, passOneS
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
 import { inStripTarget, regions3, stripModel, stripX, stripY, worldXAt } from './ui/strip.js';
 import { markerAt } from './ui/offmap.js';
+import { advisorSpot } from './ui/advisor.js';
+import { drawAdvisor } from './render/advisor.js';
+import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
+import { setBundles } from './render/overlays.js';
 
 const SITE = buildingSite(BUILDING); // the building and the ground round it (pass 3 spec 4b.3); pass 6: wall to wall
 
@@ -123,6 +127,8 @@ function newRound({ tutorial = false } = {}) {
     ceoView: createCeoView(), // the CEO's lines, the assistant's trail, shaken bubbles
     inspect: null, // pass 5: { id } of the built device whose inspect card is open (spec 7.1)
     commissionCardAt: null, // pass 5: game time the Commissioned card opens, after the celebration
+    bundleHall: null, // pass 7 (M43): the hall whose bundles card is open
+    firstRun: isFirstRun(), // pass 7 (M43): the advisor mark shows by itself in a player's first run
   };
   // The tutorial is for hall 1 only, and never for the scripted player.
   const cfg = round.state.config;
@@ -130,9 +136,9 @@ function newRound({ tutorial = false } = {}) {
   if (buildingOn(round.state)) {
     if (cfg.tutorial && !round.auto) {
       round.tutorial = createTutorial4(promptVerb());
-      round.intros = createIntros();
+      round.intros = createIntros({ bundles: true });
     } else {
-      round.intros = createIntros({ devices: false }); // only the loan line (pass 5 spec 3.2)
+      round.intros = createIntros({ devices: false, bundles: !round.auto }); // the loan line and pass 7's lines
     }
   } else if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) {
     round.tutorial = createTutorial(promptVerb());
@@ -141,6 +147,30 @@ function newRound({ tutorial = false } = {}) {
   if (cam) cam = centreOn(cam, START_POINT.x, START_POINT.y);
   gliding = null;
   window.facops = round; // handy in the browser console; the page never reads it back
+}
+
+// Pass 7 (M43): a first run is one before any building run has finished (no best, Skip tutorial
+// not yet turned on by a finished run).
+function isFirstRun() {
+  if (bests.building || olderBest) return false;
+  try {
+    return !defaultStorage()?.getItem(TUTORIAL_SEEN_KEY);
+  } catch {
+    return true;
+  }
+}
+
+// The advisor mark's spot now, or null (pass 7 spec 4.2).
+function advisorNow() {
+  if (!round || round.auto) return null;
+  const cardOpen = Boolean(round.card || round.inspect) || mode !== 'playing';
+  return advisorSpot(round.state, { firstRun: round.firstRun, setting: Boolean(tuning.advisorMark), cardOpen });
+}
+
+// The bundles card for the hall it was opened on (pass 7 spec 4.2).
+function showBundles() {
+  setBundles(bundleCard(round.state, round.bundleHall), (b) => piecesText(round.state, b));
+  showOverlay('bundles');
 }
 
 // Prompts say "Tap" on a touch screen and "Click" with a mouse.
@@ -193,6 +223,7 @@ function showMenu() {
 // Settings (pass 6 spec 2.2): Classic mode is the drawer's Building mode switch, the other way round.
 function showSettings() {
   document.getElementById('classic-switch').checked = !tuning.building;
+  document.getElementById('advisor-switch').checked = Boolean(tuning.advisorMark);
   showOverlay('settings');
 }
 
@@ -228,6 +259,22 @@ function act(action) {
   if (action === 'sell') {
     if (mode !== 'sell' && mode !== 'commissioned') return;
     if (sell(round.state).ok) roundOver();
+    return;
+  }
+  // Pass 7 (M43): buy a bundle from the bundles card, all or nothing; the card closes once bought.
+  if (action.startsWith('bundle-')) {
+    if (mode !== 'bundles') return;
+    const b = bundleCard(round.state, round.bundleHall).bundles.find((x) => x.key === action.slice(7));
+    if (buyBundle(round.state, b).ok) act('continue');
+    else showBundles();
+    return;
+  }
+  if (action === 'bundles') {
+    if (mode !== 'playing' || round.bundleHall === null) return;
+    mode = reduceFlow(mode, 'bundles').mode;
+    showBundles();
+    round.selection = NOTHING;
+    draw();
     return;
   }
   if (action === 'shop') {
@@ -388,6 +435,12 @@ function draw() {
   // The CEO's banner across the top of the map (pass 3 spec 4.7): one line when the map is narrow.
   drawBanner(ctx, cam.rect, bannerModel(s, cam.rect.w < 560));
   for (const m of markers) if (m.ceo) drawCeoMarker(ctx, m); // never hidden by the banner
+  // Pass 7 (M43): the advisor mark, under the cards; its edge arrow taps like an alarm's.
+  const advise = advisorNow();
+  if (advise) {
+    const arrow = drawAdvisor(ctx, cam, advise, performance.now());
+    if (arrow) markers.push(arrow);
+  }
   const open = openCard();
   if (open) drawBuildCard(ctx, open.layout, open.info);
   const look = inspectCard();
@@ -633,6 +686,13 @@ function buildingTap(tap) {
   round.inspect = null;
   if (!spot) {
     round.card = null;
+    // Pass 7 (M43): a hall's name opens its bundles card. Spots, alarms and techs win over it.
+    const hall = hit.kind === 'empty' ? hallNameAt(cam, tap) : null;
+    if (hall !== null) {
+      round.bundleHall = hall;
+      act('bundles');
+      return true;
+    }
     // Pass 5 (spec 7.1): a built device opens the inspect card; alarms and techs still win.
     const device = hit.kind === 'empty' ? deviceAt(round.state, cam, tap) : null;
     if (!device) return false;
@@ -708,6 +768,8 @@ function begin() {
 bindOverlays(act);
 // Settings' Classic mode switch (pass 6 spec 2.2): saved like any drawer setting, for the next run.
 document.getElementById('classic-switch').addEventListener('change', (e) => changeTuning(tuning2.setTuning(tuning, 'building', !e.target.checked)));
+// Pass 7 (M43): the advisor mark all run long; it applies at once.
+document.getElementById('advisor-switch').addEventListener('change', (e) => changeTuning(tuning2.setTuning(tuning, 'advisorMark', e.target.checked)));
 buildTuningControls(tuning2.fields, (id, raw) => changeTuning(tuning2.setTuning(tuning, id, raw)));
 canvas.addEventListener('pointerdown', onDown);
 canvas.addEventListener('pointermove', onMove);

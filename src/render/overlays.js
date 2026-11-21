@@ -207,3 +207,36 @@ export function setShop(model, drawPicture) {
     box.append(button);
   }
 }
+
+/**
+ * The bundles card (pass 7 spec 4.2): one button per bundle, with its pieces, its extras and their
+ * reasons, and its price (or how much more is needed). model: bundleCard(...) from src/ui/bundles.js;
+ * describe(b) gives the pieces line.
+ */
+export function setBundles(model, describe) {
+  const root = document.querySelector('[data-overlay="bundles"]');
+  root.querySelector('[data-field="title"]').textContent = model.title;
+  root.querySelector('[data-field="cash"]').textContent = model.cashText;
+  const box = document.getElementById('bundle-list');
+  box.textContent = '';
+  for (const b of model.bundles) {
+    const button = document.createElement('button');
+    button.dataset.action = `bundle-${b.key}`;
+    button.disabled = !b.canBuy;
+    const title = document.createElement('strong');
+    title.textContent = b.title;
+    button.append(title);
+    const pieces = document.createElement('span');
+    pieces.textContent = describe(b);
+    button.append(pieces);
+    for (const x of b.extras) {
+      const extra = document.createElement('span');
+      extra.textContent = `+ ${x.reason}`;
+      button.append(extra);
+    }
+    const price = document.createElement('em');
+    price.textContent = b.button;
+    button.append(price);
+    box.append(button);
+  }
+}

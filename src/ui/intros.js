@@ -11,7 +11,8 @@
 // a line once each, in every building run like the loan line: they are new rules, and a player who
 // learned the game before them skips the tutorial.
 
-import { cannotSell, creditsOn, creditsRate, incomeRate, strikesToFire } from '../core/index2.js';
+import { buildingOn, cannotSell, creditsOn, creditsRate, incomeRate, strikesToFire } from '../core/index2.js';
+import { anyHallAffordable } from './bundles.js';
 
 export const INTRO_SECONDS = 6;
 export const NOTICE_SECONDS = 4; // the loan line (pass 5 spec 3.2)
@@ -31,6 +32,8 @@ export const INTRO_TEXT = {
   creditsOver: 'Credits are outrunning your income. Fix outages, or sell while you can.',
   // Pass 7 spec 4.1 (M42): at the first uptime bonus.
   uptime: '', // the line names the configured bonus (uptimeText below)
+  // Pass 7 spec 4.2 (M43): once, when the cash first covers opening a hall in one go.
+  bundles: "Tap a hall's name to buy what it needs in one go.",
   // Pass 5 spec 4.3: once, as the last walkthrough before the strikes leaves (strikesText below).
   strikes: '',
   // Pass 6 spec 5 (M40). The water line names the hall (waterText below).
@@ -62,8 +65,9 @@ function strikesNext(state) {
 }
 
 /** A fresh set of introductions: none given yet. */
-export function createIntros({ devices = true } = {}) {
-  return { given: new Set(), queue: [], text: '', ids: [], until: 0, devices };
+// bundles (pass 7 M43): the screen turns on the bundles hint; it needs the bundles card to exist.
+export function createIntros({ devices = true, bundles = false } = {}) {
+  return { given: new Set(), queue: [], text: '', ids: [], until: 0, devices, bundles };
 }
 
 /**
@@ -79,6 +83,10 @@ export function updateIntros(intros, state) {
   if (state.handoverQueued && !intros.given.has('sale') && cannotSell(state) !== 'off') {
     intros.given.add('sale');
     intros.queue.push({ type: 'sale', id: null });
+  }
+  if (intros.bundles && !intros.given.has('bundles') && buildingOn(state) && !state.scripted && state.halls < 8 && anyHallAffordable(state)) {
+    intros.given.add('bundles');
+    intros.queue.push({ type: 'bundles', id: null });
   }
   if (!intros.given.has('uptime') && (state.stats.uptime ?? 0) > 0) {
     intros.given.add('uptime');

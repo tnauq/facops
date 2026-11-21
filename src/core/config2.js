@@ -163,6 +163,7 @@ export const DEFAULT_CONFIG2 = {
   // Techs pick their own jobs (pass 4 spec 2.6): a free tech takes an alarm nobody is on once it has
   // been up this long. The player can still send or redirect anyone.
   autoDispatch: { enabled: true, delay: 1 },
+  advisorMark: false, // screen only (pass 7 spec 4.2, M43): the advisor mark all run long, from Settings
   realtime: false, // screen only (pass 4 spec 3.4): true takes away the hold and speed buttons, for experienced players
   timeScale: 60, // plant seconds per real second (1 real second = 1 plant minute)
 };

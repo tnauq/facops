@@ -145,6 +145,22 @@
     .card.shop .crew.short { background: #D99A1C; color: #1F3A5F; font-weight: 700; border-radius: 6px; padding: 0 5px; } /* the yellow band colour */
     .card.shop .choices button:disabled { opacity: 0.45; cursor: default; }
     .card.shop .buttons { margin-top: 4px; }
+    /* Pass 7 (M43): a hall's bundles, two to a row, each one button. */
+    .card.bundles { width: min(640px, 98vw); max-width: none; max-height: 97vh; overflow-y: auto; padding: 6px 14px 8px; }
+    .card.bundles h1 { font-size: 17px; margin: 0; }
+    .card.bundles p { margin: 1px 0 2px; font-size: 12px; }
+    #bundle-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 4px; }
+    #bundle-list button {
+      min-height: 44px; padding: 5px 8px; border-radius: 8px; cursor: pointer; text-align: left;
+      border: 1px solid #1F3A5F; background: #FFFFFF; color: #1F3A5F; font: 12px system-ui, -apple-system, 'Segoe UI', sans-serif;
+      display: flex; flex-direction: column; gap: 1px;
+    }
+    #bundle-list button:disabled { opacity: 0.55; cursor: default; }
+    #bundle-list strong { font-size: 13px; }
+    #bundle-list span { color: #56606E; font-size: 11px; line-height: 1.2; }
+    #bundle-list em { font-style: normal; font-weight: 700; font-size: 12px; }
+    #bundle-list:empty::after { content: 'Nothing left to build here.'; color: #56606E; font-size: 12px; }
+    .card.bundles .buttons { margin-top: 4px; }
     .choices strong { font-size: 14px; }
     .choices span { color: #56606E; font-size: 12px; }
     /* Spec 6.7: shown whenever the page is taller than it is wide, over everything else. */
@@ -180,6 +196,7 @@
     <div class="card bp" data-overlay="settings" hidden>
       <h1>Settings</h1>
       <label class="bp-switch"><input type="checkbox" id="classic-switch"><span>Classic mode<small>The dispatch game of passes 1 to 3. From the next run.</small></span></label>
+      <label class="bp-switch"><input type="checkbox" id="advisor-switch"><span>Advisor mark<small>A ring on a sensible next build, all run long.</small></span></label>
       <div class="buttons">
         <a class="bp-link" href="./pass1/">Pass 1</a>
         <a class="bp-link" href="./map.html">Map preview</a>
@@ -243,6 +260,12 @@
       <h1 data-field="title">Hire and upgrade</h1>
       <p class="muted"><span data-field="crew" class="crew"></span> · <span data-field="cash"></span></p>
       <div class="choices" id="shop-choices"></div>
+      <div class="buttons"><button class="primary" data-action="continue">Close</button></div>
+    </div>
+    <div class="card bundles" data-overlay="bundles" hidden>
+      <h1 data-field="title">Hall</h1>
+      <p class="muted" data-field="cash"></p>
+      <div id="bundle-list"></div>
       <div class="buttons"><button class="primary" data-action="continue">Close</button></div>
     </div>
     <div class="card tuning" data-overlay="tuning" hidden>
