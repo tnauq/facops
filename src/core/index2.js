@@ -2,6 +2,7 @@
 // (src/core/index.js stays the pass 1 engine's surface until the game moves to pass 2 in M10.)
 export { ALARMS2, DEFAULT_CONFIG2, TRADES, UPGRADES, YARD_ALARMS, gameDefaults2, makeConfig2 } from './config2.js';
 export { createRng } from './rng.js';
+export { SAVE_VERSION, loadGame, saveGame } from './save.js';
 export * from './layout2.js';
 export {
   advance,

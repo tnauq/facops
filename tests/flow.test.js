@@ -55,3 +55,12 @@ test('M43: the bundles card opens from play, holds the game, and Close carries o
   assert.equal(reduceFlow('bundles', 'togglePause').mode, 'playing');
   assert.equal(reduceFlow('menu', 'bundles').mode, 'menu');
 });
+
+test('M44: Resume run carries on without a new round; with a save, New run asks first', () => {
+  assert.deepEqual(reduceFlow('menu', 'resume'), { mode: 'playing', newRound: false });
+  assert.deepEqual(reduceFlow('menu', 'startAsk'), { mode: 'startOver', newRound: false });
+  assert.deepEqual(reduceFlow('startOver', 'start'), { mode: 'playing', newRound: true });
+  assert.deepEqual(reduceFlow('startOver', 'tutorial'), { mode: 'playing', newRound: true });
+  assert.deepEqual(reduceFlow('startOver', 'back'), { mode: 'menu', newRound: false });
+  assert.equal(reduceFlow('playing', 'resume').mode, 'playing');
+});

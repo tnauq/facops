@@ -68,6 +68,7 @@ import { advisorSpot } from './ui/advisor.js';
 import { drawAdvisor } from './render/advisor.js';
 import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
 import { setBundles } from './render/overlays.js';
+import { OLD_SAVE_TEXT, SAVE_EVERY, clearSave, readSave, restoreRun, resumeLabel, writeSave } from './ui/savedRun.js';
 
 const SITE = buildingSite(BUILDING); // the building and the ground round it (pass 3 spec 4b.3); pass 6: wall to wall
 
@@ -99,18 +100,21 @@ const bestKind = () => (tuning.building ? 'building' : 'classic');
 let tuning = tuning2.loadTuning(defaultStorage());
 let tuningBack = null;
 let settingsBack = null; // the card Settings returns to (pass 6 M37)
+let saved = { status: 'none' }; // pass 7 (M44): what the main menu found saved
+let pendingStart = 'start'; // what Start over does: 'start' or 'tutorial'
+let lastSave = 0; // performance.now() of the last save
 
 const isAuto = () => window.location.hash === '#auto';
 const portrait = () => size.h > size.w;
 
 // ---- Rounds and screens ----
 
-function newRound({ tutorial = false } = {}) {
+function newRound({ tutorial = false, restored = null } = {}) {
   held = false;
   const config = tuning2.tuningToConfig(tuning);
   if (tutorial) config.tutorial = true; // the saved Skip tutorial switch is left as it is
   round = {
-    state: createGame({ seed: Date.now() % 1000000000, config }),
+    state: restored ? restored.state : createGame({ seed: Date.now() % 1000000000, config }),
     clock: createClock(),
     auto: isAuto(),
     nextAuto: 0,
@@ -130,6 +134,19 @@ function newRound({ tutorial = false } = {}) {
     bundleHall: null, // pass 7 (M43): the hall whose bundles card is open
     firstRun: isFirstRun(), // pass 7 (M43): the advisor mark shows by itself in a player's first run
   };
+  lastSave = performance.now();
+  if (restored) {
+    // Pass 7 (M44): a resumed run gets its lesson and introductions back, and starts held so the
+    // player can look before anything moves, whatever Real-time mode says.
+    round.tutorial = restored.tutorial;
+    round.intros = restored.intros ?? createIntros({ devices: false, bundles: true });
+    round.firstRun = restored.firstRun;
+    held = true;
+    if (cam) cam = centreOn(cam, START_POINT.x, START_POINT.y);
+    gliding = null;
+    window.facops = round;
+    return;
+  }
   // The tutorial is for hall 1 only, and never for the scripted player.
   const cfg = round.state.config;
   // Building mode has its own tutorial (pass 4 M27): the build order, a trip with no backup, growing.
@@ -214,10 +231,27 @@ function showCommissioned() {
   document.querySelector('[data-overlay="commissioned"] [data-action="sell"]').disabled = !card.enabled;
 }
 
-// The main menu (pass 6 spec 2.1): the best score and its milestone under the buttons.
+// The main menu (pass 6 spec 2.1): the best score and its milestone under the buttons. Pass 7 (M44):
+// Resume run first when a run is saved, with New run second; a save from an older build is dropped
+// and the menu says so, once.
 function showMenu() {
   const kind = bestKind();
-  showOverlay('menu', { best: kind === 'building' ? buildingBestText(bests.building, olderBest, formatClock) : bestText(bests.classic, formatClock) });
+  saved = readSave(defaultStorage());
+  const resume = document.getElementById('resume-button');
+  resume.hidden = saved.status !== 'ok';
+  if (saved.status === 'ok') resume.textContent = resumeLabel(saved.save);
+  document.getElementById('start-button').classList.toggle('primary', saved.status !== 'ok');
+  const note = document.querySelector('[data-field="saveNote"]');
+  note.hidden = saved.status !== 'old';
+  showOverlay('menu', { best: kind === 'building' ? buildingBestText(bests.building, olderBest, formatClock) : bestText(bests.classic, formatClock), saveNote: saved.status === 'old' ? OLD_SAVE_TEXT : '' });
+}
+
+// Save the run now (pass 7 spec 5): building mode, a real run in progress, not the scripted player.
+function saveNow() {
+  if (!round || round.auto || !buildingOn(round.state) || round.state.over) return;
+  if (mode === 'menu' || mode === 'over' || mode === 'startOver') return;
+  writeSave(defaultStorage(), round);
+  lastSave = performance.now();
 }
 
 // Settings (pass 6 spec 2.2): Classic mode is the drawer's Building mode switch, the other way round.
@@ -231,7 +265,8 @@ function showSettings() {
 // redirect. Both belong to the screen, not the rules: 2x simply runs two rules steps per step.
 let held = false;
 let speed = 1;
-const speedButtons = () => round && !round.state.config.realtime;
+// Pass 7 (M44): a resumed run starts held even in Real-time mode, so the buttons show until it carries on.
+const speedButtons = () => round && (!round.state.config.realtime || held);
 
 function pressButton(id) {
   if (id === 'hold') held = !held;
@@ -286,6 +321,25 @@ function act(action) {
     copyResults();
     return;
   }
+  // Pass 7 (M44): with a run saved, New run and Tutorial ask first; Start over then does what was asked.
+  if ((action === 'start' || action === 'tutorial') && mode === 'menu' && saved.status === 'ok') {
+    pendingStart = action;
+    action = 'startAsk';
+  }
+  if (action === 'startConfirm') {
+    if (mode !== 'startOver') return;
+    action = pendingStart;
+  }
+  if (action === 'resume') {
+    if (mode !== 'menu' || saved.status !== 'ok') return;
+    const restored = restoreRun(saved.save);
+    if (!restored) {
+      clearSave(defaultStorage());
+      showMenu();
+      return;
+    }
+    newRound({ restored });
+  }
   if (action.startsWith('pick-')) {
     // Take a card (spec 6), then carry on as Continue does.
     if (round.state.pendingPick) choose(round.state, Number(action.slice(5)));
@@ -298,7 +352,11 @@ function act(action) {
   if (next.back) tuningBack = next.back;
   if (next.settingsBack) settingsBack = next.settingsBack;
   // Tutorial (pass 6 spec 2.2): a run with the lessons on, whatever Skip tutorial says.
-  if (next.newRound) newRound({ tutorial: action === 'tutorial' });
+  // A new run replaces any saved one (pass 7 M44: one run at a time).
+  if (next.newRound) {
+    clearSave(defaultStorage());
+    newRound({ tutorial: action === 'tutorial' });
+  }
   mode = next.mode;
   if (mode === 'menu') showMenu();
   else if (mode === 'settings') showSettings();
@@ -316,7 +374,7 @@ function act(action) {
 
 // Pass 6 (M37): Settings and the drawer reached from the main menu keep the blueprint behind them.
 function markMenuBackdrop() {
-  const fromMenu = mode === 'menu' || (mode === 'settings' && settingsBack === 'menu') || (mode === 'tuning' && tuningBack === 'settings' && settingsBack === 'menu');
+  const fromMenu = mode === 'menu' || mode === 'startOver' || (mode === 'settings' && settingsBack === 'menu') || (mode === 'tuning' && tuningBack === 'settings' && settingsBack === 'menu');
   document.getElementById('overlay').classList.toggle('bp-backdrop', fromMenu);
 }
 
@@ -327,6 +385,7 @@ function changeTuning(values) {
 }
 
 function roundOver() {
+  if (!round.auto) clearSave(defaultStorage()); // pass 7 (M44): a finished run clears the save
   const r = results(round.state);
   const kind = r.building ? 'building' : 'classic';
   const record = recordBest(bests[kind], r);
@@ -513,6 +572,7 @@ function frame(now) {
     showCommissioned();
   }
   if (state.over && mode === 'playing') roundOver();
+  else if (now - lastSave >= SAVE_EVERY * 1000) saveNow(); // pass 7 (M44): every 10 s
   round.selection = pruneSelection(round.selection, state);
   if (!railGesture) {
     const top = autoTop(state, layout().rail, round.railFirst, round.railKnown, round.railCompact);
@@ -781,8 +841,10 @@ window.addEventListener('resize', () => { resize(); draw(); });
 window.addEventListener('hashchange', begin);
 // Leaving the page (switching apps, locking the phone) pauses the round and shows the pause card.
 document.addEventListener('visibilitychange', () => {
+  if (document.hidden) saveNow(); // pass 7 (M44): and whenever the page is hidden
   if (document.hidden && mode === 'playing' && !round.auto) act('pause');
 });
+window.addEventListener('pagehide', saveNow);
 resize();
 begin();
 syncCamera();

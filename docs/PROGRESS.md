@@ -97,10 +97,38 @@ The owner approved `docs/pass7-spec.md` (version 0.3) on 18 November 2026: three
 | M41. Three ways out | `m41` | Done |
 | M42. The uptime bonus | `m42` | Done |
 | M43. The advisor mark and bundles | `m43` | Done |
-| M44. Save and resume | `m44` | |
+| M44. Save and resume | `m44` | Done |
 | M45. The ledger and the run-over card | `m45` | |
 
 ## Log
+
+### M44. Save and resume
+
+Pass 7 spec 5.
+
+Built:
+
+- **Rules:** `createRng` gains `getState()` and `setState(n)`; the numbers it gives are unchanged. `src/core/save.js` has `saveGame(state)` and `loadGame(data)`: the whole run as plain data (the two generators by their position, Sets, and numbers that are not finite tagged; the event list is not saved). `SAVE_VERSION` stamps it.
+- **Screen** (`src/ui/savedRun.js`):
+  - Building mode only, never under `#auto`. The run is saved to the device every 10 s and whenever the page is hidden or closed, with the tutorial's lesson, the introductions already given, and whether it is the player's first run. One run at a time.
+  - **The main menu** shows **Resume run · 12:40 · $3,210** first, solid white, with New run second and outlined.
+  - With a run saved, **New run and Tutorial ask first** on a Start over card ("Start over? Your saved run will be lost."): Back or Start over.
+  - A resumed run starts **held**, even in Real-time mode (the hold button shows until it carries on).
+  - **A finished run clears the save**, and so does starting a new run (New run, Tutorial, Restart, Play again).
+  - A save from another version is dropped and the menu says once: "Your saved run was from an older version."
+  - `src/ui/flow.js` gains `resume`, `startAsk` and the Start over card.
+- **Keeping saves honest:** `CLAUDE.md` now asks every milestone that changes the rules or the state's shape to bump `SAVE_VERSION`, so an older save is dropped rather than loaded wrongly.
+- **Tests:** 9 new (`tests/save.test.js`: the generator, a run saved at 0:30, 6:40 and 11:40 that plays on identically for another 5:00, through JSON; what survives; old versions; the screen's storage, labels and restore; one in `flow.test.js`). 557 in all.
+
+Worth knowing:
+
+- Saving is to this browser on this phone only. Clearing Safari's website data clears the save, as it clears the best score.
+- Checked in headless Chrome at 844 x 390 and 660 x 300: a run played 12 s, the tab closed, a new tab opened. The menu offered "Resume run · 0:12 · $783", the run came back at 0:12 with the same cash, held, with the advisor ring; New run then asked first. No console errors.
+
+Owner's checklist:
+
+- Mid-run, switch apps and close Safari's tab. Reopen: Resume run is there, with the right clock and cash, and the run carries on held.
+- Finish a run: Resume run is gone.
 
 ### M43. The advisor mark and bundles
 

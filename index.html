@@ -80,13 +80,14 @@
     .bp-name { font-size: clamp(40px, 10vw, 92px); font-weight: 700; letter-spacing: 3px; line-height: 1; }
     .bp-halls { width: clamp(150px, 30vw, 320px); height: auto; }
     .bp-tag { font-size: clamp(12px, 1.8vw, 17px); color: #9FB3CC; }
-    .bp-menu { flex: 1; display: flex; flex-direction: column; gap: 10px; max-width: 300px; min-width: 0; }
+    .bp-menu { flex: 1; display: flex; flex-direction: column; gap: 8px; max-width: 300px; min-width: 0; }
     .bp-menu button {
       min-height: 44px; padding: 0 16px; border-radius: 8px; text-align: left; cursor: pointer;
       font: 600 16px system-ui, -apple-system, 'Segoe UI', sans-serif;
       background: transparent; color: #FFFFFF; border: 1px solid #9FB3CC;
     }
     .bp-menu button.primary { background: #FFFFFF; color: #1F3A5F; border-color: #FFFFFF; }
+    .bp-menu button[hidden] { display: none; }
     .bp-best { margin: 2px 0 0; font-size: 13px; color: #9FB3CC; }
     .bp-switch { display: flex; align-items: center; gap: 12px; min-height: 44px; text-align: left; cursor: pointer; margin: 8px 0; }
     .bp-switch input { width: 22px; height: 22px; margin: 0; accent-color: #FFFFFF; flex: none; }
@@ -187,10 +188,12 @@
         <span class="bp-tag">Facility operations manager wanted</span>
       </div>
       <div class="bp-menu">
-        <button class="primary" data-action="start">New run</button>
+        <button class="primary" data-action="resume" id="resume-button" hidden>Resume run</button>
+        <button class="primary" data-action="start" id="start-button">New run</button>
         <button data-action="tutorial">Tutorial</button>
         <button data-action="settings">Settings</button>
         <p class="bp-best">Best: <span data-field="best"></span></p>
+        <p class="bp-best" data-field="saveNote" hidden></p>
       </div>
     </div>
     <div class="card bp" data-overlay="settings" hidden>
@@ -202,6 +205,14 @@
         <a class="bp-link" href="./map.html">Map preview</a>
         <button data-action="tuning">Tuning</button>
         <button class="primary" data-action="settingsBack">Back</button>
+      </div>
+    </div>
+    <div class="card bp" data-overlay="startOver" hidden>
+      <h1>Start over?</h1>
+      <p class="muted">Your saved run will be lost.</p>
+      <div class="buttons">
+        <button data-action="back">Back</button>
+        <button class="primary" data-action="startConfirm">Start over</button>
       </div>
     </div>
     <div class="card bp" data-overlay="paused" hidden>

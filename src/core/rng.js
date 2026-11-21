@@ -20,6 +20,13 @@ export function createRng(seed) {
     pick(list) {
       return list[Math.floor(this.next() * list.length)];
     },
+    /** Pass 7 (M44): the generator's position, to save a run; setState(n) puts it back there. */
+    getState() {
+      return a;
+    },
+    setState(n) {
+      a = n >>> 0;
+    },
     /** One entry of [{ weight, ... }], chosen in proportion to weight. */
     weighted(entries) {
       const total = entries.reduce((sum, e) => sum + e.weight, 0);

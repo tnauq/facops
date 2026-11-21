@@ -3,7 +3,7 @@
 // mode is 'playing'. Pass 6 (M37): the start card is the main menu ('menu'), and a Settings card
 // opens from the menu and the pause menu.
 
-export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles'];
+export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver'];
 
 // The tuning drawer opens from the start, pause and round-over cards, and from the HUD's settings
 // button during play. Done goes back to the card it came from; from play it goes to the pause card
@@ -15,7 +15,15 @@ const SETTINGS_BACK = { menu: 'menu', paused: 'paused' };
 // mode -> action -> { mode, newRound }. Anything not listed leaves the mode alone.
 const TABLE = {
   // The main menu: New run, or Tutorial (a run with the lessons on, pass 6 spec 2.2).
-  menu: { start: { mode: 'playing', newRound: true }, tutorial: { mode: 'playing', newRound: true } },
+  // Pass 7 (M44): Resume run carries a saved run on (the screen loads it; no new round), and with a
+  // run saved, New run and Tutorial ask first (startAsk) on the Start over card.
+  menu: {
+    start: { mode: 'playing', newRound: true },
+    tutorial: { mode: 'playing', newRound: true },
+    resume: { mode: 'playing', newRound: false },
+    startAsk: { mode: 'startOver', newRound: false },
+  },
+  startOver: { start: { mode: 'playing', newRound: true }, tutorial: { mode: 'playing', newRound: true }, back: { mode: 'menu', newRound: false } },
   playing: {
     pause: { mode: 'paused', newRound: false },
     togglePause: { mode: 'paused', newRound: false },
