@@ -88,6 +88,10 @@ export const DEFAULT_CONFIG2 = {
     // `strikeFine` dollars (building mode), and a visit with any sighting is one strike; `strikes`
     // strikes and the CEO fires you. `strikes: 1` with `strikeFine: 0` is pass 3's zero tolerance.
     strikes: 3,
+    // Owner, 21 Nov (after M48): a warning seen with nobody checking it is a sighting (building mode).
+    wrenchesCount: true,
+    wrenchesFrom: 1200, // seconds of economy time before wrenches count (M48's checks: 20:00)
+    wrenchLate: 5, // a wrench counts only once it has this many seconds or fewer left, with nobody on it
     strikeFine: 3500, // dollars: walkthrough 2's fine (70 points x building.ceoFine)
     ztWarning: 12, // the first strike visit's warning, then 1 s less each visit...
     ztWarningMin: 8, // ...down to this
@@ -171,12 +175,12 @@ export const DEFAULT_CONFIG2 = {
     // `busyFactor`) with a quiet one in which it starts nothing new. A busy spell ends early after
     // `easeAfter` seconds with more outages open than free techs, or with a whole hall dark. The CEO is
     // announced only in a quiet spell (`ceoWaits`). Never shown to the player.
-    // M48's checks: busyFactor 0.5 (0.67 lost a fifth of the picks; under 0.5 runs collapse). Off by
-    // default: with the CEO waiting for the quiet, getting ready for the CEO stopped paying and the
-    // CEO fired under a tenth of runs (docs/PROGRESS.md, M48); the owner decides.
+    // M48's checks: busyFactor 0.5 (0.67 lost a fifth of the picks; under 0.5 runs collapse). With the
+    // CEO waiting for the quiet, getting ready stopped paying and the CEO fired under a tenth of runs;
+    // so the CEO comes when due (ceoWaits false), and wrenches count on late strike visits (ceo.wrenches*).
     // ceoSync (owner, 21 Nov: try timing visits with the spells, biased to late in the run): see ceo.js.
     spells: {
-      enabled: false, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true,
+      enabled: true, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: false, fromHalls: 3,
       ceoSync: { enabled: false, from: 600, to: 1080, lead: 12, align: 'busyEnd' },
     },
   },

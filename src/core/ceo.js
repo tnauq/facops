@@ -306,17 +306,37 @@ function fineFor(state, c) {
   return c.strike ? state.config.ceo.strikeFine : c.cost * state.config.building.ceoFine;
 }
 
+// Pass 8 (owner, 21 Nov, after M48): on a strike visit, a warning the CEO sees with nobody checking it
+// counts as a sighting (a strike, no fine), once per visit. It rewards posting techs and gives the CEO's late visits
+// something to see, since fairness keeps new alarms off the route.
+function warningsSeen(state, c) {
+  // Only on strike visits, and with no fine: a wrench costs a strike, not money (M48's checks: fined on
+  // every visit, they sent runs broke by 9:00).
+  if (!buildingOn(state) || !state.config.ceo.wrenchesCount || !c.strike) return [];
+  // Biased to the end of the run (owner, 21 Nov): only from `wrenchesFrom` seconds of economy time.
+  if (state.t - (state.economyStart ?? 0) < (state.config.ceo.wrenchesFrom ?? 0)) return [];
+  return (state.warnings ?? []).filter((w) => {
+    if (c.counted[w.id] || !ceoSees(state, w.equipId)) return false;
+    // Nobody on it: no tech checking it or on the way, and it is about to fail (under `wrenchLate`
+    // seconds left), so a crew that keeps on top of its warnings is never caught out.
+    if (w.techId) return false;
+    return w.ends - state.t <= (state.config.ceo.wrenchLate ?? Infinity);
+  }).map((w) => ({ id: w.id, type: w.type, equipId: w.equipId, wrench: true }));
+}
+
 function judge(state, c) {
-  for (const alarm of state.alarms) {
-    if (c.counted[alarm.id] || attended(state, alarm) || !ceoSees(state, alarm.equipId)) continue;
-    // Building mode (owner, 15 Nov): the CEO only cares about outages. An alarm costing no power,
-    // such as a tripped switchboard whose backup carries the load, is not a sighting.
-    if (buildingOn(state) && alarmCost(state, alarm) === 0) continue;
+  for (const alarm of [...state.alarms, ...warningsSeen(state, c)]) {
+    if (!alarm.wrench) {
+      if (c.counted[alarm.id] || attended(state, alarm) || !ceoSees(state, alarm.equipId)) continue;
+      // Building mode (owner, 15 Nov): the CEO only cares about outages. An alarm costing no power,
+      // such as a tripped switchboard whose backup carries the load, is not a sighting.
+      if (buildingOn(state) && alarmCost(state, alarm) === 0) continue;
+    }
     c.counted[alarm.id] = true;
     c.sightings += 1;
     state.stats.ceoSightings += 1;
-    const fine = fineFor(state, c);
-    emit(state, 'ceoSighting', { alarmId: alarm.id, alarmType: alarm.type, equipId: alarm.equipId, cost: c.cost, fine, strike: c.strike, zeroTolerance: c.zeroTolerance });
+    const fine = alarm.wrench ? 0 : fineFor(state, c);
+    emit(state, 'ceoSighting', { alarmId: alarm.id, alarmType: alarm.type, equipId: alarm.equipId, cost: c.cost, fine, strike: c.strike, zeroTolerance: c.zeroTolerance, wrench: Boolean(alarm.wrench) });
     if (fine !== null) {
       // The fine can put the cash in the red; the red countdown then decides (game2.js burn).
       state.cash -= fine;

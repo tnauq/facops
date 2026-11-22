@@ -812,6 +812,8 @@ function startSpell(state, kind) {
 function spellStep(state) {
   if (!spellsOn(state)) return null;
   const d = state.director;
+  // M48's checks: a small campus (fewer than `fromHalls` halls online) has no spells, as it has no waves.
+  if (!d.spell && state.halls < (state.config.building.spells.fromHalls ?? 0)) return null;
   if (!d.spell) startSpell(state, 'busy');
   const sp = d.spell;
   if (sp.kind === 'busy') {

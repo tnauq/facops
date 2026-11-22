@@ -5,7 +5,7 @@ import { createGame, raiseAlarm, spellNow, step } from '../src/core/index2.js';
 
 const NO_BURN = { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 };
 // Spells are off by default after M48's checks; these tests switch them on.
-const ON = { enabled: true, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true, ceoSync: { enabled: false, from: 600, to: 1080, lead: 12, align: 'busyEnd' } };
+const ON = { enabled: true, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true, fromHalls: 0, ceoSync: { enabled: false, from: 600, to: 1080, lead: 12, align: 'busyEnd' } };
 const game = (building = {}, extra = {}) => createGame({
   seed: 1,
   config: { tutorial: false, ceo: { enabled: false }, autoDispatch: { enabled: false, delay: 1 }, ...extra, building: { enabled: true, startCash: 50000, burn: NO_BURN, credits: { rate: 0, doubling: 0 }, spells: ON, ...building } },
@@ -89,7 +89,8 @@ test('the CEO is announced only in a quiet spell', () => {
 test('off when switched off, and in the classic game', () => {
   const off = game({ spells: { ...ON, enabled: false } });
   const plain = createGame({ seed: 1, config: { tutorial: false, building: { enabled: true } } });
-  assert.equal(plain.config.building.spells.enabled, false, 'off by default after M48\'s checks');
+  assert.equal(plain.config.building.spells.enabled, true, 'on by default since the owner\'s choice after M48');
+  assert.equal(plain.config.building.spells.ceoWaits, false);
   advance(off, 120);
   assert.equal(spells(off).length, 0);
   assert.equal(spellNow(off), null);
@@ -127,3 +128,10 @@ for (const align of ['busyEnd', 'busyStart']) {
     assert.ok(n >= 2, `${n} visits`);
   });
 }
+
+test('no spells on a small campus: they start with the third hall', () => {
+  const s = createGame({ seed: 1, config: { tutorial: false, ceo: { enabled: false }, building: { enabled: true, startCash: 50000, burn: NO_BURN, credits: { rate: 0, doubling: 0 } } } });
+  for (let i = 0; i < 1200; i++) step(s, 0.05);
+  assert.equal(s.config.building.spells.fromHalls, 3);
+  assert.equal(spellNow(s), null);
+});

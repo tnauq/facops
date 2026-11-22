@@ -108,7 +108,7 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 |---|---|---|
 | M46. Posts and the priority area | `m46` | Done (on since M47) |
 | M47. Warnings before failures | `m47` | Done |
-| M48. Busy and quiet spells | `m48` | Done (switched off by default: waits for the owner) |
+| M48. Busy and quiet spells | `m48` | Done (on since the owner's choices after M48) |
 | M49. The CEO's promises | `m49` | |
 | M50. Surges | `m50` | |
 | M51. The pick of two and the rescue call | `m51` | |
@@ -116,6 +116,44 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M53. The balance check | `m53` | |
 
 ## Log
+
+### After M48: wrenches count, and spells switched on
+
+The owner chose (21 November), of the options above, that **a wrench the CEO sees counts as a sighting**. Building it, and checking it with spells on, settled the spells too.
+
+Built:
+
+- **Wrenches count** (ceo.js; config `ceo.wrenchesCount: true, wrenchesFrom: 1200, wrenchLate: 5`). On a **strike visit**, from **20:00** of economy time, a warning the CEO sees with **nobody on it** (no tech checking it or walking to it) and **5 s or less from failing** is a sighting: a **strike, with no fine**. Once per warning per visit. The event `ceoSighting` carries `wrench: true`.
+- **Spells on by default**, with the CEO coming when due (`ceoWaits: false`), and **only from the third hall online** (`fromHalls: 3`, as waves do): on a one- or two-hall campus the busy spells' halved gaps sent compute-first builders broke at 10:00 in some seeds (a test caught it).
+- `scripts/pacing4.mjs` gains a **builder that posts its crew**.
+- **Tests:** 2 new in `tests/wrenches.test.js`, 1 in `tests/spells.test.js`; the spells tests switch spells on from the first hall. 589 in all. `SAVE_VERSION` stays `m48` (no change to the state's shape).
+
+Why these numbers: wrenches counted on every visit, with fines, sent runs broke by 9:00; on strike visits from 15:00 they fired every non-selling run (even the one posting its crew, since the yard and plants are not posted). From 20:00, about to fail and with nobody on it, they decide the end of a long run without deciding every run.
+
+Pass 8's standing targets (12 seeds):
+
+| Player | Median run (range) | Score | Sold / fired / broke early / broke later | 150 MW at |
+|---|---|---|---|---|
+| Compute first | 20:11 (16:30 to 21:56) | $132,615 | 0 / 11 / 0 / 1 | 7:37 |
+| Getting ready for the CEO | 21:38 (19:28 to 24:44) | $153,727 | 0 / 4 / 0 / 8 | 7:38 |
+| Bold seller | 13:20 (12:05 to 15:34) | $142,276 | 12 / 0 / 0 / 0 | 7:37 |
+| Cautious seller | 11:04 (9:03 to 13:10) | $105,219 | 12 / 0 / 0 / 0 | 7:38 |
+| Never a backup | 16:17 (7:26 to 18:50) | $64,488 | 0 / 2 / 0 / 10 | 6:20 |
+| Backups early | 7:23 (1:04 to 15:50) | $9,853 | 0 / 0 / 6 / 6 | 12:55 (2/12) |
+
+(The sellers, never-a-backup and backups-early players all end before 20:00, so the wrench rule does not touch them.)
+
+- Compute-first median 20:11: **11 s over** 20:00.
+- Endings across the four players: sold 24, fired 15, broke 9 of 48, **50% / 31% / 19%**. Fired is now inside the band (it was 8% with the CEO waiting); sold is set at half by the two scripted sellers, who sell every time; broke is under 25%.
+- Getting ready for the CEO pays again ($153,727 against $132,615). Never a backup earns 51% less. Backups early broke in 12 of 12. 150 MW at 7:37.
+- Without wrenches (and spells from the third hall), the CEO fired 10 of the two non-sellers' 24 runs; with wrenches from 18:00, 18. From 20:00 (chosen), 15.
+
+The sold share and the last few seconds of run length are left for M53, the balance check with everything on.
+
+Owner's checklist:
+
+- Late in a run, leave a wrench on the CEO's route unattended: the CEO counts it.
+- The run has a rhythm once the third hall is open: a rush, then a breather.
 
 ### After M48: timing the CEO with the spells
 
