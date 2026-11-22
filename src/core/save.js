@@ -9,7 +9,7 @@ import { createRng } from './rng.js';
 
 // The save format and the build it came from. Bump SAVE_VERSION whenever a milestone changes the
 // rules or the shape of the state, so an older save is dropped rather than loaded wrongly.
-export const SAVE_VERSION = 'm49'; // M49: the CEO's promises in the state
+export const SAVE_VERSION = 'm50'; // M50: surges in the state
 
 function encode(v) {
   if (typeof v === 'number') return Number.isFinite(v) ? v : { $num: String(v) };

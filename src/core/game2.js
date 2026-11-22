@@ -13,7 +13,7 @@ import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, YARD_ALARMS, makeConfig2 
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
 import { AREAS, postPoint } from './posts.js';
-import { promisesStep } from './promises.js';
+import { promisesStep, surgeGaps, surgeIncome } from './promises.js';
 import { areaOf, ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
 import { alarmCost } from './cost.js';
@@ -141,6 +141,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     loanPaidAt: null, // building mode: when the construction loan was paid off (pass 5 spec 3.1)
     customersLive: false, // pass 7 spec 3.2: service credits are charged from this moment
     priorityArea: null, // pass 8 (M46): the area whose alarms are taken first, or null
+    surge: null, // pass 8 (M50): { until, startedAt } while a surge runs
     uptime: null, // pass 7 spec 4.1: { minute, up: Set of rows still on track this minute }
     uptimeLast: null, // the last uptime payment: { t, minute, rows: [ids], total }
     ribbonQueued: false,
@@ -929,7 +930,8 @@ function directorStep(state) {
   const spell = spellStep(state);
   if (spell === 'quiet') return;
   if (buildingOn(state) && state.redSince !== null && state.redSince !== undefined && spellsOn(state)) return;
-  const factor = spell === 'busy' ? state.config.building.spells.busyFactor : 1;
+  // Pass 8 (M50): a surge halves the gaps too.
+  const factor = (spell === 'busy' ? state.config.building.spells.busyFactor : 1) * (buildingOn(state) ? surgeGaps(state) : 1);
   if (state.t >= state.director.nextSpawn - EPS) {
     directorSpawnOne(state);
     const base = buildingOn(state) ? buildingInterval(state) : spawnInterval(state.config, state.halls, state.t - state.phaseStart);
@@ -1099,7 +1101,8 @@ export function buyUpgrade(state, id) {
 
 // Money in: each rack row earns `income` dollars a second at full output (pass 4 spec 2.5).
 function earn(state, deliveredMw, dt) {
-  const dollars = (deliveredMw / state.config.rowMw) * state.config.building.income * dt;
+  // Pass 8 (M50): a surge pays half as much again.
+  const dollars = (deliveredMw / state.config.rowMw) * state.config.building.income * surgeIncome(state) * dt;
   state.cash += dollars;
   state.stats.earned += dollars;
 }
@@ -1227,7 +1230,7 @@ export function creditsRate(state) {
 }
 
 /** Income now, in dollars a second, from the racks delivering. */
-export const incomeRate = (state) => (load(state).deliveredMw / state.config.rowMw) * state.config.building.income;
+export const incomeRate = (state) => (load(state).deliveredMw / state.config.rowMw) * state.config.building.income * surgeIncome(state);
 
 // Money out. In the red, a countdown runs: still in the red when it ends, the run is over.
 function burn(state, dt) {

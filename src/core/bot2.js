@@ -127,7 +127,7 @@ export function pickFor(state, policy = 'first') {
  * Play a whole run and return results(state) plus the final state.
  * `actionGap` is the shortest time between two commands; `maxSeconds` stops a run that never ends.
  */
-export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, posts = false, maxCrew = 9, chase = false, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
+export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, posts = false, maxCrew = 9, chase = false, surges = false, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
   // builder (pass 4, building mode): a scripted builder plan from builder.js ('builder', 'greedy',
   // 'nohire'), deciding every `buildGap` seconds.
   // policy: 'greedy' (gets ready for the CEO), 'blind' (ignores the CEO), 'random', or 'none' (never
@@ -155,6 +155,11 @@ export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, 
     // Pass 8 (M49): a player who chases promises takes every offer it has room for.
     if (chase && state.promises && state.promises.offers.length > 0 && state.promises.held.length < state.config.building.promises.held) {
       takePromise(state, state.promises.offers[0].id);
+    }
+    // Pass 8 (M50): a player who takes every surge it is offered (and no promise).
+    if (surges && state.promises) {
+      const o = state.promises.offers.find((x) => x.key === 'surge');
+      if (o) takePromise(state, o.id);
     }
     if (posts && state.t >= nextPosts) {
       postCrew(state, posts !== 'nopriority');

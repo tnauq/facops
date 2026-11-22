@@ -110,12 +110,50 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M47. Warnings before failures | `m47` | Done |
 | M48. Busy and quiet spells | `m48` | Done (on since the owner's choices after M48) |
 | M49. The CEO's promises | `m49` | Done |
-| M50. Surges | `m50` | |
+| M50. Surges | `m50` | Done |
 | M51. The pick of two and the rescue call | `m51` | |
 | M52. Layers | `m52` | |
 | M53. The balance check | `m53` | |
 
 ## Log
+
+### M50. Surges
+
+Pass 8 spec 6.5.
+
+Built:
+
+- **Rules** (promises.js, game2.js; config `building.surges: { enabled, length: 60, incomeFactor: 1.5, gapFactor: 0.75, fromHalls: 3 }`).
+  - From the third hall online, **"The CEO sold a surge"** joins the offers (among the growth offers), with nothing up front.
+  - **Taken**, for 60 s every rack earns half as much again (income, the cash rate, and the sale price's income all follow), and the director's gaps are 0.75 as long. It holds no place among the two promises. One at a time; not during a CEO visit. Declined, nothing happens. Events `surgeStart`, `surgeEnd`. `SAVE_VERSION` is `m50`.
+- **Screen:**
+  - The HUD's note leads with "Surge · 0:42" while one runs ("0:42" on a 660 px phone); the cash rate shows the extra.
+  - The promises card shows the surge as "A surge", what it does ("every rack earns half as much again, and failures come 33% more often", from the config), "Nothing up front" and "Take the surge" (or "Not now" during a visit or a running surge).
+  - The results' Promises line counts surges ("3 kept, 1 surge · $950"). Drawer: "Surges".
+- `playRun` takes `surges` (take every surge offered); `scripts/pacing4.mjs` adds that player.
+- **Tests:** 5 new in `tests/surges.test.js`. 603 in all.
+
+**One change from the spec:** failures come a third more often during a surge, not twice as often. Taking every surge, compute first, 12 seeds:
+
+| Surge | Median run | Score | Fired / broke later |
+|---|---|---|---|
+| No surges taken | 20:11 | $132,615 | 11 / 1 |
+| Spec: half as much again, gaps halved | 18:07 | $123,975 | 5 / 7 |
+| Twice the income, gaps halved | 18:40 | $181,778 | 9 / 3 |
+| Half as much again, gaps × 0.67 | 20:07 | $169,259 | 9 / 3 |
+| **Half as much again, gaps × 0.75 (chosen)** | 19:28 | $162,885 | 11 / 1 |
+
+- The spec's check: taking every surge earns more (**+23%**) without going broke more often (**1 in 12, as without**): **met** only at 0.75. At the spec's 0.5 a surge cost money and sent 7 runs in 12 broke.
+- No other scripted player takes surges, and offers use their own generator, so pass 8's standing targets are as after M48.
+
+Worth knowing:
+
+- A builder who takes every surge without thinking still comes out ahead at 0.75; the gamble shows on a campus already struggling, where the extra failures land on a short crew. Twice the income with gaps halved would make each surge a bigger, riskier bet (3 runs in 12 broke), if the owner wants more drama.
+- Checked in headless Chrome at 844 x 390 and 660 x 300 with a surge running: "Surge · 0:42" and "0:42" in the HUD. No console errors.
+
+Owner's checklist:
+
+- A surge is a gamble you can see paying off or not.
 
 ### M49. The CEO's promises
 

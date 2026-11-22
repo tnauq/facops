@@ -4,7 +4,7 @@ export { ALARMS2, DEFAULT_CONFIG2, TRADES, UPGRADES, YARD_ALARMS, gameDefaults2,
 export { createRng } from './rng.js';
 export { SAVE_VERSION, loadGame, saveGame } from './save.js';
 export { AREAS, postPoint } from './posts.js';
-export { cancelPromise, delivered, promiseLeft, promisesOn, takePromise } from './promises.js';
+export { cancelPromise, delivered, promiseLeft, promisesOn, surgeIncome, surgesOn, surging, takePromise } from './promises.js';
 export * from './layout2.js';
 export {
   advance,

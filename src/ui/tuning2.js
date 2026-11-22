@@ -31,6 +31,7 @@ const setPosts = setNested('posts');
 const setWarnings = setNested('warnings');
 const setSpells = setNested('spells');
 const setPromises = setNested('promises');
+const setSurges = setNested('surges');
 
 export const TUNING2_FIELDS = [
   { id: 'tighten', label: 'Tightening per 10 s (%)', kind: 'range', min: 0, max: 10, step: 0.5,
@@ -129,6 +130,9 @@ export const TUNING2_FIELDS = [
   // Pass 8 spec 6 (M49).
   { id: 'promisesOn', label: "The CEO's promises", kind: 'toggle',
     get: (c) => c.building.promises.enabled, set: (o, v) => setPromises(o, 'enabled', v) },
+  // Pass 8 spec 6.5 (M50).
+  { id: 'surgesOn', label: 'Surges', kind: 'toggle',
+    get: (c) => c.building.surges.enabled, set: (o, v) => setSurges(o, 'enabled', v) },
   // Pass 7 spec 4.2 (M43): the advisor mark all run long (it shows by itself only early in a first
   // run). Screen only; also the Settings card's switch.
   { id: 'advisorMark', label: 'Advisor mark all run', kind: 'toggle',

@@ -187,6 +187,12 @@ export const DEFAULT_CONFIG2 = {
         quietFloor: { window: 180, advance: 0, payment: 600 },
       },
     },
+    // Pass 8 spec 6.5 (M50): surges, offered among the promises from `fromHalls` halls online. Taken,
+    // for `length` seconds every rack earns `incomeFactor` times as much and the director's gaps are
+    // `gapFactor` times as long. One at a time; nothing up front. M50's checks: gapFactor 0.75 (the
+    // spec's 0.5, failures twice as often, made a builder who takes every surge earn 7% less and go
+    // broke 7 times in 12 against 1).
+    surges: { enabled: true, length: 60, incomeFactor: 1.5, gapFactor: 0.75, fromHalls: 3 },
     // Pass 8 spec 5 (M48): busy and quiet spells. The director alternates a busy spell (its gaps times
     // `busyFactor`) with a quiet one in which it starts nothing new. A busy spell ends early after
     // `easeAfter` seconds with more outages open than free techs, or with a whole hall dark. The CEO is

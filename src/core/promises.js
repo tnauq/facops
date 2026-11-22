@@ -10,7 +10,7 @@ import { chillersNeeded, creditsRate, darkHalves, emit, onlineRows, pumpNeeds, r
 import { buildingOn } from './sites.js';
 
 const TRADES = ['electrical', 'mechanical', 'ce', 'network'];
-const GROWTH = ['lightsOn', 'hallTwo', 'moreMw'];
+const GROWTH = ['lightsOn', 'hallTwo', 'moreMw', 'surge']; // surge: pass 8 M50
 const PROTECTION = ['belt', 'spare', 'oneOfEach', 'quietFloor'];
 
 /** Are promises in play? Building mode, switched on. */
@@ -57,8 +57,28 @@ export function delivered(state, p) {
   }
 }
 
+// ---------------------------------------------------------------- surges (pass 8 spec 6.5, M50)
+
+/** Are surges in play? */
+export const surgesOn = (state) => promisesOn(state) && Boolean(state.config.building.surges && state.config.building.surges.enabled);
+
+/** Is a surge running now? */
+export const surging = (state) => Boolean(state.surge && state.t < state.surge.until - 1e-9);
+
+/** The income multiplier now: `incomeFactor` during a surge, else 1. */
+export const surgeIncome = (state) => (surging(state) ? state.config.building.surges.incomeFactor : 1);
+
+/** The director's gap multiplier now: `gapFactor` during a surge, else 1. */
+export const surgeGaps = (state) => (surging(state) ? state.config.building.surges.gapFactor : 1);
+
+function surgeOffer(state) {
+  if (!surgesOn(state) || surging(state) || state.halls < state.config.building.surges.fromHalls) return null;
+  return { key: 'surge', window: state.config.building.surges.length, advance: 0, payment: 0 };
+}
+
 // Build an offer of this kind, or null if it is already true (an offer is never already true).
 function makeOffer(state, key) {
+  if (key === 'surge') return surgeOffer(state);
   const c = cfgOf(state).table[key];
   if (!c) return null;
   const base = { key, window: c.window, advance: c.advance, payment: c.payment };
@@ -113,6 +133,15 @@ export function takePromise(state, id) {
   const p = bState(state);
   const o = p.offers.find((x) => x.id === id);
   if (!o) return { ok: false, reason: 'no such offer' };
+  // A surge (M50) is not a promise: it starts at once, holds no place, and pays nothing up front.
+  if (o.key === 'surge') {
+    if (state.ceo || surging(state)) return { ok: false, reason: state.ceo ? 'ceo' : 'surging' };
+    p.offers = p.offers.filter((x) => x !== o);
+    state.surge = { until: state.t + state.config.building.surges.length, startedAt: state.t };
+    p.surges = (p.surges ?? 0) + 1;
+    emit(state, 'surgeStart', { id, until: state.surge.until });
+    return { ok: true };
+  }
   if (p.held.length >= cfgOf(state).held) return { ok: false, reason: 'full' };
   p.offers = p.offers.filter((x) => x !== o);
   const held = { ...o, takenAt: state.t, deadline: state.t + o.window, quietSince: state.t };
@@ -157,10 +186,15 @@ export function promisesStep(state) {
       emit(state, 'promiseKept', { id: h.id, key: h.key, payment: h.payment });
     } else if (state.t >= h.deadline - 1e-9) handBack(state, h, 'missed');
   }
+  if (state.surge && !surging(state)) {
+    emit(state, 'surgeEnd', {});
+    state.surge = null;
+  }
   // Offers: replaced after `offerLife` (at once); dropped if they came true meanwhile.
   const before = p.offers.length;
   p.offers = p.offers.filter((o) => {
     if (state.t - o.offeredAt >= c.offerLife - 1e-9) return false;
+    if (o.key === 'surge') return true;
     return o.key === 'quietFloor' || !delivered(state, { ...o, quietSince: state.t });
   });
   const replace = before - p.offers.length; // each expired or fulfilled offer is replaced at once
