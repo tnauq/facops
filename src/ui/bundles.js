@@ -7,7 +7,7 @@
 // glycol pump so a coolant unit has glycol, chillers (with the glycol pumps and dry coolers that let
 // them run) so the racks are cooled. Each extra comes with its reason in one line.
 
-import { build, cannotBuild, hallOnline, onlineRows, priceOf, spotState } from '../core/index2.js';
+import { build, buyPrice, cannotBuild, hallOnline, onlineRows, priceOf, spotState } from '../core/index2.js';
 import { CHILLERS_ORDER, GLYCOL_ORDER, WATER_PUMPS_ORDER } from '../core/builderSpots.js';
 import { HALLS } from '../core/index2.js';
 import { cameraView } from './camera.js';
@@ -106,7 +106,15 @@ function pieces(p, ids) {
 
 function bundle(state, key, title, own, extras) {
   const ids = [...own, ...extras.map((x) => x.id)];
-  const price = ids.reduce((sum, id) => sum + priceOf(state, id), 0);
+  // Pass 8 (M51): Bulk order's half-price rows run out part-way through a bundle.
+  let bulk = state.perks ? state.perks.bulkRows : 0;
+  const price = ids.reduce((sum, id) => {
+    if (id.startsWith('row-') && bulk > 0) {
+      bulk -= 1;
+      return sum + buyPrice(state, id);
+    }
+    return sum + priceOf(state, id);
+  }, 0);
   const short = Math.max(0, price - state.cash);
   return {
     key,

@@ -89,7 +89,7 @@ test('none while the tutorial\'s lessons run, and none in the classic game', () 
 });
 
 test('going broke on credits: the results say so', () => {
-  const s = game({ startCash: 50, burn: { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 }, credits: { rate: 50, doubling: 0 } });
+  const s = game({ startCash: 50, burn: { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 }, credits: { rate: 50, doubling: 0 }, rescue: { enabled: false, funding: 2000, rate: 8 } });
   raiseAlarm(s, 'network', 'row-1-t-0');
   raiseAlarm(s, 'network', 'row-1-t-1');
   advance(s, 60);
@@ -110,7 +110,7 @@ test('rate 0 turns credits off', () => {
 test('the results card: "Went broke: service credits" and a Service credits line', async () => {
   const { resultsPanel } = await import('../src/ui/results.js');
   const { formatClock } = await import('../src/core/index2.js');
-  const s = game({ startCash: 50, burn: { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 }, credits: { rate: 50, doubling: 0 } });
+  const s = game({ startCash: 50, burn: { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 }, credits: { rate: 50, doubling: 0 }, rescue: { enabled: false, funding: 2000, rate: 8 } });
   raiseAlarm(s, 'network', 'row-1-t-0');
   advance(s, 60);
   const r = results(s);

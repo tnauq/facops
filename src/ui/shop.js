@@ -3,7 +3,7 @@
 // trade can be hired and every upgrade bought, for money; a button is greyed when the cash is short
 // or the upgrade is at its limit.
 
-import { TRADES, UPGRADES, priceOf } from '../core/index2.js';
+import { TRADES, UPGRADES, buyPrice, priceOf } from '../core/index2.js';
 import { crewText, suggestedTrade, tradeLine } from './crewAdvice.js';
 
 const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
@@ -15,7 +15,7 @@ const HIRE_ORDER = ['electrical', 'mechanical', 'ce', 'network'];
  * one is suggested (pass 5 spec 6.2).
  */
 export function shopModel(state) {
-  const hirePrice = priceOf(state, 'hire');
+  const hirePrice = buyPrice(state, 'hire'); // pass 8 M51: Signing bonus makes the next hire free
   const suggested = suggestedTrade(state); // pass 5 spec 6.2
   const upPrice = priceOf(state, 'upgrade');
   const hires = HIRE_ORDER.map((trade) => {
@@ -49,4 +49,4 @@ export function shopModel(state) {
 }
 
 /** The crew bar's Hire card text: { title, price }. */
-export const hireCardText = (state) => ({ title: 'Hire', price: money(priceOf(state, 'hire')) });
+export const hireCardText = (state) => ({ title: 'Hire', price: money(buyPrice(state, 'hire')) });

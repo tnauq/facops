@@ -3,7 +3,7 @@
 // mode is 'playing'. Pass 6 (M37): the start card is the main menu ('menu'), and a Settings card
 // opens from the menu and the pause menu.
 
-export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver', 'ledger', 'promises'];
+export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver', 'ledger', 'promises', 'perk', 'rescue'];
 
 // The tuning drawer opens from the start, pause and round-over cards, and from the HUD's settings
 // button during play. Done goes back to the card it came from; from play it goes to the pause card
@@ -34,7 +34,12 @@ const TABLE = {
     bundles: { mode: 'bundles', newRound: false }, // pass 7 (M43): a hall's bundles
     ledger: { mode: 'ledger', newRound: false }, // pass 7 (M45): the ledger, from the cash
     promises: { mode: 'promises', newRound: false }, // pass 8 (M49): the CEO's promises, from the note
+    perk: { mode: 'perk', newRound: false }, // pass 8 (M51): the pick of two, after a clean visit
+    rescue: { mode: 'rescue', newRound: false }, // pass 8 (M51): the CEO's call, the first time in the red
   },
+  // Pass 8 (M51): both cards hold the game. The pick closes once a perk is taken; the call when it ends.
+  perk: { continue: { mode: 'playing', newRound: false } },
+  rescue: { continue: { mode: 'playing', newRound: false }, promises: { mode: 'promises', newRound: false }, sellAsk: { mode: 'sell', newRound: false } },
   // Pass 8 (M49): the promises card holds the game; Close carries on.
   promises: { continue: { mode: 'playing', newRound: false }, togglePause: { mode: 'playing', newRound: false } },
   // Pass 7 (M45): the ledger holds the game, like the hire card; Close carries on.

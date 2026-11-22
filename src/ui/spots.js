@@ -6,7 +6,7 @@
 
 import {
   EQUIPMENT, EQUIPMENT_BY_ID, buildingOn, cannotBuild, chillersNeeded, hallOnline, isBuilt, msbFed, onlineRows, plantHasPump, pumpNeeds,
-  priceOf, runningChillers, spotState,
+  buyPrice, priceOf, runningChillers, spotState,
 } from '../core/index2.js';
 import { cameraView } from './camera.js';
 
@@ -30,7 +30,7 @@ export function spotsModel(state) {
     const st = spotState(state, e.id);
     if (st === 'built') continue;
     const progress = st === 'building' ? 1 - Math.max(0, state.equip[e.id].buildEnd - state.t) / state.config.building.buildTime : 0;
-    out.push({ id: e.id, type: e.type, x: e.x, y: e.y, state: st, progress: Math.min(1, progress), affordable: state.cash + 1e-9 >= priceOf(state, e.id) });
+    out.push({ id: e.id, type: e.type, x: e.x, y: e.y, state: st, progress: Math.min(1, progress), affordable: state.cash + 1e-9 >= buyPrice(state, e.id) });
   }
   return out;
 }
@@ -132,7 +132,7 @@ const nameOf = (e) => (e.type === 'msb' ? `Switchboard ${e.side}` : e.type === '
  */
 export function spotInfo(state, id) {
   const e = EQUIPMENT_BY_ID[id];
-  const price = priceOf(state, id);
+  const price = buyPrice(state, id); // pass 8 M51: Bulk order's half-price rows
   const reason = cannotBuild(state, id);
   const { line, warn } = whatItDoes(state, e);
   // Infrastructure costs upkeep and earns nothing (spec 2.5): say so, so a backup is a choice.

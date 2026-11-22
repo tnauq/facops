@@ -299,7 +299,8 @@ test('the burn doubles over time, and grows with infrastructure and crew', async
 
 test('in the red, a countdown runs: back out of it in time and the run goes on, stay in it and it ends', async () => {
   const { redSecondsLeft } = await import('../src/core/index2.js');
-  const s = game({ building: { burn: { base: 10, doubling: 1e9, upkeep: 0, wages: 0 } } });
+  // The rescue call (pass 8 M51) holds the countdown until it is closed; these tests are about the countdown.
+  const s = game({ building: { burn: { base: 10, doubling: 1e9, upkeep: 0, wages: 0 }, rescue: { enabled: false, funding: 2000, rate: 8 } } });
   s.cash = 1;
   advance(s, 1); // income $8/s, burn $10/s: into the red
   assert.ok(s.cash < 0);
@@ -350,7 +351,7 @@ test('the CEO only cares about outages: a tripped switchboard with its backup ca
 test('the round-over card: the score leads, and "Went broke" when the cash ran out', async () => {
   const { resultsPanel } = await import('../src/ui/results.js');
   const { formatClock } = await import('../src/core/index2.js');
-  const s = game({ building: { burn: { base: 50, doubling: 1e9, upkeep: 0, wages: 0 } } });
+  const s = game({ building: { burn: { base: 50, doubling: 1e9, upkeep: 0, wages: 0 }, rescue: { enabled: false, funding: 2000, rate: 8 } } });
   advance(s, 60);
   const r = results(s);
   assert.equal(r.bankrupt, true);

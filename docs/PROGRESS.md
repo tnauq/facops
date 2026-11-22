@@ -111,11 +111,62 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M48. Busy and quiet spells | `m48` | Done (on since the owner's choices after M48) |
 | M49. The CEO's promises | `m49` | Done |
 | M50. Surges | `m50` | Done |
-| M51. The pick of two and the rescue call | `m51` | |
+| M51. The pick of two and the rescue call | `m51` | Done |
 | M52. Layers | `m52` | |
 | M53. The balance check | `m53` | |
 
 ## Log
+
+### M51. The pick of two and the rescue call
+
+Pass 8 spec 7.
+
+Built:
+
+- **Rules** (new `src/core/perks.js`, hooks in game2.js and ceo.js; config `building.perks` and `building.rescue: { enabled, funding: 2000, rate: 8 }`). `SAVE_VERSION` is `m51`.
+  - **The pick of two:** a CEO visit that ends with no sightings offers two of the six perks (seeded); the game waits until one is taken. Bulk order (next 6 rack rows half price), Signing bonus (next hire free), Fast contractor (builds take 4 s for 2:00), Warranty (nothing in one chosen hall fails for 1:30), Loyal customers (uptime bonus doubled for 2:00), Patient customers (no service credits for 1:30). All numbers from the config.
+  - **The rescue call:** the first time the cash goes below $0 in a run, the CEO calls and the game waits. The 15 s red countdown starts when the call ends. Once a run.
+  - **Funding round:** once a run, $2,000 at once, repaid as a second loan at $8 a second.
+- **Screen:**
+  - The pick of two card: "The CEO's visit went well", "Fine. Have a treat.", two wide buttons with one line each. The HUD note shows a running perk's countdown ("Fast contractor · 1:20", "1:20" on a narrow phone), after a surge or a held promise but ahead of "CEO: 2 offers".
+  - The call card: "The CEO is on the phone", the cash, "When you hang up, you have 0:15 to get back above $0", a button per way out still open (Funding round; Take one of my offers, which opens the promises card; Sell the campus, which opens the usual confirm), and Hang up.
+  - Ledger: "Second loan" in, "Second loan repaid" out, and a now-line with what is left while it is being repaid.
+  - Drawer: "Pick of two after a clean visit" and "Rescue call".
+- `playRun` takes `perks` ('first' or 'none') and `rescue` ('close' or 'fund'); `scripts/pacing4.mjs` adds "takes no perks" and "always takes the funding round". #auto takes the first perk and hangs up.
+- **Tests:** 8 in `tests/perks.test.js`, 8 in `tests/perksView.test.js`. 619 in all.
+
+**One change from the spec:** the Warranty asks for its hall with a button per online hall on the card, not a tap on the strip. It keeps the game held and the choice in one place; the owner can ask for the strip if preferred.
+
+Checks (12 seeds):
+
+| Player | Median run | Score | Sold / fired / broke |
+|---|---|---|---|
+| Compute first, takes no perks | 20:11 | $132,616 | 0 / 11 / 1 |
+| **Compute first, takes the first perk** | 20:48 | $144,326 | 0 / 8 / 4 |
+| Compute first, always takes the funding round | 21:08 | $148,806 | 0 / 9 / 3 |
+| Careful builder, rescue call off | 7:23 | $16,190 | broke 12, 6 before 5:00 |
+| Careful builder, takes the funding round | | $97,419 | broke 7, **none before 5:00** |
+
+- Perks: the perk taker earns **+9%** more. **Met.**
+- Rescue: runs broke before 5:00 go from 6 to 0 for the careful builder. **Met.** (The compute-first builder never goes broke early either way.)
+- Always funding is not the best scorer (+3% over the plain builder; promise chasers and crew posters earn $187,000 to $190,000). **Met**, but only just: the second loan is cheap. M53 can raise the rate if the owner wants it to sting.
+
+Standing targets, now that every scripted player takes perks:
+
+- Getting ready for the CEO earns more (+10%): met. Backups early goes broke in all 12: met. 150 MW at 7:27: met.
+- **Compute-first median 20:48**, a little over the 14 to 20 minute target (perks make runs last longer).
+- **Never a backup earns 21% less**, under the 25% target (perks soften its failures).
+- Endings across the four players: sold 50%, fired 33%, broke 17%, as after M48.
+- All three are for M53's balance check.
+
+Worth knowing:
+
+- Checked in headless Chrome at 844 x 390 and 660 x 300: offer, Warranty's hall buttons, the HUD countdown, the call and the funding round. No console errors.
+
+Owner's checklist:
+
+- A clean visit feels like a win.
+- Going into the red feels like a decision, not a countdown.
 
 ### M50. Surges
 

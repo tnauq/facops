@@ -102,7 +102,7 @@ test('selling ends the run, and the score is money earned plus the sale price', 
 });
 
 test('going broke or being fired gives no sale: the score is money earned', () => {
-  const s = game({ building: { startCash: 100, burn: { ...NO_BURN, base: 80 } } });
+  const s = game({ building: { startCash: 100, burn: { ...NO_BURN, base: 80 }, rescue: { enabled: false, funding: 2000, rate: 8 } } });
   advance(s, 120);
   assert.equal(s.overReason, 'bankrupt');
   const r = results(s);

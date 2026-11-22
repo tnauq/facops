@@ -54,7 +54,7 @@ test('a busy spell ends early with more outages than free techs for 10 s, or a w
 });
 
 test('nothing new starts while the red countdown runs', () => {
-  const s = game({ income: 0, uptime: { enabled: false, bonus: 20, floor: 0.9 }, warnings: { enabled: false, warnFor: 20, checkTime: 2, capCounts: false }, spells: { ...ON, busy: [1000, 1000], quiet: [1, 1], easeAfter: 1000 } });
+  const s = game({ income: 0, uptime: { enabled: false, bonus: 20, floor: 0.9 }, warnings: { enabled: false, warnFor: 20, checkTime: 2, capCounts: false }, spells: { ...ON, busy: [1000, 1000], quiet: [1, 1], easeAfter: 1000 }, rescue: { enabled: false, funding: 2000, rate: 8 } });
   s.cash = -1;
   s.redSince = s.t;
   const before = s.stats.spawned;

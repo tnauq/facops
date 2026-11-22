@@ -67,7 +67,9 @@ import { markerAt } from './ui/offmap.js';
 import { advisorSpot } from './ui/advisor.js';
 import { drawAdvisor } from './render/advisor.js';
 import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
-import { setBundles, setLedger, setPromises } from './render/overlays.js';
+import { setBundles, setLedger, setPerk, setPromises, setRescue } from './render/overlays.js';
+import { callOpen, choosePerk, closeCall, takeFunding } from './core/index2.js';
+import { perkCard, rescueCard, warrantyHalls } from './ui/perksView.js';
 import { cancelPromise, takePromise } from './core/index2.js';
 import { promisesCard, promisesLine } from './ui/promisesView.js';
 import { postTech, postsOn, setPriority } from './core/index2.js';
@@ -316,6 +318,25 @@ function act(action) {
     else showBundles();
     return;
   }
+  // Pass 8 (M51): the pick of two. The Warranty asks for a hall first; taking a perk closes the card.
+  if (action.startsWith('perk-')) {
+    if (mode !== 'perk') return;
+    if (action === 'perk-take-warranty') setPerk(perkCard(round.state), warrantyHalls(round.state));
+    else if (action === 'perk-back') setPerk(perkCard(round.state), null);
+    else {
+      const hall = action.startsWith('perk-hall-') ? Number(action.slice(10)) : undefined;
+      if (choosePerk(round.state, hall === undefined ? action.slice(10) : 'warranty', hall).ok) act('continue');
+    }
+    return;
+  }
+  // Pass 8 (M51): the CEO's call. Every way out hangs up, so the red countdown starts from then.
+  if (action.startsWith('rescue-')) {
+    if (mode !== 'rescue') return;
+    if (action === 'rescue-fund') takeFunding(round.state);
+    closeCall(round.state);
+    act(action === 'rescue-offers' ? 'promises' : action === 'rescue-sell' ? 'sellAsk' : 'continue');
+    return;
+  }
   // Pass 8 (M49): the promises card; accepting or cancelling keeps it open, showing the change.
   if (action.startsWith('promise-')) {
     if (mode !== 'promises') return;
@@ -327,7 +348,7 @@ function act(action) {
     return;
   }
   if (action === 'promises') {
-    if (mode !== 'playing') return;
+    if (mode !== 'playing' && mode !== 'rescue') return;
     mode = reduceFlow(mode, 'promises').mode;
     setPromises(promisesCard(round.state));
     showOverlay('promises');
@@ -595,6 +616,9 @@ function frame(now) {
   runFrame(round.clock, now, (dt) => {
     // #auto takes the first card; a player chooses on the Delivery card (step waits until then).
     if (round.auto && state.pendingPick) choose(state, pickFor(state, 'first'));
+    // Pass 8 (M51): the scripted player takes the first perk (Warranty on Hall 1) and hangs up at once.
+    if (round.auto && state.perks?.offer) choosePerk(state, state.perks.offer[0], 1);
+    if (round.auto && callOpen(state)) closeCall(state);
     for (let k = 0; k < speed && !state.over; k++) step(state, dt);
     if (round.auto && state.t >= round.nextAuto && greedyMove(state, { reaction: 1 })) round.nextAuto = state.t + AUTO_GAP;
     // #auto in building mode also builds, compute first (the scripted builder, src/core/builder.js).
@@ -627,6 +651,16 @@ function frame(now) {
   if (round.commissionCardAt !== null && mode === 'playing' && !state.over && state.t >= round.commissionCardAt) {
     round.commissionCardAt = null;
     showCommissioned();
+  }
+  // Pass 8 (M51): the pick of two after a clean visit, and the CEO's call the first time in the red.
+  if (!round.auto && mode === 'playing' && !state.over && state.perks?.offer) {
+    mode = reduceFlow(mode, 'perk').mode;
+    setPerk(perkCard(state), null);
+    showOverlay('perk');
+  } else if (!round.auto && mode === 'playing' && !state.over && callOpen(state)) {
+    mode = reduceFlow(mode, 'rescue').mode;
+    setRescue(rescueCard(state));
+    showOverlay('rescue');
   }
   if (state.over && mode === 'playing') roundOver();
   else if (now - lastSave >= SAVE_EVERY * 1000) saveNow(); // pass 7 (M44): every 10 s

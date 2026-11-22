@@ -12,6 +12,7 @@
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, MID_Y, PLANTS, S_OUTER, hallX, route } from './layout2.js';
 import { buildingOn, isBuilt, onlineHallIds } from './sites.js';
 import { alarmCost } from './cost.js';
+import { visitEnded } from './perks.js';
 
 const EPS = 1e-9;
 const UP = -Math.PI / 2; // y grows downwards
@@ -360,6 +361,7 @@ function finish(state, c) {
   state.ceo = null;
   state.ceoVisits += 1;
   emit(state, 'ceoLeave', { kind: c.kind, sightings: c.sightings });
+  visitEnded(state, c.sightings); // pass 8 (M51): a clean visit earns the pick of two
   // Walkthroughs follow the Handover, and each other, after a seeded gap.
   // Pass 5 (M33's checks): strike visits come closer together, so the late game ends the run.
   if (c.kind === 'handover' || c.kind === 'walk') {

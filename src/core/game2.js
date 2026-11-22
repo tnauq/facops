@@ -14,6 +14,7 @@ import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
 import { AREAS, postPoint } from './posts.js';
 import { promisesStep, surgeGaps, surgeIncome } from './promises.js';
+import { buildTimeNow, bulkFactor, callOpen, freeHire, loyalFactor, maybeCall, patient, repaySecondLoan, secondLoanRate, underWarranty, usedBulk, usedFreeHire } from './perks.js';
 import { areaOf, ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
 import { alarmCost } from './cost.js';
@@ -532,7 +533,8 @@ export function eligibleEquipment(state, type) {
   // Fairness (pass 3 spec 4.3): once the CEO has arrived, no new alarms on anything the CEO could
   // still see. During the warning alarms still come there: that is what getting ready is for.
   const shielded = (e) => state.ceo !== null && state.ceo.phase === 'visit' && onCeoRoute(state, e);
-  const ok = (e) => isOnline(state, e) && state.equip[e.id].alarmId === null && !warned(state, e.id) && !shielded(e);
+  // Pass 8 (M51): Warranty: nothing in that hall can fail.
+  const ok = (e) => isOnline(state, e) && state.equip[e.id].alarmId === null && !warned(state, e.id) && !shielded(e) && !(e.hall && underWarranty(state, e.hall));
   switch (type) {
     case 'network':
       return ROWS.filter((e) => ok(e) && !state.equip[e.id].netDown);
@@ -1039,6 +1041,13 @@ export function priceOf(state, what) {
   return prices[type];
 }
 
+/** What buying this costs now (pass 8 M51): a perk may make a rack row half price or a hire free. */
+export function buyPrice(state, what) {
+  const type = EQUIPMENT_BY_ID[what] ? EQUIPMENT_BY_ID[what].type : what;
+  if (type === 'hire' && freeHire(state)) return 0;
+  return priceOf(state, what) * bulkFactor(state, type);
+}
+
 /** Why a spot cannot be built now, or null if it can: 'off' | 'unknown' | 'built' | 'building' | 'cash' | 'over'. */
 export function cannotBuild(state, equipId) {
   if (!buildingOn(state)) return 'off';
@@ -1047,7 +1056,7 @@ export function cannotBuild(state, equipId) {
   const dyn = state.equip[equipId];
   if (dyn.built) return 'built';
   if (dyn.buildEnd !== null) return 'building';
-  if (state.cash + EPS < priceOf(state, equipId)) return 'cash';
+  if (state.cash + EPS < buyPrice(state, equipId)) return 'cash';
   return null;
 }
 
@@ -1058,11 +1067,12 @@ export function cannotBuild(state, equipId) {
 export function build(state, equipId) {
   const reason = cannotBuild(state, equipId);
   if (reason) return { ok: false, reason };
-  const price = priceOf(state, equipId);
+  const price = buyPrice(state, equipId);
+  usedBulk(state, EQUIPMENT_BY_ID[equipId].type); // pass 8 M51: Bulk order
   state.cash -= price;
   state.stats.spent += price;
   state.stats.spentBuild = (state.stats.spentBuild ?? 0) + price; // pass 7 M45: for the ledger
-  const until = state.t + state.config.building.buildTime;
+  const until = state.t + buildTimeNow(state); // pass 8 M51: Fast contractor
   state.equip[equipId].buildEnd = until;
   emit(state, 'buildStart', { equipId, price, until });
   return { ok: true, until };
@@ -1073,8 +1083,9 @@ export function hire(state, trade) {
   if (!buildingOn(state)) return { ok: false, reason: 'off' };
   if (state.over) return { ok: false, reason: 'over' };
   if (!state.config.hireTieOrder.includes(trade)) return { ok: false, reason: 'unknown' };
-  const price = priceOf(state, 'hire');
+  const price = buyPrice(state, 'hire'); // pass 8 M51: Signing bonus
   if (state.cash + EPS < price) return { ok: false, reason: 'cash' };
+  if (freeHire(state)) usedFreeHire(state);
   state.cash -= price;
   state.stats.spent += price;
   state.stats.spentCrew = (state.stats.spentCrew ?? 0) + price; // pass 7 M45: for the ledger
@@ -1127,7 +1138,7 @@ export function loanTimeLeft(state) {
 /** Dollars a second the business burns now (pass 4 spec 2.5; pass 5 spec 3.1). */
 export function burnRate(state) {
   const p = burnParts(state);
-  return p.loan + p.overhead + p.upkeep + p.wages + p.credits;
+  return p.loan + p.overhead + p.upkeep + p.wages + p.credits + p.secondLoan;
 }
 
 /**
@@ -1141,7 +1152,8 @@ export function burnParts(state) {
   // seconds and in the end outgrew a full campus (the owner found it unsatisfactory, 15 Nov).
   const overhead = b.doubling > 0 ? b.base * Math.pow(2, economyTime(state) / b.doubling) : b.base;
   const loan = loanLeft(state) > 0 ? b.loanRate : 0;
-  return { loan, overhead, upkeep: b.upkeep * devices, wages: b.wages * state.techs.length, credits: creditsRate(state), devices, crew: state.techs.length };
+  // Pass 8 M51: the funding round's second loan.
+  return { loan, overhead, upkeep: b.upkeep * devices, wages: b.wages * state.techs.length, credits: creditsRate(state), secondLoan: secondLoanRate(state), devices, crew: state.techs.length };
 }
 
 // The uptime bonus (pass 7 spec 4.1, M42) ------------------------------------------------------
@@ -1176,7 +1188,7 @@ function uptimeStep(state) {
   for (const id of state.uptime.up) if (!rowUp(state, id)) state.uptime.up.delete(id);
   if (minute <= state.uptime.minute) return;
   const rows = [...state.uptime.up];
-  const bonus = state.config.building.uptime.bonus;
+  const bonus = state.config.building.uptime.bonus * loyalFactor(state); // pass 8 M51: Loyal customers
   const total = rows.length * bonus;
   if (total > 0) {
     state.cash += total;
@@ -1223,6 +1235,7 @@ export function rowsShort(state) {
 
 /** Service credits now, in dollars a second. Nothing while every online row delivers. */
 export function creditsRate(state) {
+  if (patient(state)) return 0; // pass 8 M51: Patient customers
   const per = creditPerRow(state);
   if (per <= 0) return 0;
   const short = rowsShort(state);
@@ -1236,12 +1249,14 @@ export const incomeRate = (state) => (load(state).deliveredMw / state.config.row
 function burn(state, dt) {
   const parts = burnParts(state);
   const credits = parts.credits;
-  const dollars = (parts.loan + parts.overhead + parts.upkeep + parts.wages + parts.credits) * dt;
+  const dollars = (parts.loan + parts.overhead + parts.upkeep + parts.wages + parts.credits + parts.secondLoan) * dt;
+  repaySecondLoan(state, dt);
   state.cash -= dollars;
   state.stats.burned += dollars;
   state.stats.credits = (state.stats.credits ?? 0) + credits * dt;
   // Pass 7 M45: the burn so far, in its parts, for the ledger.
   const so = (state.stats.burnParts ??= { loan: 0, overhead: 0, upkeep: 0, wages: 0 });
+  so.secondLoan = (so.secondLoan ?? 0) + parts.secondLoan * dt;
   so.loan += parts.loan * dt;
   so.overhead += parts.overhead * dt;
   so.upkeep += parts.upkeep * dt;
@@ -1259,6 +1274,12 @@ function burn(state, dt) {
   }
   if (state.cash >= 0) {
     if (state.redSince !== null) emit(state, 'outOfRed', {});
+    state.redSince = null;
+    return;
+  }
+  // Pass 8 (M51): the first time in the red, the CEO calls; the countdown waits for the call to end.
+  maybeCall(state);
+  if (callOpen(state)) {
     state.redSince = null;
     return;
   }

@@ -187,6 +187,15 @@
     .card.promises .p button.primary { background: #1F3A5F; color: #FFFFFF; }
     .card.promises .p button:disabled { opacity: 0.5; cursor: default; }
     .card.promises .buttons { margin-top: 6px; }
+    /* Pass 8 (M51): the pick of two and the CEO's call: a quote, then one wide button per choice. */
+    .card.perk, .card.rescue { width: min(520px, 96vw); max-width: none; max-height: 97vh; overflow-y: auto; padding: 8px 14px 10px; box-sizing: border-box; }
+    .card.perk h1, .card.rescue h1 { font-size: 17px; margin: 0 0 2px; }
+    .card.perk .quote, .card.rescue .muted { margin: 0 0 6px; font-size: 13px; }
+    .card .ways { display: flex; flex-direction: column; gap: 6px; }
+    .card .ways button { min-height: 44px; border-radius: 8px; border: 1px solid #1F3A5F; background: #FFFFFF; color: #1F3A5F; font: 600 13px system-ui, -apple-system, 'Segoe UI', sans-serif; cursor: pointer; text-align: left; padding: 6px 10px; display: flex; flex-direction: column; justify-content: center; }
+    .card .ways button small { font-weight: 400; color: #56606E; font-size: 11px; }
+    .card .ways .halls { display: flex; flex-wrap: wrap; gap: 6px; }
+    .card .ways .halls button { min-width: 64px; align-items: center; }
     .choices strong { font-size: 14px; }
     .choices span { color: #56606E; font-size: 12px; }
     /* Spec 6.7: shown whenever the page is taller than it is wide, over everything else. */
@@ -311,6 +320,17 @@
       <h2>On offer</h2>
       <div class="plist" id="promises-offers"></div>
       <div class="buttons"><button class="primary" data-action="continue">Close</button></div>
+    </div>
+    <div class="card perk" data-overlay="perk" hidden>
+      <h1>The CEO's visit went well</h1>
+      <p class="quote" data-field="quote"></p>
+      <div class="ways" id="perk-choices"></div>
+    </div>
+    <div class="card rescue" data-overlay="rescue" hidden>
+      <h1>The CEO is on the phone</h1>
+      <p class="muted"><span data-field="cash"></span>. <span data-field="countdown"></span></p>
+      <div class="ways" id="rescue-ways"></div>
+      <div class="buttons"><button class="primary" data-action="rescue-close">Hang up</button></div>
     </div>
     <div class="card ledger" data-overlay="ledger" hidden>
       <h1>Ledger</h1>

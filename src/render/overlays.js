@@ -269,6 +269,46 @@ export function setLedger(model) {
   fill('ledger-sofar', [{ label: 'Starting cash', value: model.startText }, ...model.soFar.filter((x) => Math.abs(x.raw) >= 0.5), { label: 'Cash now', value: model.cashText }]);
 }
 
+const wayButton = (action, title, line) => {
+  const b = document.createElement('button');
+  b.dataset.action = action;
+  b.textContent = title;
+  if (line) {
+    const s = document.createElement('small');
+    s.textContent = line;
+    b.append(s);
+  }
+  return b;
+};
+
+/**
+ * The pick of two (pass 8 spec 7.1): model from perkCard(...). halls: when the Warranty was tapped,
+ * the halls it can cover, one button each; otherwise null.
+ */
+export function setPerk(model, halls) {
+  document.querySelector('[data-overlay="perk"] [data-field="quote"]').textContent = model.quote;
+  const box = document.getElementById('perk-choices');
+  box.textContent = '';
+  if (halls) {
+    const row = document.createElement('div');
+    row.className = 'halls';
+    for (const h of halls) row.append(wayButton(`perk-hall-${h}`, `Hall ${h}`));
+    box.append(wayButton('perk-back', 'Which hall?', 'Tap one; or tap here to choose again'), row);
+    return;
+  }
+  for (const p of model.perks) box.append(wayButton(`perk-take-${p.perk}`, p.title, p.line));
+}
+
+/** The CEO's call (pass 8 spec 7.2): model from rescueCard(...). */
+export function setRescue(model) {
+  const card = document.querySelector('[data-overlay="rescue"]');
+  card.querySelector('[data-field="cash"]').textContent = model.cash;
+  card.querySelector('[data-field="countdown"]').textContent = model.countdown;
+  const box = document.getElementById('rescue-ways');
+  box.textContent = '';
+  for (const w of model.ways) box.append(wayButton(w.action, w.label, w.line));
+}
+
 /** The promises card (pass 8 spec 6.2): model from promisesCard(...) in src/ui/promisesView.js. */
 export function setPromises(model) {
   const card = (lines, button) => {

@@ -193,6 +193,10 @@ export const DEFAULT_CONFIG2 = {
     // spec's 0.5, failures twice as often, made a builder who takes every surge earn 7% less and go
     // broke 7 times in 12 against 1).
     surges: { enabled: true, length: 60, incomeFactor: 1.5, gapFactor: 0.75, fromHalls: 3 },
+    // Pass 8 spec 7 (M51): the pick of two after a clean CEO visit, and the rescue call the first
+    // time the cash goes below $0 (a funding round, once per run: `funding` at once, repaid at `rate`).
+    perks: { enabled: true, bulkRows: 6, bulkFactor: 0.5, fastSeconds: 120, fastBuild: 4, warrantySeconds: 90, loyalSeconds: 120, loyalFactor: 2, patientSeconds: 90 },
+    rescue: { enabled: true, funding: 2000, rate: 8 },
     // Pass 8 spec 5 (M48): busy and quiet spells. The director alternates a busy spell (its gaps times
     // `busyFactor`) with a quiet one in which it starts nothing new. A busy spell ends early after
     // `easeAfter` seconds with more outages open than free techs, or with a whole hall dark. The CEO is

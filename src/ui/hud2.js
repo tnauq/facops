@@ -3,6 +3,7 @@
 // "Hall 3 of 8" and how far the next hall's construction has got.
 
 import { promiseNote } from './promisesView.js';
+import { perkNote } from './perksView.js';
 import { buildProgress, buildingOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
@@ -62,7 +63,9 @@ export function moneyModel(state) {
 
 /** The HUD note's wordings, longest first: a promise (M49) first, then the loan, then the halls. */
 function noteWordings(state, extra) {
-  const promise = promiseNote(state);
+  // Pass 8: a surge or a held promise first, then a perk's countdown (M51), then the offers waiting.
+  const pn = promiseNote(state);
+  const promise = pn && !pn.long.startsWith('CEO:') ? pn : (perkNote(state) ?? pn);
   const base = noteBase(state, extra);
   if (!promise) return base;
   return [`${promise.long} · ${base[0]}`, `${promise.long} · ${base[base.length - 1]}`, promise.long, promise.short];

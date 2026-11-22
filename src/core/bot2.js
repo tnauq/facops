@@ -9,6 +9,7 @@ import { createRng } from './rng.js';
 import { assign, canFix, choose, createGame, creditsRate, fixDuration, getAlarm, incomeRate, onlineRows, postTech, postsOn, results, sell, setPriority, spareChillers, step, walkSpeed, walkDistance } from './game2.js';
 import { onlineHallIds } from './sites.js';
 import { takePromise } from './promises.js';
+import { callOpen, choosePerk, closeCall, takeFunding } from './perks.js';
 
 const otherHalf = (half) => (half === 't' ? 'b' : 't');
 const otherSide = (side) => (side === 'A' ? 'B' : 'A');
@@ -127,11 +128,13 @@ export function pickFor(state, policy = 'first') {
  * Play a whole run and return results(state) plus the final state.
  * `actionGap` is the shortest time between two commands; `maxSeconds` stops a run that never ends.
  */
-export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, posts = false, maxCrew = 9, chase = false, surges = false, maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
+export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, picks = 'first', policy = 'greedy', builder = null, buildGap = 1, seller = null, posts = false, maxCrew = 9, chase = false, surges = false, rescue = 'close', perks = 'first', maxSeconds = 1800, dt = 0.05, onStep = null } = {}) {
   // builder (pass 4, building mode): a scripted builder plan from builder.js ('builder', 'greedy',
   // 'nohire'), deciding every `buildGap` seconds.
   // policy: 'greedy' (gets ready for the CEO), 'blind' (ignores the CEO), 'random', or 'none' (never
   // gives an order: with auto-dispatch on, the crew runs itself; pass 4 M23).
+  // rescue (pass 8 M51): 'close' hangs up on the CEO's call; 'fund' takes the funding round first.
+  // perks (pass 8 M51): 'first' takes the first perk offered; 'none' never takes one.
   // posts (pass 8 spec 3.3): post the crew along the online halls every 10 s, priority on the busiest.
   // seller (pass 7 spec 3.6): { strikes, creditShare } hands over the keys as soon as the run has that
   // many strikes, or service credits pass that share of income, and the sale is allowed.
@@ -152,6 +155,19 @@ export function playRun({ seed = 1, config = {}, reaction = 1, actionGap = 0.8, 
       nextBuild = state.t + buildGap;
     }
     if (seller && !state.over && sellerWants(state, seller)) sell(state);
+    // Pass 8 (M51): every scripted player answers the CEO's call (taking the funding round if its
+    // plan says so) and takes a perk when offered ('first', or 'none' to decline by never choosing).
+    if (callOpen(state)) {
+      if (rescue === 'fund') takeFunding(state);
+      closeCall(state);
+    }
+    if (perks !== 'none' && state.perks && state.perks.offer) {
+      const perk = state.perks.offer[0];
+      const rows = (h) => onlineRows(state).filter((r) => r.hall === h).length;
+      const halls = onlineHallIds(state);
+      const hall = halls.length ? halls.reduce((a, b) => (rows(b) > rows(a) ? b : a)) : 1;
+      choosePerk(state, perk, hall);
+    }
     // Pass 8 (M49): a player who chases promises takes every offer it has room for.
     if (chase && state.promises && state.promises.offers.length > 0 && state.promises.held.length < state.config.building.promises.held) {
       takePromise(state, state.promises.offers[0].id);

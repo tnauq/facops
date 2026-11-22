@@ -50,6 +50,7 @@ export function ledger(state) {
     const left = loanLeft(state);
     now.push({ label: 'Loan repayment', value: perSecond(-p.loan), note: `${money(left)} left, paid off at ${formatClock(economyTime(state) + loanTimeLeft(state))}`, out: true });
   }
+  if (p.secondLoan > 0) now.push({ label: 'Second loan', value: perSecond(-p.secondLoan), note: `${money(state.rescue.loanLeft)} left`, out: true });
   now.push({ label: 'Site overhead', value: perSecond(-p.overhead), note: '', out: true });
   now.push({ label: 'Upkeep', value: perSecond(-p.upkeep), note: `${p.devices} devices`, out: true });
   now.push({ label: 'Wages', value: perSecond(-p.wages), note: `${p.crew} tech${p.crew === 1 ? '' : 's'}`, out: true });
@@ -62,7 +63,7 @@ export function ledger(state) {
   for (const h of state.promises?.held ?? []) {
     now.push({ label: `Promise: ${PROMISE_TITLE[h.key]}`, value: `+${money(h.payment)}`, note: `on delivery, ${formatClock(Math.ceil(Math.max(0, h.deadline - state.t)))} left`, out: false });
   }
-  const net = incomeTotal - (p.loan + p.overhead + p.upkeep + p.wages + p.credits);
+  const net = incomeTotal - (p.loan + p.overhead + p.upkeep + p.wages + p.credits + p.secondLoan);
 
   const st = state.stats;
   const parts = st.burnParts ?? { loan: 0, overhead: 0, upkeep: 0, wages: 0 };
@@ -79,6 +80,8 @@ export function ledger(state) {
     ['Wages', -parts.wages, true],
     ['Service credits', -(st.credits ?? 0), true],
     ['CEO fines', -(st.ceoFines ?? 0), true],
+    ['Second loan', st.funding ?? 0, false], // pass 8 (M51): the funding round
+    ['Second loan repaid', -(parts.secondLoan ?? 0), true],
   ];
   const start = b.startCash;
   const total = lines.reduce((sum, [, v]) => sum + v, start);
