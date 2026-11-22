@@ -17,7 +17,7 @@ import { promisesStep, surgeGaps, surgeIncome } from './promises.js';
 import { buildTimeNow, bulkFactor, callOpen, freeHire, loyalFactor, maybeCall, patient, repaySecondLoan, secondLoanRate, underWarranty, usedBulk, usedFreeHire } from './perks.js';
 import { areaOf, ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
-import { finishOn, winRun } from './finish.js';
+import { deadlineOn, finishOn, winRun } from './finish.js';
 import { alarmCost } from './cost.js';
 import { runningPumps, supply } from './supply.js';
 import { HALL_IDS, buildingOn, builtCdus, builtMsbs, dryCapacity, hallOnline, isBuilt, msbFed, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
@@ -1356,6 +1356,34 @@ function checkCommissioned(state, deliveredMw) {
   }
 }
 
+// ---------------------------------------------------------------- the board's deadline (pass 9 spec 4, M55)
+
+/** Seconds of economy time left before the deadline, or null with none running (off, or Commissioned in time). */
+export function deadlineLeft(state) {
+  if (!deadlineOn(state) || commissioned(state)) return null;
+  return Math.max(0, state.config.building.deadline.at - economyTime(state));
+}
+
+/** The deadline in run-clock seconds (as the HUD's clock counts), or null. */
+export const deadlineAt = (state) => (deadlineOn(state) ? (state.economyStart ?? 0) + state.config.building.deadline.at : null);
+
+// The CEO's countdown (the config's marks: 5:00 and 1:00 left), and the plug pulled once it runs out.
+function deadlineStep(state) {
+  const left = deadlineLeft(state);
+  if (left === null || state.over) return;
+  state.deadlineSaid ??= [];
+  for (const mark of state.config.building.deadline.marks ?? []) {
+    if (left <= mark + EPS && !state.deadlineSaid.includes(mark)) {
+      state.deadlineSaid.push(mark);
+      emit(state, 'deadlineSoon', { left: mark });
+    }
+  }
+  if (left > EPS) return;
+  state.over = true;
+  state.overReason = 'deadline';
+  emit(state, 'deadlineMissed', {});
+}
+
 /** Has the campus been Commissioned? */
 export const commissioned = (state) => state.commissionedAt !== null && state.commissionedAt !== undefined;
 
@@ -1682,6 +1710,7 @@ export function step(state, dt) {
     promisesStep(state); // pass 8 (M49): the CEO's offers and promises
     checkCommissioned(state, now.deliveredMw);
     if (!state.scripted) burn(state, dt);
+    if (!state.scripted) deadlineStep(state); // pass 9 (M55)
   }
 
   // Construction: the next hall comes on a timer, faster while the load is green. It waits while
@@ -1799,6 +1828,9 @@ export function results(state) {
     wonAt: state.won ? state.won.t - (buildingOn(state) ? state.economyStart ?? 0 : 0) : null,
     delivered: buildingOn(state) ? state.stats.delivered ?? 0 : 0,
     outcome: outcomeOf(state),
+    // Pass 9 (M55): the board's deadline, and how far the campus got.
+    missedDeadline: state.overReason === 'deadline',
+    rowsBuilt: buildingOn(state) ? onlineRows(state).length : 0,
   };
 }
 
@@ -1810,6 +1842,7 @@ function outcomeOf(state) {
   if (r === 'sold') return finishOn(state) ? 'soldEarly' : 'sold';
   if (r === 'bankrupt') return 'broke';
   if (r === 'ceo') return 'fired';
+  if (r === 'deadline') return 'deadline';
   return 'other';
 }
 

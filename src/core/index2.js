@@ -4,7 +4,7 @@ export { ALARMS2, DEFAULT_CONFIG2, TRADES, UPGRADES, YARD_ALARMS, gameDefaults2,
 export { createRng } from './rng.js';
 export { SAVE_VERSION, loadGame, saveGame } from './save.js';
 export { AREAS, postPoint } from './posts.js';
-export { finishOn, won } from './finish.js';
+export { deadlineOn, finishOn, won } from './finish.js';
 export { PERKS, callOpen, choosePerk, closeCall, perksOn, perksRunning, rescueOn, takeFunding } from './perks.js';
 export { cancelPromise, delivered, promiseLeft, promisesOn, surgeIncome, surgesOn, surging, takePromise } from './promises.js';
 export * from './layout2.js';
@@ -89,6 +89,8 @@ export {
   pumpNeeds,
   // Pass 5 spec 5 (M34): the win.
   cannotSell,
+  deadlineAt,
+  deadlineLeft,
   commissioned,
   milestone,
   salePrice,

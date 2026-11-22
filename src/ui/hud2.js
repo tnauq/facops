@@ -4,7 +4,7 @@
 
 import { promiseNote } from './promisesView.js';
 import { perkNote } from './perksView.js';
-import { buildProgress, buildingOn, finishOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
+import { buildProgress, buildingOn, deadlineAt, deadlineLeft, finishOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
 
@@ -61,8 +61,30 @@ export function moneyModel(state) {
   };
 }
 
-/** The HUD note's wordings, longest first: a promise (M49) first, then the loan, then the halls. */
+/**
+ * Pass 9 (M55): the board's deadline for the note: "Due 16:00" (the run's clock), or from 5:00 left
+ * "3:12 left", with `urgent` set; null when there is none running.
+ */
+export function deadlineNote(state) {
+  const left = deadlineLeft(state);
+  if (left === null) return null;
+  const urgent = left <= (state.config.building.deadline.marks?.[0] ?? 300);
+  return { text: urgent ? `${formatClock(Math.ceil(left))} left` : `Due ${formatClock(deadlineAt(state))}`, urgent };
+}
+
+/** The HUD note's wordings, longest first, with the deadline (M55). */
 function noteWordings(state, extra) {
+  const list = noteWordingsBase(state, extra);
+  const d = deadlineNote(state);
+  if (!d) return list;
+  // In the last minutes the deadline leads, and is all a narrow phone shows. Before then it trails the
+  // longer wordings (the note is fitted longest first), so the shortest wording stays the usual one.
+  if (d.urgent) return [...list.map((w) => `${d.text} · ${w}`), d.text];
+  return [...list.slice(0, -1).map((w) => `${w} · ${d.text}`), list[list.length - 1]];
+}
+
+/** The HUD note's wordings, longest first: a promise (M49) first, then the loan, then the halls. */
+function noteWordingsBase(state, extra) {
   // Pass 8: a surge or a held promise first, then a perk's countdown (M51), then the offers waiting.
   const pn = promiseNote(state);
   const promise = pn && !pn.long.startsWith('CEO:') ? pn : (perkNote(state) ?? pn);

@@ -122,12 +122,57 @@ The owner approved `docs/pass9-spec.md` (version 0.2) on 22 November 2026: a run
 | Milestone | Tag | Status |
 |---|---|---|
 | M54. The win and the score | `m54` | Done |
-| M55. The board's deadline | `m55` | |
+| M55. The board's deadline | `m55` | Done |
 | M56. Free play | `m56` | |
 | M57. Progress and support | `m57` | |
 | M58. The balance check | `m58` | |
 
 ## Log
+
+### M55. The board's deadline
+
+Pass 9 spec 4.
+
+Built:
+
+- **Rules** (game2.js, finish.js; config `building.deadline: { enabled: true, at: 960, marks: [300, 60] }`). `SAVE_VERSION` is `m55`.
+  - **The campus is due at 16:00** of economy time (the Handover's clock), set at the start. If it isn't Commissioned by then, the run ends: "The board pulled the plug", a loss, scored on the compute delivered. Event `deadlineMissed`.
+  - **Commissioned in time stops the clock**, so the last inspection may finish after 16:00 and still wins.
+  - The CEO counts down at the config's marks (5:00 and 1:00 left). Event `deadlineSoon`.
+  - Only with the win at the finish on. `deadlineLeft`, `deadlineAt`, `deadlineOn` for the screen. `results()` gains `missedDeadline` and `rowsBuilt`; outcome `'deadline'`.
+  - Drawer: "Board deadline" and "Board deadline (min)".
+- **Screen:**
+  - **The HUD's note** ends with "Due 16:00" (in the run's clock: later after a tutorial). From 5:00 left it leads instead, "4:58 left", and on a narrow phone it is all the note shows.
+  - **The CEO's countdown** as callouts: "The board wants this live in five minutes." and "One minute. I've already told the board it's done." (They wait out a CEO warning, as every callout does.)
+  - **The run-over card:** "Missed the deadline", how far the campus got ("Campus · 41 of 48 rows"), and the CEO's "The board pulled the plug. I was never here."
+- `scripts/pacing4.mjs` adds a "missed the deadline" count to the endings.
+- **Tests:** 6 in `tests/deadline.test.js`. The strikes and wrench tests, which run CEO visits well past 16:00, now switch the deadline off and say so. 646 in all.
+
+**One change from the spec:** the date is in the HUD's note, not beside the clock. The clock's corner is 56 px wide and holds the CEO's hardhats under the clock once strikes begin, and neither "0:42 · due 16:00" nor a second line fits. The note shows "Due 16:00" from the first second (it is there in the screenshots at 844 px), and leads with the time left once it matters. No intro line at the start: the note says it.
+
+Checks (12 seeds):
+
+| Player | Won (median at) / missed the deadline / broke | Score |
+|---|---|---|
+| Compute first | 10 (13:19) / 0 / 2 | $60,353 |
+| Also gets ready for the CEO | 11 (12:56) / 0 / 1 | $61,107 |
+| Never hires | 1 (13:00) / 2 / 9 | $43,081 |
+| Never a backup | 6 (12:39) / 3 / 3 | $59,730 |
+| Uses every pass 8 tool | 12 (6:59) / 0 / 0 | $52,882 |
+| Uses no pass 8 tool | 12 (13:25) / 0 / 0 | $66,987 |
+
+- **Compute first finishes before the deadline in most runs:** met (none missed).
+- **Never hires misses the deadline more often than it goes broke: not met** (2 against 9). It runs out of money at about 11:00, before any deadline would catch it: at 13:00 it misses 4 and goes broke 7 times, at 12:00 the same, while compute first starts missing too (1, then 2). The deadline stays at the spec's 16:00; M58 has it as its second lever, after promise payments.
+- Never a backup now loses as often to the deadline as to the money (3 and 3).
+
+Worth knowing:
+
+- Checked in headless Chrome at 844 x 390 and 660 x 300, with the clock moved on: "Due 16:00" from the start, "4:58 left" (alone on the narrow phone), and the run-over card after the plug is pulled. No console errors.
+
+Owner's checklist:
+
+- From the first minute, you know when the campus is due.
+- When a run misses the deadline, you can see where the time went.
 
 ### M54. The win and the score
 

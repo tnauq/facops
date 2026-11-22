@@ -5,6 +5,9 @@
 /** Is the win at the finish in play? Building mode, switched on. */
 export const finishOn = (state) => Boolean(state.config.building && state.config.building.enabled && state.config.building.finish && state.config.building.finish.enabled);
 
+/** Is the board's deadline in play? With the win at the finish, switched on. */
+export const deadlineOn = (state) => finishOn(state) && Boolean(state.config.building.deadline && state.config.building.deadline.enabled);
+
 /** Has the run been won? */
 export const won = (state) => Boolean(state.won);
 

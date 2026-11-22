@@ -34,6 +34,7 @@ const anyB = (state) => EQUIPMENT.some((e) => e.type === 'msb' && e.side === 'B'
 export function partingLine(state, r) {
   if (r.won) return "Fine. It's finished. I'll take it from here."; // pass 9 (M54)
   if (r.sold && r.finish) return 'Sold before it was finished. Bold. Also, sold.';
+  if (r.missedDeadline) return 'The board pulled the plug. I was never here.'; // pass 9 (M55)
   if (r.sold && r.commissioned) return "Pleasure doing business. Don't call me.";
   if (r.firedByCeo && !anyB(state)) return 'Not one backup. Bold. Also, fired.';
   const idle = r.firedByCeo ? idleBackupSpend(state) : 0;

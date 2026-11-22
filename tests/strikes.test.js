@@ -27,7 +27,7 @@ function stepUntil(s, done, limit = 900) {
 function building(config = {}) {
   const s = createGame({
     seed: 1,
-    config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ...config, building: { enabled: true, startCash: 20000, burn: NO_BURN } },
+    config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ...config, building: { enabled: true, startCash: 20000, burn: NO_BURN, deadline: { enabled: false, at: 960, marks: [] } } }, // pass 9 (M55): strikes run past the board's deadline here
   });
   for (const id of [...chain(2, 't'), 'cdu-2-t']) build(s, id);
   advance(s, 8.2);

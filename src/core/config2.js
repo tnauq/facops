@@ -156,6 +156,10 @@ export const DEFAULT_CONFIG2 = {
     // Pass 9 spec 3.1 (M54): the run is won at the finish (Commissioned, then the last inspection), and
     // the score is the compute delivered, in dollars. Off, a run plays and scores as in pass 8.
     finish: { enabled: true },
+    // Pass 9 spec 4 (M55): the board's deadline. Commissioned by `at` seconds of economy time (the
+    // Handover's clock), or the board pulls the plug: a loss. Needs the win at the finish.
+    // `marks`: seconds left at which the CEO counts down (spec 4.1: 5:00 and 1:00).
+    deadline: { enabled: true, at: 960, marks: [300, 60] },
     // Pass 7 spec 3.2 (M41, owner 17 Nov): service credits. Customers go live when the construction
     // loan is paid off (at once when there is no loan). From then every online rack row that is short of
     // full output costs `rate` dollars a second for each row short, doubling every `doubling` seconds

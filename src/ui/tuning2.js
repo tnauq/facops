@@ -138,6 +138,11 @@ export const TUNING2_FIELDS = [
   // Pass 9 spec 3 (M54).
   { id: 'finishOn', label: 'Win at the finish', kind: 'toggle',
     get: (c) => c.building.finish.enabled, set: (o, v) => setNested('finish')(o, 'enabled', v) },
+  // Pass 9 spec 4 (M55).
+  { id: 'deadlineOn', label: 'Board deadline', kind: 'toggle',
+    get: (c) => c.building.deadline.enabled, set: (o, v) => setNested('deadline')(o, 'enabled', v) },
+  { id: 'deadlineAt', label: 'Board deadline (min)', kind: 'range', min: 8, max: 30, step: 1,
+    get: (c) => c.building.deadline.at / 60, set: (o, v) => setNested('deadline')(o, 'at', v * 60) },
   // Pass 8 spec 7 (M51).
   { id: 'perksOn', label: 'Pick of two after a clean visit', kind: 'toggle',
     get: (c) => c.building.perks.enabled, set: (o, v) => setPerks(o, 'enabled', v) },

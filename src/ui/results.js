@@ -95,6 +95,8 @@ export function resultsPanel(r, record, formatClock) {
     big[1] = r.won ? { value: formatClock(r.wonAt), label: 'finished in' } : { value: MILESTONE[r.milestone] ?? 'None', label: 'reached' };
     if (r.won) big[2] = { value: `${r.energyGwh.toFixed(2)} GWh`, label: 'delivered · 8 of 8 halls' };
     if (r.sold) lines[0] = ['Sale', `The buyer paid ${dollars(r.salePrice)}`];
+    // Pass 9 (M55): how far the campus got before the board pulled the plug.
+    if (r.missedDeadline) lines.splice(0, 0, ['Campus', `${r.rowsBuilt} of 48 rows`]);
   }
   if (r.building) {
     if (!Number.isFinite(r.score)) big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
@@ -112,6 +114,6 @@ export function resultsPanel(r, record, formatClock) {
   // Pass 5 spec 4.2: the minute of each strike.
   if (r.strikes > 0) lines.splice(r.building ? 1 : 0, 0, ['Strikes', `${r.strikes} of ${r.strikesToFire} · ${r.strikeTimes.map(formatClock).join(', ')}`]);
   // The card's heading: who ended the run.
-  const title = r.won ? 'Campus handed over' : r.sold && r.finish ? 'Sold early' : r.sold ? (r.commissioned ? 'Commissioned and sold' : 'Sold') : r.firedByCeo ? firedTitle(r) : r.bankrupt ? (r.brokeOnCredits ? 'Went broke: service credits' : 'Went broke') : 'Round over';
+  const title = r.won ? 'Campus handed over' : r.missedDeadline ? 'Missed the deadline' : r.sold && r.finish ? 'Sold early' : r.sold ? (r.commissioned ? 'Commissioned and sold' : 'Sold') : r.firedByCeo ? firedTitle(r) : r.bankrupt ? (r.brokeOnCredits ? 'Went broke: service credits' : 'Went broke') : 'Round over';
   return { big, lines, bestLine, title };
 }

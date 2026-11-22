@@ -11,7 +11,7 @@
 // a line once each, in every building run like the loan line: they are new rules, and a player who
 // learned the game before them skips the tutorial.
 
-import { buildingOn, cannotSell, creditsOn, finishOn, creditsRate, incomeRate, postsOn, strikesToFire } from '../core/index2.js';
+import { buildingOn, cannotSell, creditsOn, deadlineLeft, finishOn, formatClock, creditsRate, incomeRate, postsOn, strikesToFire } from '../core/index2.js';
 import { anyHallAffordable } from './bundles.js';
 
 export const INTRO_SECONDS = 6;
@@ -31,6 +31,9 @@ export const INTRO_TEXT = {
   sale: "You can sell the campus from the menu. Buyers pay for what it earns, so sell while it's running well.",
   // Pass 9 spec 3.2 (M54): at the Handover, with the win at the finish, in place of the sale's line.
   finish: "Get all 48 rows running at once and the CEO signs it off. That's the win.",
+  // Pass 9 spec 4.1 (M55): the CEO's countdown, at the config's marks (5:00 and 1:00 left).
+  deadline300: '“The board wants this live in five minutes.”',
+  deadline60: "“One minute. I've already told the board it's done.”",
   creditsOver: 'Credits are outrunning your income. Fix outages, or sell while you can.',
   // Pass 7 spec 4.1 (M42): at the first uptime bonus.
   uptime: '', // the line names the configured bonus (uptimeText below)
@@ -86,6 +89,12 @@ export function updateIntros(intros, state) {
   if (state.loanPaidAt !== null && state.loanPaidAt !== undefined && !intros.given.has('loan')) {
     intros.given.add('loan');
     intros.queue.push({ type: 'loan', id: null });
+  }
+  // Pass 9 (M55): the CEO's countdown as it comes. (The HUD's note shows the date from the start.)
+  for (const mark of state.deadlineSaid ?? []) {
+    if (intros.given.has(`deadline${mark}`) || deadlineLeft(state) === null) continue;
+    intros.given.add(`deadline${mark}`);
+    intros.queue.unshift({ type: `deadline${mark}`, id: null }); // ahead of any other line
   }
   // Pass 7 (M41): the sale, once the Handover has come; credits passing income, once.
   if (state.handoverQueued && !intros.given.has('sale') && cannotSell(state) !== 'off') {
@@ -147,7 +156,9 @@ export function updateIntros(intros, state) {
     intros.text = next.type === 'strikes' ? strikesText(strikesToFire(state)) : next.type === 'noWater' ? waterText(next.hall)
       : next.type === 'uptime' ? uptimeText(state.config.building.uptime.bonus)
       : next.type === 'loan' && creditsOn(state) ? CUSTOMERS_TEXT
-      : next.type === 'sale' && finishOn(state) ? INTRO_TEXT.finish : INTRO_TEXT[next.type];
+      : next.type === 'sale' && finishOn(state) ? INTRO_TEXT.finish
+      : next.type.startsWith('deadline') ? INTRO_TEXT[next.type] ?? `“${formatClock(Number(next.type.slice(8)))} left.”`
+      : INTRO_TEXT[next.type];
     intros.ids = state.alarms.some((a) => a.id === next.id) ? [next.id] : [];
     intros.until = state.t + (next.type === 'loan' && !creditsOn(state) ? NOTICE_SECONDS : INTRO_SECONDS);
     // The strikes line must be gone before the first strike visit's warning (45 s away at least).

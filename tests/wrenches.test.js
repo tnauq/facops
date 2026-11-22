@@ -7,7 +7,7 @@ import { createGame, step } from '../src/core/index2.js';
 const NO_BURN = { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 };
 
 function strikeVisitWithWrench(ceo = {}, techOnIt = false) {
-  const s = createGame({ seed: 4, config: { tutorial: false, autoDispatch: { enabled: false, delay: 1 }, director: { enabled: false }, ceo: { strikeGap: [1, 1], ...ceo }, building: { enabled: true, startCash: 1e6, burn: NO_BURN, credits: { rate: 0, doubling: 0 }, handoverAt: 1 } } });
+  const s = createGame({ seed: 4, config: { tutorial: false, autoDispatch: { enabled: false, delay: 1 }, director: { enabled: false }, ceo: { strikeGap: [1, 1], ...ceo }, building: { enabled: true, startCash: 1e6, burn: NO_BURN, credits: { rate: 0, doubling: 0 }, handoverAt: 1, deadline: { enabled: false, at: 960, marks: [] } } } }); // pass 9 (M55): past the deadline
   s.ceoWalks = s.config.ceo.walks.length; // the next walkthrough is a strike visit
   s.economyStart = -5000; // late in the run
   // A wrench on Hall 1's top switchboard, about to fail, kept so as the CEO walks.
