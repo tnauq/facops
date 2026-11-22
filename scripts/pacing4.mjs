@@ -17,6 +17,8 @@ const PLAYERS = [
   ['slow builder (decides every 4 s)', { builder: 'builder', policy: 'none', buildGap: 4 }],
   // Pass 8 (M47/M48): a player who posts its crew, so warnings are caught and wrenches rarely seen.
   ['builder that posts its crew (compute first, posts along the halls)', { builder: 'builder', policy: 'none', posts: 'nopriority' }],
+  // Pass 8 (M49): a player who takes every promise it has room for.
+  ['builder that chases promises (compute first, takes every offer)', { builder: 'builder', policy: 'none', chase: true }],
   // Pass 7 spec 3.6: two players who hand over the keys.
   ['bold seller (compute first; sells at 2 strikes or credits over 60% of income)', { builder: 'builder', policy: 'none', seller: { strikes: 2, creditShare: 0.6 } }],
   ['cautious seller (gets ready for the CEO; sells at 2 strikes or credits over 30% of income)', { builder: 'builder', policy: 'greedy', seller: { strikes: 2, creditShare: 0.3 } }],

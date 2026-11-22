@@ -171,6 +171,22 @@ export const DEFAULT_CONFIG2 = {
     // M47's checks: 20 s (the spec's 10 s caught under a third), and warnings do not hold a place under
     // the director's cap (`capCounts` true made runs much longer): see docs/PROGRESS.md.
     warnings: { enabled: true, warnFor: 20, checkTime: 2, capCounts: false },
+    // Pass 8 spec 6.1 (M49): the CEO's promises. Up to `offers` offers wait, one more every `offerGap`
+    // seconds, each replaced after `offerLife`; up to `held` are held. Windows in seconds; moreMw pays
+    // `seconds` of the target load's income up front and again on delivery. quietFloor: no dark half
+    // and no service credits for `quietFor` seconds, within its window.
+    promises: {
+      enabled: true, offers: 3, held: 2, offerGap: 30, offerLife: 60, quietFor: 120,
+      table: {
+        lightsOn: { window: 120, advance: 150, payment: 250 },
+        hallTwo: { window: 120, advance: 300, payment: 300 },
+        moreMw: { window: 150, seconds: 15 },
+        belt: { window: 180, advance: 350, payment: 400 },
+        spare: { window: 180, advance: 300, payment: 300 },
+        oneOfEach: { window: 180, advance: 200, payment: 200 },
+        quietFloor: { window: 180, advance: 0, payment: 600 },
+      },
+    },
     // Pass 8 spec 5 (M48): busy and quiet spells. The director alternates a busy spell (its gaps times
     // `busyFactor`) with a quiet one in which it starts nothing new. A busy spell ends early after
     // `easeAfter` seconds with more outages open than free techs, or with a whole hall dark. The CEO is

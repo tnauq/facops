@@ -36,6 +36,8 @@ export const INTRO_TEXT = {
   bundles: "Tap a hall's name to buy what it needs in one go.",
   // Pass 8 spec 3.2 (M46): once, when the crew reaches four.
   posts: 'Tap a tech, then a hall on the strip, to post them there.',
+  // Pass 8 spec 6.2 (M49): at the first offer.
+  promises: 'The CEO makes promises to the board. Take one for cash now and more when you deliver.',
   // Pass 8 spec 4.2 (M47): at the first warning.
   warning: 'A wrench means a device is about to fail. A tech who gets there in time stops it.',
   // Pass 5 spec 4.3: once, as the last walkthrough before the strikes leaves (strikesText below).
@@ -92,7 +94,11 @@ export function updateIntros(intros, state) {
     intros.given.add('bundles');
     intros.queue.push({ type: 'bundles', id: null });
   }
-  // The screen's hints (`bundles` on): the first warning; posts once the crew is four.
+  // The screen's hints (`bundles` on): the first promise offer; the first warning; posts at four techs.
+  if (intros.bundles && !intros.given.has('promises') && (state.promises?.offers.length ?? 0) > 0) {
+    intros.given.add('promises');
+    intros.queue.push({ type: 'promises', id: null });
+  }
   if (intros.bundles && !intros.given.has('warning') && (state.warnings ?? []).length > 0) {
     intros.given.add('warning');
     intros.queue.push({ type: 'warning', id: null });

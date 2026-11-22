@@ -5,6 +5,7 @@
 import {
   EQUIPMENT_BY_ID, burnParts, creditPerRow, creditsOn, customersLiveAt, economyTime, formatClock, loanLeft, loanTimeLeft, onlineHallIds, onlineRows,
 } from '../core/index2.js';
+import { TITLE as PROMISE_TITLE } from './promisesView.js';
 
 const money = (n) => `${n < -0.005 ? '−' : ''}$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
 const perSecond = (n) => `${n < -0.005 ? '−' : n > 0.005 ? '+' : ''}$${Math.abs(n).toFixed(2)}/s`;
@@ -57,14 +58,19 @@ export function ledger(state) {
     const note = next === null ? `from ${formatClock(customersLiveAt(state))}, for racks that are down` : `${money(creditPerRow(state))}/s a row short, doubles in ${formatClock(next)}`;
     now.push({ label: 'Service credits', value: perSecond(-p.credits), note, out: true });
   }
+  // Pass 8 (M49): held promises, with what they pay on delivery.
+  for (const h of state.promises?.held ?? []) {
+    now.push({ label: `Promise: ${PROMISE_TITLE[h.key]}`, value: `+${money(h.payment)}`, note: `on delivery, ${formatClock(Math.ceil(Math.max(0, h.deadline - state.t)))} left`, out: false });
+  }
   const net = incomeTotal - (p.loan + p.overhead + p.upkeep + p.wages + p.credits);
 
   const st = state.stats;
   const parts = st.burnParts ?? { loan: 0, overhead: 0, upkeep: 0, wages: 0 };
   const uptime = st.uptime ?? 0;
   const lines = [
-    ['Earned from racks', st.earned - uptime, false],
+    ['Earned from racks', st.earned - uptime - (st.promises ?? 0), false],
     ['Uptime bonuses', uptime, false],
+    ['Promises', st.promises ?? 0, false], // pass 8 (M49): advances and payments, less advances handed back
     ['Spent on building', -(st.spentBuild ?? 0), true],
     ['Spent on hiring and upgrades', -(st.spentCrew ?? 0), true],
     ['Loan repaid', -parts.loan, true],

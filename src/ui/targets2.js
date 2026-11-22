@@ -1,7 +1,7 @@
 // Tap targets for the pass 2 game: HUD buttons, crew cards, tickets, then what is on the scrolling
 // map. Pure. Bubbles and techs are only targets while they are inside the map region.
 
-import { EQUIPMENT_BY_ID, buildingOn } from '../core/index2.js';
+import { EQUIPMENT_BY_ID, buildingOn, promisesOn } from '../core/index2.js';
 import { cameraView } from './camera.js';
 import { BUBBLE_RAISE } from './bubbles.js';
 import { fannedCrew } from './crew.js';
@@ -55,6 +55,13 @@ export function railTargets2(state, regs, crewColumns, railFirst = 0, railCompac
   const tickets = rail.tickets.map(rectOf);
   // Pass 7 (M45): in building mode the cash readout is a button too: it opens the ledger.
   const cash = buildingOn(state) ? [cashTarget(regs.hud.w)] : [];
+  // Pass 8 (M49): with promises in play, the HUD's note is a button too: it opens the promises card.
+  const hudButtons = hudButtonTargets(regs.hud.w, { speedButtons });
+  if (promisesOn(state)) {
+    const l = hudLayout(regs.hud.w);
+    const right = Math.min(...hudButtons.map((b) => b.x));
+    if (right - l.note.x >= 44) cash.push({ id: 'promises', x: l.note.x, y: 0, w: right - l.note.x, h: BUTTON_TAP_HEIGHT });
+  }
   return {
     buttons: [...hudButtonTargets(regs.hud.w, { speedButtons }).map((b) => trimAbove(b, tickets)), ...cash],
     cards: crewCards(state, regs.crew, null, { columns: crewColumns, hire: buildingOn(state) }).map(rectOf),

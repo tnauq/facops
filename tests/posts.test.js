@@ -119,6 +119,7 @@ test('screen: the crew card shows the post, a walking-back tech reads as Walking
   assert.equal(card.status, 'Walking');
   const intros = createIntros({ devices: false, bundles: true });
   intros.given.add('bundles');
+  intros.given.add('promises'); // M49's hint at the first offer: not what this test is about
   assert.equal(updateIntros(intros, s), '');
   hire(s, 'network');
   hire(s, 'ce');

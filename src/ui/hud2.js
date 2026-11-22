@@ -2,6 +2,7 @@
 // so the same drawing code paints it: the load in MW against online capacity, and a note with
 // "Hall 3 of 8" and how far the next hall's construction has got.
 
+import { promiseNote } from './promisesView.js';
 import { buildProgress, buildingOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
@@ -59,8 +60,15 @@ export function moneyModel(state) {
   };
 }
 
-/** The HUD note's wordings, longest first: the loan (while owed) ahead of the halls online. */
+/** The HUD note's wordings, longest first: a promise (M49) first, then the loan, then the halls. */
 function noteWordings(state, extra) {
+  const promise = promiseNote(state);
+  const base = noteBase(state, extra);
+  if (!promise) return base;
+  return [`${promise.long} · ${base[0]}`, `${promise.long} · ${base[base.length - 1]}`, promise.long, promise.short];
+}
+
+function noteBase(state, extra) {
   const halls = `${state.halls} hall${state.halls === 1 ? '' : 's'} online`;
   const short = `${state.halls}/8 halls`;
   const owed = loanLeft(state);
@@ -93,7 +101,7 @@ export function hudModel2(state, { auto = false } = {}) {
       money: moneyModel(state),
       note,
       noteShort: shorter[0],
-      noteShorter: shorter[1] ?? shorter[0],
+      noteShorter: shorter.at(-1), // the shortest wording (M49: a promise's time left, "1:50")
       strikes: strikesModel(state),
     };
   }

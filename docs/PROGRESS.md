@@ -109,13 +109,54 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M46. Posts and the priority area | `m46` | Done (on since M47) |
 | M47. Warnings before failures | `m47` | Done |
 | M48. Busy and quiet spells | `m48` | Done (on since the owner's choices after M48) |
-| M49. The CEO's promises | `m49` | |
+| M49. The CEO's promises | `m49` | Done |
 | M50. Surges | `m50` | |
 | M51. The pick of two and the rescue call | `m51` | |
 | M52. Layers | `m52` | |
 | M53. The balance check | `m53` | |
 
 ## Log
+
+### M49. The CEO's promises
+
+Pass 8 spec 6.1 to 6.4.
+
+Built:
+
+- **Rules** (`src/core/promises.js`, called from `step`; config `building.promises`, the spec's table as starting values).
+  - The CEO **offers**: up to three wait, one more every 30 s, each replaced at once after 60 s (or when it comes true by itself). Up to **two held**.
+  - The first offers are the **build order**: Lights on, then Hall two. Then any; from the third hall online, growth and protection offers alternate. An offer is never already true. None during a CEO visit, none while the tutorial's lessons run.
+  - **Accepting** pays the advance and starts the deadline; **delivering** pays the rest; **missing or cancelling** hands the advance back, with nothing more (it can put the cash in the red). Promise money counts as money earned and in the score (`stats.promises`, net of advances handed back).
+  - More megawatts asks for a quarter more rack rows online (at least one more) and pays 15 s of that load's income each way. Quiet floor pays once 2:00 pass with no dark half-hall and no service credits.
+  - Offers are drawn with their own seeded generator, so a run's alarms are the same whether or not promises are taken. Commands `takePromise`, `cancelPromise`; events `promiseOffered`, `promiseTaken`, `promiseKept`, `promiseMissed`, `promiseCancelled`. `SAVE_VERSION` is `m49`.
+- **Screen** (`src/ui/promisesView.js`):
+  - **The HUD's note** leads with the nearest promise and its time left ("Hall two · 1:12"), or "CEO: 2 offers"; on a narrow phone, "1:12" or "CEO 2". The note is a 44 px button.
+  - **The promises card** (holds the game): held promises with what they ask, time left, what they pay, and "Cancel · hand back $150"; then the offers with what they ask, the window, "$150 now, $250 on delivery" and Accept (greyed with two held). The card stays open as you accept or cancel.
+  - Introduction at the first offer: "The CEO makes promises to the board. Take one for cash now and more when you deliver."
+  - **Ledger:** each held promise under "Now" with what it pays; "Promises" in the run so far (racks' earnings no longer include it). **Results:** "Promises: 2 kept, 1 missed · $1,050".
+  - Drawer: "The CEO's promises". The HUD's shortest wording is now the last one offered, so the time left shows on a 660 px screen.
+- `playRun` takes `chase` (take every offer there is room for); `scripts/pacing4.mjs` adds a builder that chases promises.
+- **Tests:** 9 new in `tests/promises.test.js`; the posts hint test leaves out the promise hint. 598 in all.
+
+Checks (12 seeds):
+
+| Player | Median run (range) | Score | Sold / fired / broke early / broke later |
+|---|---|---|---|
+| Compute first, ignores promises | 20:11 (16:30 to 21:56) | $132,615 | 0 / 11 / 0 / 1 |
+| Compute first, chases promises | 17:21 (2:23 to 23:15) | $155,703 | 0 / 10 / 1 / 1 |
+
+- Chasing promises earns **17% more**: **met** (at least 15%).
+- No other scripted player takes promises, and offers use their own generator, so pass 8's standing targets are exactly as after M48 (20:11; 50% / 31% / 19%).
+- One chasing run went broke at 2:23: it took Lights on and Hall two together, spent the advances, and missed both. Taking a promise is a real money decision, as the spec wants.
+
+Worth knowing:
+
+- Checked in headless Chrome at 844 x 390 and 660 x 300: "CEO 2" in the HUD, the card from a tap on the note, Lights on accepted (held, with its Cancel), Hall two on offer. No console errors.
+
+Owner's checklist:
+
+- The first offers tell you what to do next.
+- Taking a promise feels like a real decision about money.
 
 ### After M48: wrenches count, and spells switched on
 

@@ -67,7 +67,9 @@ import { markerAt } from './ui/offmap.js';
 import { advisorSpot } from './ui/advisor.js';
 import { drawAdvisor } from './render/advisor.js';
 import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
-import { setBundles, setLedger } from './render/overlays.js';
+import { setBundles, setLedger, setPromises } from './render/overlays.js';
+import { cancelPromise, takePromise } from './core/index2.js';
+import { promisesCard, promisesLine } from './ui/promisesView.js';
 import { postTech, postsOn, setPriority } from './core/index2.js';
 import { areaAtStrip, flagTarget, postFor, stripPins, stripWithFlag } from './ui/postsView.js';
 import { drawPostsOnStrip } from './render/posts.js';
@@ -280,7 +282,8 @@ function pressButton(id) {
   if (id === 'hold') held = !held;
   else if (id === 'speed') speed = speed === 1 ? 2 : 1;
   else if (id === 'settings') act('pause');
-  else if (id === 'cash') act('ledger'); // pass 7 (M45): the cash opens the ledger // the gear opens the pause menu, which has Settings (pass 6 M37)
+  else if (id === 'cash') act('ledger'); // pass 7 (M45): the cash opens the ledger
+  else if (id === 'promises') act('promises'); // pass 8 (M49): the note opens the CEO's promises // the gear opens the pause menu, which has Settings (pass 6 M37)
   else act('pause');
   draw();
 }
@@ -311,6 +314,25 @@ function act(action) {
     const b = bundleCard(round.state, round.bundleHall).bundles.find((x) => x.key === action.slice(7));
     if (buyBundle(round.state, b).ok) act('continue');
     else showBundles();
+    return;
+  }
+  // Pass 8 (M49): the promises card; accepting or cancelling keeps it open, showing the change.
+  if (action.startsWith('promise-')) {
+    if (mode !== 'promises') return;
+    const id = Number(action.split('-').pop());
+    if (action.startsWith('promise-take-')) takePromise(round.state, id);
+    else cancelPromise(round.state, id);
+    setPromises(promisesCard(round.state));
+    draw();
+    return;
+  }
+  if (action === 'promises') {
+    if (mode !== 'playing') return;
+    mode = reduceFlow(mode, 'promises').mode;
+    setPromises(promisesCard(round.state));
+    showOverlay('promises');
+    round.selection = NOTHING;
+    draw();
     return;
   }
   if (action === 'ledger') {
@@ -417,6 +439,8 @@ function roundOver() {
   // numbers, and the card adds the ledger's run so far.
   if (r.building) {
     panel.quote = `“${partingLine(round.state, r)}”`;
+    const promised = promisesLine(round.state); // pass 8 (M49)
+    if (promised) panel.lines.push(['Promises', promised]);
     panel.lines.push(...soFarLines(round.state));
   }
   setResults(panel);

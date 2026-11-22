@@ -268,3 +268,40 @@ export function setLedger(model) {
   fill('ledger-now', [...model.now, { label: 'Net', value: model.netText, out: false }]);
   fill('ledger-sofar', [{ label: 'Starting cash', value: model.startText }, ...model.soFar.filter((x) => Math.abs(x.raw) >= 0.5), { label: 'Cash now', value: model.cashText }]);
 }
+
+/** The promises card (pass 8 spec 6.2): model from promisesCard(...) in src/ui/promisesView.js. */
+export function setPromises(model) {
+  const card = (lines, button) => {
+    const box = document.createElement('div');
+    box.className = 'p';
+    const [title, ...rest] = lines;
+    const t = document.createElement('strong');
+    t.textContent = title;
+    box.append(t);
+    for (const line of rest) {
+      const sp = document.createElement('span');
+      sp.textContent = line;
+      box.append(sp);
+    }
+    box.append(button);
+    return box;
+  };
+  const held = document.getElementById('promises-held');
+  held.textContent = '';
+  for (const h of model.held) {
+    const b = document.createElement('button');
+    b.dataset.action = `promise-cancel-${h.id}`;
+    b.textContent = h.cancel;
+    held.append(card([h.title, h.asks, `${h.left} · ${h.pays}`], b));
+  }
+  const offers = document.getElementById('promises-offers');
+  offers.textContent = '';
+  for (const o of model.offers) {
+    const b = document.createElement('button');
+    b.dataset.action = `promise-take-${o.id}`;
+    b.className = 'primary';
+    b.textContent = o.take;
+    b.disabled = !o.canTake;
+    offers.append(card([o.title, o.asks, `${o.within} · ${o.money}`], b));
+  }
+}

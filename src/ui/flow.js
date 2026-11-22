@@ -3,7 +3,7 @@
 // mode is 'playing'. Pass 6 (M37): the start card is the main menu ('menu'), and a Settings card
 // opens from the menu and the pause menu.
 
-export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver', 'ledger'];
+export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver', 'ledger', 'promises'];
 
 // The tuning drawer opens from the start, pause and round-over cards, and from the HUD's settings
 // button during play. Done goes back to the card it came from; from play it goes to the pause card
@@ -33,7 +33,10 @@ const TABLE = {
     commissioned: { mode: 'commissioned', newRound: false }, // pass 5: the Commissioned card
     bundles: { mode: 'bundles', newRound: false }, // pass 7 (M43): a hall's bundles
     ledger: { mode: 'ledger', newRound: false }, // pass 7 (M45): the ledger, from the cash
+    promises: { mode: 'promises', newRound: false }, // pass 8 (M49): the CEO's promises, from the note
   },
+  // Pass 8 (M49): the promises card holds the game; Close carries on.
+  promises: { continue: { mode: 'playing', newRound: false }, togglePause: { mode: 'playing', newRound: false } },
   // Pass 7 (M45): the ledger holds the game, like the hire card; Close carries on.
   ledger: { continue: { mode: 'playing', newRound: false }, togglePause: { mode: 'playing', newRound: false } },
   // Pass 7 (M43): the bundles card holds the game, like the hire card; Close, or buying, carries on.

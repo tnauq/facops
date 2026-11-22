@@ -13,6 +13,7 @@ import { ALARMS2 as ALARMS, DEFAULT_CONFIG2, UPGRADES, YARD_ALARMS, makeConfig2 
 import { createRng } from './rng.js';
 import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, S_OUTER, START_POINT, hallX, route } from './layout2.js';
 import { AREAS, postPoint } from './posts.js';
+import { promisesStep } from './promises.js';
 import { areaOf, ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
 import { alarmCost } from './cost.js';
@@ -156,6 +157,7 @@ export function createGame({ seed = 1, config = {} } = {}) {
     state.stats.spentBuild = 0;
     state.stats.spentCrew = 0;
     state.stats.burnParts = { loan: 0, overhead: 0, upkeep: 0, wages: 0 };
+    state.stats.promises = 0; // pass 8 M49: promise money, net of advances handed back (part of earned)
     state.stats.troubled = {}; // pass 7 M45: halves ('3-t') and halls ('3') that had a failure a backup covers
     state.stats.built = 0;
     state.stats.hallsOnline = [];
@@ -460,7 +462,7 @@ export function nearestIdleTech(state, alarmId) {
 
 // ---------------------------------------------------------------- alarms
 
-function emit(state, type, data = {}) {
+export function emit(state, type, data = {}) {
   state.events.push({ t: state.t, type, ...data });
 }
 
@@ -1641,6 +1643,7 @@ export function step(state, dt) {
   if (buildingOn(state)) {
     earn(state, now.deliveredMw, dt);
     uptimeStep(state);
+    promisesStep(state); // pass 8 (M49): the CEO's offers and promises
     checkCommissioned(state, now.deliveredMw);
     if (!state.scripted) burn(state, dt);
   }
