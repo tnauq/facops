@@ -103,7 +103,7 @@ export const TUNING2_FIELDS = [
   // Pass 7 spec 3 (M41): the three ways out.
   { id: 'creditRate', label: 'Service credits per row short ($/s, 0 = off)', kind: 'range', min: 0, max: 5, step: 0.25,
     get: (c) => c.building.credits.rate, set: (o, v) => setCredits(o, 'rate', v) },
-  { id: 'creditDoubling', label: 'Service credits double every (s)', kind: 'range', min: 60, max: 600, step: 30,
+  { id: 'creditDoubling', label: 'Service credits double every (s)', kind: 'range', min: 60, max: 600, step: 5,
     get: (c) => c.building.credits.doubling, set: (o, v) => setCredits(o, 'doubling', v) },
   { id: 'strikeGapMin', label: 'Gap before a strike visit, shortest (s)', kind: 'range', min: 5, max: 60, step: 1,
     get: (c) => c.ceo.strikeGap[0], set: (o, v) => { o.ceo = { ...(o.ceo ?? {}), strikeGap: [v, Math.max(v, (o.ceo?.strikeGap ?? D.ceo.strikeGap)[1])] }; } },

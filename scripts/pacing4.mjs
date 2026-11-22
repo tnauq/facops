@@ -1,5 +1,5 @@
 // Scripted checks for pass 4's building mode (spec 4.1). Not part of the game. Run with:
-//   node scripts/pacing4.mjs [seeds] [config JSON] [players: a word in their names, e.g. "builder,"]
+//   node scripts/pacing4.mjs [seeds] [config JSON] [players: words in their names, | between, e.g. "builder (|seller"]
 // Every player builds with a scripted plan; auto-dispatch sends the techs. Prints one row per player.
 import { onlineRows, playRun } from '../src/core/index2.js';
 
@@ -24,6 +24,9 @@ const PLAYERS = [
   // Pass 8 (M51): the pick of two left alone, and a player who always takes the funding round.
   ['builder that takes no perks (compute first)', { builder: 'builder', policy: 'none', perks: 'none' }],
   ['builder that always takes the funding round (compute first)', { builder: 'builder', policy: 'none', rescue: 'fund' }],
+  // Pass 8 spec 9 (M53): compute first, every pass 8 tool against none of them.
+  ['builder that uses every pass 8 tool (posts and priority, promises, surges, perks, funding round)', { builder: 'builder', policy: 'none', posts: 'priority', chase: true, surges: true, perks: 'first', rescue: 'fund' }],
+  ['builder that uses no pass 8 tool (compute first)', { builder: 'builder', policy: 'none', perks: 'none', rescue: 'close' }],
   // Pass 7 spec 3.6: two players who hand over the keys.
   ['bold seller (compute first; sells at 2 strikes or credits over 60% of income)', { builder: 'builder', policy: 'none', seller: { strikes: 2, creditShare: 0.6 } }],
   ['cautious seller (gets ready for the CEO; sells at 2 strikes or credits over 30% of income)', { builder: 'builder', policy: 'greedy', seller: { strikes: 2, creditShare: 0.3 } }],
@@ -61,7 +64,7 @@ console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
 const median = (xs) => { const v = [...xs].sort((a, b) => a - b); const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
 const rows = {};
 const only = process.argv[4];
-for (const [name, opts] of PLAYERS.filter(([n]) => !only || n.includes(only))) {
+for (const [name, opts] of PLAYERS.filter(([n]) => !only || only.split('|').some((w) => n.includes(w)))) {
   const runs = [];
   for (let seed = 1; seed <= seeds; seed++) runs.push(one(seed, opts));
   const len = runs.map((r) => r.seconds);

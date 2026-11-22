@@ -155,12 +155,12 @@ export const DEFAULT_CONFIG2 = {
     // loan is paid off (at once when there is no loan). From then every online rack row that is short of
     // full output costs `rate` dollars a second for each row short, doubling every `doubling` seconds
     // since they went live. Nothing is charged while every row delivers. rate 0 turns them off.
-    credits: { rate: 1, doubling: 180 }, // M41: 210; M47: 180, as warnings lengthened runs
+    credits: { rate: 1, doubling: 175 }, // M41: 210; M47: 180, as warnings lengthened runs; M53: 175, as perks did
     // Pass 7 spec 4.1 (M42): the uptime bonus. At each full minute of the economy, every rack row that
     // stayed up the whole minute (online at its start, never below `floor` of full output) pays `bonus`.
     // The spec's starting value was $40; M42's checks lowered it to $20 (spec 4.1: the bonus is the
     // first lever): at $40 runs ran to 21:09 and getting ready for the CEO stopped paying.
-    uptime: { enabled: true, bonus: 20, floor: 0.9 },
+    uptime: { enabled: true, bonus: 15, floor: 0.9 }, // M53: 15, so more runs end broke (pass 8 spec 9)
     // Pass 8 spec 3 (M46): posts and the priority area. A posted tech idle for `returnAfter` seconds
     // walks back to its post; alarms in the priority area are taken first. enabled false: neither.
     // M46's check (a builder who posts its crew loses less income) failed without warnings, so it

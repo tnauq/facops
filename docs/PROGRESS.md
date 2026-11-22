@@ -113,9 +113,68 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M50. Surges | `m50` | Done |
 | M51. The pick of two and the rescue call | `m51` | Done |
 | M52. Layers | `m52` | Done |
-| M53. The balance check | `m53` | |
+| M53. The balance check | `m53` | Done |
 
 ## Log
+
+### M53. The balance check, everything on
+
+Pass 8 spec 9. Every pass 8 switch on.
+
+Built:
+
+- `scripts/pacing4.mjs` adds two players: one who uses every pass 8 tool (posts and priority, promises, surges, perks, the funding round) and one who uses none. Its last argument now takes several words with `|` between them, so the table can be run in two halves at once.
+- **Two rule numbers changed** (config2.js). `SAVE_VERSION` is `m53`, so a run saved by M52 is dropped.
+  - **Service credits double every 2:55** (was 3:00). This is the spec's second lever.
+  - **Uptime bonus is $15 per row a minute** (was $20). This is the fourth lever.
+- The drawer's credits doubling now moves in 5 s steps so it can show 2:55.
+- **Levers not changed:**
+  - **Promise payments** (the first lever): they touch none of the four players the endings are counted on, and the every-tool player is already far ahead.
+  - **Strike gap** (the third lever): 14 to 20 s moved nothing (fired 30 of 48, as before).
+
+What was tried (compute first and getting ready for the CEO, 24 seeds unless marked):
+
+| Change | Compute median | Fired / broke (the two who never sell) | Notes |
+|---|---|---|---|
+| None (M52), 12 seeds | 20:48 | 16 / 8 of 24 | |
+| Doubling 2:30, 12 seeds | 19:44 | 3 / 21 | Getting ready for the CEO stops paying |
+| Doubling 2:45, 12 seeds | 20:11 | 10 / 14 | Getting ready stops paying |
+| Doubling 2:50 | 19:00 | 27 / 21 of 48 | Breaks the compute-first test (seed 1: 1.6x, needs 3x) |
+| Doubling 2:55 | 19:46 | 31 / 17 of 48 | Broke only 19% across the four |
+| Doubling 2:55, strike gap 14 to 20 | 20:04 | 30 / 18 of 48 | No help |
+| Doubling 2:55, uptime $17 | 20:47 | 27 / 21 of 48 | |
+| **Doubling 2:55, uptime $15 (chosen)** | **20:24** | **25 / 23 of 48** | |
+
+The chosen numbers, 24 seeds:
+
+| Player | Median run | Score | Sold / fired / broke |
+|---|---|---|---|
+| Compute first | 20:24 | $127,710 | 0 / 15 / 9 |
+| Also gets ready for the CEO | 21:12 | $141,316 | 0 / 10 / 14 |
+| Bold seller | 13:06 | $123,924 | 21 / 0 / 3 |
+| Cautious seller | 11:22 | $103,108 | 23 / 0 / 1 |
+| Never a backup | 17:41 | $92,056 | 0 / 3 / 21 |
+| Backups early | 4:01 | $7,828 | broke 24 (14 before 5:00) |
+| Uses every pass 8 tool | 21:28 | $245,898 | 0 / 23 / 1 |
+| Uses no pass 8 tool | 20:16 | $134,218 | 0 / 12 / 12 |
+
+Targets:
+
+- **Every tool against none: +83%** (target at least +25%). **Met.** The game does not play itself.
+- **Endings across the four: sold 46%, fired 26%, broke 28%.** Fired and broke are inside 25 to 40%. **Sold is over.** The two scripted sellers sell in 44 of their 48 runs, so the mix of scripted players sets sold at almost half, as in every milestone since M45.
+- **Compute-first median 20:24 at 24 seeds** (20:30 at 12). **24 s over** the 20-minute ceiling. Every setting that brought it under 20:00 left broke under 25% or broke a test.
+- Getting ready for the CEO earns more (+11%): **met.** Never a backup earns 28% less: **met** (was 21%). Backups early goes broke in all 24: **met.** 150 MW at 7:34: **met.**
+- 12 seeds (whole table): compute median 20:30; endings sold 46%, fired 29%, broke 25%; every tool +80% over none.
+
+Worth knowing:
+
+- **The M51 perk check no longer holds.** A builder who always takes the first perk offered now earns 5% less than one who takes none ($127,710 against $134,218, 24 seeds). It earned 9% more before. With credits doubling faster, runs that perks stretch out meet bigger credits. A player choosing between the two perks should do better than the scripted "always the first". If the owner wants perks to pay for everyone, the next step would be stronger timed perks.
+- Nothing on the screen changed.
+
+Owner's checklist:
+
+- Play a few runs with everything on: do outages, the CEO and the sale each end about a third of your runs?
+- Does using posts, promises, surges and perks feel like it pays?
 
 ### M52. Layers
 
