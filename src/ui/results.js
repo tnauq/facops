@@ -89,6 +89,13 @@ export function resultsPanel(r, record, formatClock) {
     big[2] = { value: formatClock(r.seconds), label: `survived · ${r.halls} of 8 halls` };
     if (r.sold) lines.splice(0, 0, ['Sale', `${dollars(r.salePrice)}${r.commissioned ? ', Commissioned: half as much again' : ''}`]);
   }
+  // Pass 9 (M54): with the win at the finish, the score is the compute delivered, and a win shows its time.
+  if (r.building && r.finish) {
+    big[0] = { value: dollars(r.score), label: 'score · compute delivered' };
+    big[1] = r.won ? { value: formatClock(r.wonAt), label: 'finished in' } : { value: MILESTONE[r.milestone] ?? 'None', label: 'reached' };
+    if (r.won) big[2] = { value: `${r.energyGwh.toFixed(2)} GWh`, label: 'delivered · 8 of 8 halls' };
+    if (r.sold) lines[0] = ['Sale', `The buyer paid ${dollars(r.salePrice)}`];
+  }
   if (r.building) {
     if (!Number.isFinite(r.score)) big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };
     lines.splice(r.sold ? 1 : 0, 0, ['Money', `$${Math.round(r.earned).toLocaleString('en-US')} earned, $${Math.round(r.spent).toLocaleString('en-US')} spent building, $${Math.round(r.burned).toLocaleString('en-US')} burned · ${r.energyGwh.toFixed(2)} GWh`]);
@@ -105,6 +112,6 @@ export function resultsPanel(r, record, formatClock) {
   // Pass 5 spec 4.2: the minute of each strike.
   if (r.strikes > 0) lines.splice(r.building ? 1 : 0, 0, ['Strikes', `${r.strikes} of ${r.strikesToFire} · ${r.strikeTimes.map(formatClock).join(', ')}`]);
   // The card's heading: who ended the run.
-  const title = r.sold ? (r.commissioned ? 'Commissioned and sold' : 'Sold') : r.firedByCeo ? firedTitle(r) : r.bankrupt ? (r.brokeOnCredits ? 'Went broke: service credits' : 'Went broke') : 'Round over';
+  const title = r.won ? 'Campus handed over' : r.sold && r.finish ? 'Sold early' : r.sold ? (r.commissioned ? 'Commissioned and sold' : 'Sold') : r.firedByCeo ? firedTitle(r) : r.bankrupt ? (r.brokeOnCredits ? 'Went broke: service credits' : 'Went broke') : 'Round over';
   return { big, lines, bestLine, title };
 }

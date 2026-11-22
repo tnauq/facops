@@ -11,6 +11,8 @@ export const LINES = {
   arrive: ['Walk with me. Fast. I have a rocket at four.', 'Show me the future. Quickly.', "I was told this building is fine. Let's find out."],
   ribbon: ["Big scissors. Bigger hall. Let's cut something.", 'I already announced this hall. Twice.'],
   handover: ['Eight halls. Now make them never break.', "Congratulations. Now it's mine."],
+  // Pass 9 spec 3.2 (M54): arriving for the last inspection.
+  final: ["Fine. It's finished. Let me look at it."],
   leak: ['Why is the computer wet?', 'Water is just liquid downtime.'],
   breaker: ['Who turned off the money?', 'That box looks sad. Fix its feelings.'],
   network: ['That rack has stopped believing in us.', 'Have you tried turning it on?'],
@@ -55,7 +57,7 @@ export function ceoEvents(view, events, state, feel) {
     }
     if (e.type === 'ceoArrive') {
       view.visits += 1;
-      const list = e.kind === 'ribbon' ? LINES.ribbon : e.kind === 'handover' ? LINES.handover : LINES.arrive;
+      const list = e.kind === 'ribbon' ? LINES.ribbon : e.kind === 'handover' ? LINES.handover : e.kind === 'final' ? LINES.final : LINES.arrive;
       view.say = { text: pickLine(list, state.seed + view.visits), until: e.t + SAY_TIME };
     }
     if (e.type === 'ceoSighting') {
@@ -189,12 +191,18 @@ export function bannerModel(state, narrow = false) {
     const sub = c.struck ? (dark ? `Strike ${n} of ${of} given` : `${fine} for each outage seen`) : `Any outage seen is strike ${n} of ${of}${dark ? ': fired' : ''} · ${fine} each`;
     return { lines: [title, sub], dark };
   }
+  // Pass 9 (M54): the last inspection says what is at stake.
+  if (c.kind === 'final' && !zt) {
+    if (narrow) return { lines: [['CEO', 'last inspection', shortPlaces(left), stakeText(state, c)].join(' · ')], dark: false };
+    const where = placesText(left, true);
+    return { lines: [`The last inspection · ${left.length > 0 ? `${where} left` : where}`, `Pass it and the keys are handed over · Each unattended alarm seen: ${stakeText(state, c)}`], dark: false };
+  }
   const next = c.nextIsStrike ? (zt || of <= 1 ? 'zero tolerance' : 'strikes') : null;
   if (narrow) {
     const parts = ['CEO', shortPlaces(left), ...(warning ? [clock] : []), zt ? 'zero tolerance' : stakeText(state, c), ...(next && warning ? [`next: ${next}`] : [])];
     return { lines: [parts.join(' · ')], dark: zt };
   }
-  const where = placesText(left, c.kind === 'handover');
+  const where = placesText(left, c.kind === 'handover' || c.kind === 'final');
   const title = zt
     ? `Zero tolerance · ${warning ? where : `${where} left`}${warning ? ` · ${clock}` : ''}`
     : warning ? `The CEO is coming · ${where} · ${clock}` : `The CEO is here · ${left.length > 0 ? `${where} left` : where}`;

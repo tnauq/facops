@@ -20,7 +20,7 @@
 // Two-tap and one-tap dispatch work as in pass 1. Keys 1 to 9 tap the crew cards. #auto watches
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
-import { BUILDING, EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, sell, step } from './core/index2.js';
+import { BUILDING, EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, finishOn, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, sell, step } from './core/index2.js';
 import { drawFocusFrame } from './render/focus.js';
 import { COMMISSION_CARD_DELAY, commissionedCard, sellButton, sellConfirm } from './ui/sale.js';
 import { PAGE_COLOR } from './render/campus.js';
@@ -71,6 +71,8 @@ import { setBundles, setLedger, setPerk, setPromises, setRescue } from './render
 import { callOpen, choosePerk, closeCall, takeFunding } from './core/index2.js';
 import { perkCard, rescueCard, warrantyHalls } from './ui/perksView.js';
 import { fannedCrew } from './ui/crew.js';
+import { loadRecords, recordRun, recordsLine, recordsText, saveRecords } from './ui/records.js';
+import { winCard } from './ui/finishView.js';
 import { layerModel, layersTarget, nextLayer, stripWithLayers } from './ui/layers.js';
 import { drawLayer, drawLayersButton } from './render/layers.js';
 import { cancelPromise, takePromise } from './core/index2.js';
@@ -111,6 +113,8 @@ let mode = 'menu'; // see src/ui/flow.js
 // was and shows, labelled, until a pass 5 run sets one.
 const bests = { classic: loadBest(defaultStorage(), BEST2_KEY), building: loadBest(defaultStorage(), BEST5_KEY) };
 const olderBest = loadBest(defaultStorage(), BEST4_KEY);
+// Pass 9 (M54): the fastest win and the high score, for runs with the win at the finish.
+let records = loadRecords(defaultStorage());
 const bestKind = () => (tuning.building ? 'building' : 'classic');
 let tuning = tuning2.loadTuning(defaultStorage());
 let tuningBack = null;
@@ -184,7 +188,7 @@ function newRound({ tutorial = false, restored = null } = {}) {
 // Pass 7 (M43): a first run is one before any building run has finished (no best, Skip tutorial
 // not yet turned on by a finished run).
 function isFirstRun() {
-  if (bests.building || olderBest) return false;
+  if (bests.building || olderBest || records.high) return false;
   try {
     return !defaultStorage()?.getItem(TUTORIAL_SEEN_KEY);
   } catch {
@@ -246,6 +250,13 @@ function showCommissioned() {
   document.querySelector('[data-overlay="commissioned"] [data-action="sell"]').disabled = !card.enabled;
 }
 
+// The win card (pass 9 spec 3.2): the finish time, the score, the CEO's line. The game is over.
+function showWon() {
+  if (!round.auto) clearSave(defaultStorage());
+  mode = reduceFlow(mode, 'won').mode;
+  showOverlay('won', winCard(results(round.state), formatClock));
+}
+
 // The main menu (pass 6 spec 2.1): the best score and its milestone under the buttons. Pass 7 (M44):
 // Resume run first when a run is saved, with New run second; a save from an older build is dropped
 // and the menu says so, once.
@@ -258,7 +269,9 @@ function showMenu() {
   document.getElementById('start-button').classList.toggle('primary', saved.status !== 'ok');
   const note = document.querySelector('[data-field="saveNote"]');
   note.hidden = saved.status !== 'old';
-  showOverlay('menu', { best: kind === 'building' ? buildingBestText(bests.building, olderBest, formatClock) : bestText(bests.classic, formatClock), saveNote: saved.status === 'old' ? OLD_SAVE_TEXT : '' });
+  // Pass 9 (M54): the fastest win and the high score, once there are any; else the older bests.
+  const buildingBest = recordsText(records, formatClock) ?? buildingBestText(bests.building, olderBest, formatClock);
+  showOverlay('menu', { best: kind === 'building' ? buildingBest : bestText(bests.classic, formatClock), saveNote: saved.status === 'old' ? OLD_SAVE_TEXT : '' });
 }
 
 // Save the run now (pass 7 spec 5): building mode, a real run in progress, not the scripted player.
@@ -359,6 +372,11 @@ function act(action) {
     draw();
     return;
   }
+  if (action === 'results') {
+    if (mode !== 'won') return;
+    roundOver();
+    return;
+  }
   if (action === 'ledger') {
     if (mode !== 'playing' || !buildingOn(round.state)) return;
     mode = reduceFlow(mode, 'ledger').mode;
@@ -452,12 +470,24 @@ function roundOver() {
   if (!round.auto) clearSave(defaultStorage()); // pass 7 (M44): a finished run clears the save
   const r = results(round.state);
   const kind = r.building ? 'building' : 'classic';
-  const record = recordBest(bests[kind], r);
-  bests[kind] = record.best;
-  if (record.isNew) saveBest(record.best, defaultStorage(), kind === 'building' ? BEST5_KEY : BEST2_KEY);
+  let record;
+  let recordText = null;
+  if (r.building && r.finish) {
+    // Pass 9 (M54): the fastest win and the high score replace the single best.
+    const rec = recordRun(records, r);
+    records = rec.records;
+    if (!round.auto && (rec.newHigh || rec.newFastest)) saveRecords(records, defaultStorage());
+    recordText = recordsLine(rec, formatClock);
+    record = { best: { energyGwh: r.energyGwh, seconds: r.seconds, score: r.score }, isNew: false };
+  } else {
+    record = recordBest(bests[kind], r);
+    bests[kind] = record.best;
+    if (record.isNew) saveBest(record.best, defaultStorage(), kind === 'building' ? BEST5_KEY : BEST2_KEY);
+  }
   mode = reduceFlow(mode, 'over').mode;
   // When the CEO ended the run, the card carries the CEO's parting line (spec 4.7).
   const panel = resultsPanel(r, record, formatClock);
+  if (recordText !== null) panel.bestLine = recordText;
   if (r.firedByCeo) panel.quote = `“${pickLine(LINES.fire, round.state.seed)}”`;
   // Pass 7 (M45): in building mode the CEO always has a parting line, chosen from the run's own
   // numbers, and the card adds the ledger's run so far.
@@ -656,7 +686,8 @@ function frame(now) {
   const card = deliveryCard(state, events);
   if (card && mode === 'playing') onDelivery(card);
   // Pass 5: once the halls have lit up, the Commissioned card asks whether to sell (never under #auto).
-  if (!round.auto && events.some((e) => e.type === 'commissioned')) round.commissionCardAt = state.t + COMMISSION_CARD_DELAY;
+  // Pass 9 (M54): with the win at the finish, Commissioned brings the last inspection, not this card.
+  if (!round.auto && !finishOn(state) && events.some((e) => e.type === 'commissioned')) round.commissionCardAt = state.t + COMMISSION_CARD_DELAY;
   if (round.commissionCardAt !== null && mode === 'playing' && !state.over && state.t >= round.commissionCardAt) {
     round.commissionCardAt = null;
     showCommissioned();
@@ -671,7 +702,9 @@ function frame(now) {
     setRescue(rescueCard(state));
     showOverlay('rescue');
   }
-  if (state.over && mode === 'playing') roundOver();
+  // Pass 9 (M54): a won run shows the win card first; its Results button opens the run-over card.
+  if (state.over && mode === 'playing' && state.overReason === 'won' && !round.auto) showWon();
+  else if (state.over && mode === 'playing') roundOver();
   else if (now - lastSave >= SAVE_EVERY * 1000) saveNow(); // pass 7 (M44): every 10 s
   round.selection = pruneSelection(round.selection, state);
   if (!railGesture) {

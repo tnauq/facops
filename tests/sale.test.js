@@ -11,9 +11,11 @@ import { buildingBestText, recordBest } from '../src/ui/best.js';
 import { createFeel2, feelEvents2, liveCelebrations } from '../src/ui/feel2.js';
 
 const NO_BURN = { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 };
+// Pass 9 (M54): these tests pin pass 5 to 8's sale and score, so they run with the win at the finish off;
+// tests/finish.test.js covers it on.
 const game = (config = {}) => createGame({
   seed: 1,
-  config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ...config, building: { enabled: true, startCash: 100000, burn: NO_BURN, ...(config.building ?? {}) } },
+  config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ...config, building: { enabled: true, startCash: 100000, burn: NO_BURN, finish: { enabled: false }, ...(config.building ?? {}) } },
 });
 // M34's sale rules, which pass 7 (M41) replaced: kept to check them as they were.
 const M34_SALE = { fromHandover: true, commissionedBonus: 0.5, anytime: false, incomeSeconds: 0 };

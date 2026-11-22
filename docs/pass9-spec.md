@@ -1,6 +1,6 @@
 # FacOps pass 9 build spec
 
-Version 0.2, 22 November 2026. **The owner answered section 1's questions on 22 November**; v0.2 writes the answers in. Once approved, it is the source of truth for pass 9, as `docs/pass8-spec.md` is for pass 8. Pass 8's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.2, 22 November 2026. **The owner answered section 1's questions and approved the spec on 22 November** ("M54 go", with section 1's reading on selling early as written). It is the source of truth for pass 9, as `docs/pass8-spec.md` is for pass 8. Pass 8's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Values marked *starting value* are for scripted checks to settle; everything else is the owner's decision.
 

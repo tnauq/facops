@@ -56,7 +56,8 @@ test('now: income by online hall, the loan with what is left, upkeep, wages and 
 });
 
 // The run-over card (spec 6.2).
-const quiet = (building = {}) => createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ceo: { enabled: false }, building: { enabled: true, startCash: 5000, ...building } } });
+// Pass 9 (M54): pass 7's run-over lines, so with the win at the finish off (tests/finish.test.js has its own).
+const quiet = (building = {}) => createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ceo: { enabled: false }, building: { enabled: true, startCash: 5000, finish: { enabled: false }, ...building } } });
 
 test('the CEO\'s parting line: the first that applies', async () => {
   const { idleBackupSpend, partingLine } = await import('../src/ui/runOver.js');

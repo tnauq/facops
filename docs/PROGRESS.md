@@ -115,7 +115,68 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M52. Layers | `m52` | Done |
 | M53. The balance check | `m53` | Done |
 
+## Pass 9
+
+The owner approved `docs/pass9-spec.md` (version 0.2) on 22 November 2026: a run is won by finishing the campus (all 48 rows built and at full output, then the CEO's last inspection), the score is the compute delivered in dollars, with a board deadline, free play after the win, progress and support, and a balance check against new targets.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M54. The win and the score | `m54` | Done |
+| M55. The board's deadline | `m55` | |
+| M56. Free play | `m56` | |
+| M57. Progress and support | `m57` | |
+| M58. The balance check | `m58` | |
+
 ## Log
+
+### M54. The win and the score
+
+Pass 9 spec 3.
+
+Built:
+
+- **Rules** (new `src/core/finish.js`, hooks in game2.js and ceo.js; config `building.finish: { enabled: true }`, `ceo.final: { warning: 0, cost: 35 }`). `SAVE_VERSION` is `m54`.
+  - **Commissioned** (all 48 rows built and at full output at once, as before) now brings **the CEO's last inspection**, ahead of any other visit: no warning, every area in play, the Handover's fine for each outage seen, and a strike if strike visits have begun. A third strike there fires you at the last door.
+  - **When the inspection ends, the run is won** (event `won`). With the CEO switched off, Commissioned is the win at once.
+  - **The score is the compute delivered,** in dollars: what the racks earned, surges included. The uptime bonus, promise payments and the sale price are cash, not score. Spending never lowers it.
+  - **Selling early** works as before from the Handover and ends the run as "Sold early", with the compute delivered as the score. After Commissioned the menu's sale is greyed: "The CEO takes the keys at the last inspection".
+  - `results()` gains `finish`, `won`, `wonAt`, `delivered` and `outcome` ('won', 'soldEarly', 'broke', 'fired').
+  - Drawer: "Win at the finish". Off, a run plays and scores exactly as in pass 8 (checked: the same numbers as M53 to the dollar).
+- **Screen:**
+  - The last inspection has its own banner ("The last inspection · every hall left / Pass it and the keys are handed over"; "CEO · last inspection" on a narrow phone) and line ("Fine. It's finished. Let me look at it.").
+  - **The win card:** "Campus handed over", "Finished in 12:40" large, the CEO's line, the score with the GWh, and Results.
+  - **The run-over card** leads with the outcome ("Campus handed over", "Sold early", "Went broke", "Fired by the CEO"). A win shows the score, the finish time and the GWh.
+  - **Records:** the fastest win and the high score, kept under `facops.records.v9`, shown on the main menu ("Fastest win 12:40 · High score $66,900") and on the run-over card ("New fastest win!"). Older bests still show until the first pass 9 run.
+  - **The HUD's note** leads with the score: "Delivered $48,200 · 5 halls online" ("$48,200" on a narrow phone).
+  - The Handover's introduction says "Get all 48 rows running at once and the CEO signs it off. That's the win." The menu's sale reads "Sell early", and its confirm card says the score stays the compute delivered.
+  - The old Commissioned card (sell or keep running) shows only with the switch off.
+- `scripts/pacing4.mjs` shows wins (with the median time to win) in the endings column.
+- **Tests:** 7 in `tests/finish.test.js`, 6 in `tests/records.test.js`. Tests that pin pass 5 to 8's sale, score and lines now run with the switch off, as the spec allows, and say so (sale, building, credits, ledger), and the strikes test allows the finish's line where it allowed the sale's. 640 in all.
+
+**What the numbers say** (12 seeds, switch on; pass 9 spec 3.3 asks only to report):
+
+| Player | Won (median at) / sold early / broke | Score | Commissioned (median at) |
+|---|---|---|---|
+| Compute first | 10 (13:19) / 0 / 2 | $60,353 | 10 of 12 (11:26) |
+| Also gets ready for the CEO | 11 (12:56) / 0 / 1 | $61,107 | 11 of 12 (11:07) |
+| Never a backup | 6 (12:39) / 0 / 6 | $64,815 | 7 of 12 (11:02) |
+| Backups early | 0 / 0 / 12 | $8,873 | 0 of 12 |
+| Uses every pass 8 tool | 12 (6:59) / 0 / 0 | $52,882 | 12 of 12 (4:55) |
+| Uses no pass 8 tool | 12 (13:25) / 0 / 0 | $66,987 | 12 of 12 (11:19) |
+| Bold seller | 9 (12:56) / 1 / 2 | $58,063 | 9 of 12 (11:08) |
+| Cautious seller | 5 (12:07) / 7 / 0 | $45,303 | 5 of 12 (10:19) |
+
+- As the spec expected, nearly every competent run now wins, at about 13 minutes, and nobody is fired: the CEO's strikes come after the finish. The every-tool player wins at 6:59. M55's deadline and M58's balance check are where that changes.
+- **The last inspection takes about two minutes** from Commissioned to the win: the CEO walks the whole building, after any visit already under way.
+- With the score as compute delivered, a short winning run scores less than a long losing one did. Never a backup now scores slightly more than compute first (it builds racks sooner), so M58 should look at whether a faster win should count for more.
+- 150 MW at 7:32 for compute first.
+- Checked in headless Chrome at 844 x 390 and 660 x 300: a campus built in one go, Commissioned, the last inspection's banner, the win card, the run-over card and the records on the main menu. No console errors.
+
+Owner's checklist:
+
+- Getting all 48 rows running feels like the end of something, and the win card says so.
+- The score climbs as the campus delivers, and an outage visibly slows it.
+- Selling before the finish says "Sold early", not "Won".
 
 ### M53. The balance check, everything on
 

@@ -351,7 +351,8 @@ test('the CEO only cares about outages: a tripped switchboard with its backup ca
 test('the round-over card: the score leads, and "Went broke" when the cash ran out', async () => {
   const { resultsPanel } = await import('../src/ui/results.js');
   const { formatClock } = await import('../src/core/index2.js');
-  const s = game({ building: { burn: { base: 50, doubling: 1e9, upkeep: 0, wages: 0 }, rescue: { enabled: false, funding: 2000, rate: 8 } } });
+  // Pass 9 (M54): pass 5's score (money earned), so with the win at the finish off.
+  const s = game({ building: { burn: { base: 50, doubling: 1e9, upkeep: 0, wages: 0 }, rescue: { enabled: false, funding: 2000, rate: 8 }, finish: { enabled: false } } });
   advance(s, 60);
   const r = results(s);
   assert.equal(r.bankrupt, true);

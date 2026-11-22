@@ -135,6 +135,9 @@ export const TUNING2_FIELDS = [
   // Pass 8 spec 6.5 (M50).
   { id: 'surgesOn', label: 'Surges', kind: 'toggle',
     get: (c) => c.building.surges.enabled, set: (o, v) => setSurges(o, 'enabled', v) },
+  // Pass 9 spec 3 (M54).
+  { id: 'finishOn', label: 'Win at the finish', kind: 'toggle',
+    get: (c) => c.building.finish.enabled, set: (o, v) => setNested('finish')(o, 'enabled', v) },
   // Pass 8 spec 7 (M51).
   { id: 'perksOn', label: 'Pick of two after a clean visit', kind: 'toggle',
     get: (c) => c.building.perks.enabled, set: (o, v) => setPerks(o, 'enabled', v) },

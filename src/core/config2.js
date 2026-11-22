@@ -82,6 +82,8 @@ export const DEFAULT_CONFIG2 = {
     ribbonHall: 3, // the ribbon-cutting comes with this hall
     ribbon: { warning: 20, cost: 15 },
     handover: { warning: 20, cost: 35 },
+    // Pass 9 spec 3.1 (M54): the last inspection, on Commissioned: no warning, the Handover's fine.
+    final: { warning: 0, cost: 35 },
     handoverDelay: 30, // a run that starts with every hall online gets its Handover this far in
     walks: [{ warning: 20, cost: 50 }, { warning: 15, cost: 70 }], // walkthroughs 1 and 2; after these, strike visits
     // Pass 5 spec 4.1 (M33): from walkthrough 3 every visit is a strike visit. Each sighting is fined
@@ -151,6 +153,9 @@ export const DEFAULT_CONFIG2 = {
     // buyer also pays `incomeSeconds` of the campus's current income. anytime false and incomeSeconds 0
     // are M34's rules.
     sale: { fromHandover: true, commissionedBonus: 0.5, anytime: true, incomeSeconds: 150 },
+    // Pass 9 spec 3.1 (M54): the run is won at the finish (Commissioned, then the last inspection), and
+    // the score is the compute delivered, in dollars. Off, a run plays and scores as in pass 8.
+    finish: { enabled: true },
     // Pass 7 spec 3.2 (M41, owner 17 Nov): service credits. Customers go live when the construction
     // loan is paid off (at once when there is no loan). From then every online rack row that is short of
     // full output costs `rate` dollars a second for each row short, doubling every `doubling` seconds

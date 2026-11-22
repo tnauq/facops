@@ -4,7 +4,7 @@
 
 import { promiseNote } from './promisesView.js';
 import { perkNote } from './perksView.js';
-import { buildProgress, buildingOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
+import { buildProgress, buildingOn, finishOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
 
@@ -75,6 +75,12 @@ function noteBase(state, extra) {
   const halls = `${state.halls} hall${state.halls === 1 ? '' : 's'} online`;
   const short = `${state.halls}/8 halls`;
   const owed = loanLeft(state);
+  // Pass 9 (M54): with the win at the finish, the note leads with the score, the compute delivered.
+  if (finishOn(state)) {
+    const score = dollars(state.stats.delivered ?? 0);
+    const loanPart = owed > 0 ? `Loan ${dollars(Math.ceil(owed))} · ` : '';
+    return [`${loanPart}Delivered ${score} · ${halls}${extra}`, `Delivered ${score} · ${short}${extra}`, `Delivered ${score}`, score];
+  }
   if (owed <= 0) return [halls + extra, short + extra];
   const loan = `Loan ${dollars(Math.ceil(owed))}`;
   return [`${loan} · ${halls}${extra}`, `${loan} · ${short}`, loan];

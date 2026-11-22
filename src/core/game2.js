@@ -17,6 +17,7 @@ import { promisesStep, surgeGaps, surgeIncome } from './promises.js';
 import { buildTimeNow, bulkFactor, callOpen, freeHire, loyalFactor, maybeCall, patient, repaySecondLoan, secondLoanRate, underWarranty, usedBulk, usedFreeHire } from './perks.js';
 import { areaOf, ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
+import { finishOn, winRun } from './finish.js';
 import { alarmCost } from './cost.js';
 import { runningPumps, supply } from './supply.js';
 import { HALL_IDS, buildingOn, builtCdus, builtMsbs, dryCapacity, hallOnline, isBuilt, msbFed, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
@@ -148,9 +149,11 @@ export function createGame({ seed = 1, config = {} } = {}) {
     ribbonQueued: false,
     commissionedAt: null, // pass 5 spec 5.1: when every rack row first delivered full output at once
     sold: null, // { price, t } once the player handed over the keys
+    won: null, // pass 9 (M54): { t } once the run is won
   };
   if (building) {
     state.stats.earned = 0;
+    state.stats.delivered = 0; // pass 9 (M54): income from compute delivered, the score
     state.stats.spent = 0;
     state.stats.burned = 0;
     state.stats.credits = 0; // pass 7 M41: service credits charged, part of what was burned
@@ -1116,6 +1119,7 @@ function earn(state, deliveredMw, dt) {
   const dollars = (deliveredMw / state.config.rowMw) * state.config.building.income * surgeIncome(state) * dt;
   state.cash += dollars;
   state.stats.earned += dollars;
+  state.stats.delivered = (state.stats.delivered ?? 0) + dollars; // pass 9 (M54): the score
 }
 
 /** Seconds since the economy started: the run's start, or the end of the tutorial (pass 4 M27). */
@@ -1345,6 +1349,11 @@ function checkCommissioned(state, deliveredMw) {
   if (deliveredMw < ROWS.length * state.config.rowMw - 1e-6) return;
   state.commissionedAt = state.t;
   emit(state, 'commissioned', { price: salePrice(state) });
+  // Pass 9 (M54): the CEO's last inspection comes next, before any other visit; with no CEO, the win now.
+  if (finishOn(state)) {
+    if (state.config.ceo.enabled) state.ceoQueue.unshift('final');
+    else winRun(state);
+  }
 }
 
 /** Has the campus been Commissioned? */
@@ -1371,6 +1380,8 @@ export function cannotSell(state) {
   if (state.over) return 'over';
   const sale = state.config.building.sale;
   if (sale.fromHandover && !state.handoverQueued) return 'early';
+  // Pass 9 (M54): once Commissioned, the keys go over in the last inspection, not from the menu.
+  if (finishOn(state) && commissioned(state)) return 'finishing';
   // Pass 7 (M41): outages and a CEO warning no longer stop a sale; only the CEO on the floor does.
   if (sale.anytime) return state.ceo && state.ceo.phase === 'visit' ? 'ceo' : null;
   if (state.ceo) return 'ceo';
@@ -1392,7 +1403,8 @@ export function sell(state) {
 }
 
 /** The score: money earned, plus the sale price if sold (going broke or fired: no sale). */
-export const score = (state) => (buildingOn(state) ? state.stats.earned + (state.sold ? state.sold.price : 0) : 0);
+// Pass 9 (M54): with the win at the finish, the score is the compute delivered, in dollars.
+export const score = (state) => (!buildingOn(state) ? 0 : finishOn(state) ? state.stats.delivered ?? 0 : state.stats.earned + (state.sold ? state.sold.price : 0));
 
 /** The highest milestone reached: 'commissioned', 'handover', 'ribbon' or null. */
 export function milestone(state) {
@@ -1781,7 +1793,24 @@ export function results(state) {
     commissionedAt: commissioned(state) ? state.commissionedAt - (buildingOn(state) ? state.economyStart ?? 0 : 0) : null,
     milestone: milestone(state),
     score: score(state),
+    // Pass 9 (M54): the win at the finish, and the compute delivered (the score, in dollars).
+    finish: finishOn(state),
+    won: state.overReason === 'won',
+    wonAt: state.won ? state.won.t - (buildingOn(state) ? state.economyStart ?? 0 : 0) : null,
+    delivered: buildingOn(state) ? state.stats.delivered ?? 0 : 0,
+    outcome: outcomeOf(state),
   };
+}
+
+/** How the run ended: 'won', 'soldEarly' (or 'sold' without the finish), 'broke', 'fired', 'other', or null while it runs. */
+function outcomeOf(state) {
+  if (!state.over) return null;
+  const r = state.overReason;
+  if (r === 'won') return 'won';
+  if (r === 'sold') return finishOn(state) ? 'soldEarly' : 'sold';
+  if (r === 'bankrupt') return 'broke';
+  if (r === 'ceo') return 'fired';
+  return 'other';
 }
 
 export function formatClock(seconds) {

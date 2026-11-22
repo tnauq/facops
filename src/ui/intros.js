@@ -11,7 +11,7 @@
 // a line once each, in every building run like the loan line: they are new rules, and a player who
 // learned the game before them skips the tutorial.
 
-import { buildingOn, cannotSell, creditsOn, creditsRate, incomeRate, postsOn, strikesToFire } from '../core/index2.js';
+import { buildingOn, cannotSell, creditsOn, finishOn, creditsRate, incomeRate, postsOn, strikesToFire } from '../core/index2.js';
 import { anyHallAffordable } from './bundles.js';
 
 export const INTRO_SECONDS = 6;
@@ -29,6 +29,8 @@ export const INTRO_TEXT = {
   // Pass 7 spec 3.5 (M41): customers go live as the loan is paid off, so with service credits on the
   // loan's notice says that instead (customersText below); and two lines of their own.
   sale: "You can sell the campus from the menu. Buyers pay for what it earns, so sell while it's running well.",
+  // Pass 9 spec 3.2 (M54): at the Handover, with the win at the finish, in place of the sale's line.
+  finish: "Get all 48 rows running at once and the CEO signs it off. That's the win.",
   creditsOver: 'Credits are outrunning your income. Fix outages, or sell while you can.',
   // Pass 7 spec 4.1 (M42): at the first uptime bonus.
   uptime: '', // the line names the configured bonus (uptimeText below)
@@ -144,7 +146,8 @@ export function updateIntros(intros, state) {
     const next = intros.queue.shift();
     intros.text = next.type === 'strikes' ? strikesText(strikesToFire(state)) : next.type === 'noWater' ? waterText(next.hall)
       : next.type === 'uptime' ? uptimeText(state.config.building.uptime.bonus)
-      : next.type === 'loan' && creditsOn(state) ? CUSTOMERS_TEXT : INTRO_TEXT[next.type];
+      : next.type === 'loan' && creditsOn(state) ? CUSTOMERS_TEXT
+      : next.type === 'sale' && finishOn(state) ? INTRO_TEXT.finish : INTRO_TEXT[next.type];
     intros.ids = state.alarms.some((a) => a.id === next.id) ? [next.id] : [];
     intros.until = state.t + (next.type === 'loan' && !creditsOn(state) ? NOTICE_SECONDS : INTRO_SECONDS);
     // The strikes line must be gone before the first strike visit's warning (45 s away at least).

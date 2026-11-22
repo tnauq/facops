@@ -1,7 +1,7 @@
 // Handing over the keys (pass 5 spec 5.2). Pure: what the menu's sale button, the confirm card and
 // the Commissioned card say, from the rules in src/core/game2.js (cannotSell, salePrice, score).
 
-import { cannotSell, commissioned, formatClock, salePrice, score } from '../core/index2.js';
+import { cannotSell, commissioned, finishOn, formatClock, salePrice, score } from '../core/index2.js';
 
 export const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 
@@ -11,6 +11,7 @@ export const SELL_WHY = {
   ceo: 'Not while the CEO is visiting',
   outage: 'Not with an outage open',
   over: 'The run is over',
+  finishing: 'The CEO takes the keys at the last inspection', // pass 9 (M54)
 };
 
 /**
@@ -20,7 +21,7 @@ export const SELL_WHY = {
 export function sellButton(state) {
   const reason = cannotSell(state);
   if (reason === 'off') return null;
-  return { label: `Hand over the keys · ${money(salePrice(state))}`, enabled: reason === null, why: reason ? SELL_WHY[reason] ?? '' : '' };
+  return { label: `${finishOn(state) ? 'Sell early' : 'Hand over the keys'} · ${money(salePrice(state))}`, enabled: reason === null, why: reason ? SELL_WHY[reason] ?? '' : '' };
 }
 
 // Pass 7 (M41): the buyer pays for what the campus earns, so say so (an outage lowers it).
@@ -32,6 +33,16 @@ function incomePart(state) {
 /** The confirm card: { title, price, score, note }. */
 export function sellConfirm(state) {
   const price = salePrice(state);
+  // Pass 9 (M54): with the win at the finish, selling early ends the run without the win, and the score
+  // stays the compute delivered.
+  if (finishOn(state)) {
+    return {
+      title: 'Sell early?',
+      price: `The buyer pays ${money(price)}${incomePart(state)}.`,
+      score: `Your score stays ${money(score(state))}, the compute delivered. Only finishing the campus wins.`,
+      note: 'The run ends as Sold early.',
+    };
+  }
   return {
     title: 'Hand over the keys?',
     price: `The campus sells for ${money(price)}${incomePart(state)}${commissioned(state) ? ', with the Commissioned bonus' : ''}.`,

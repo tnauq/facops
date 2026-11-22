@@ -122,6 +122,7 @@ test('the results card: "Went broke: service credits" and a Service credits line
 test('introductions: customers going live, the sale, and credits passing income', async () => {
   const { createIntros, updateIntros, CUSTOMERS_TEXT, INTRO_TEXT } = await import('../src/ui/intros.js');
   const s = game();
+  s.config.building.finish.enabled = false; // pass 9 (M54): the sale's own line is pass 7's, with the finish off
   const intros = createIntros();
   const seen = new Set();
   const b = s.config.building.burn;

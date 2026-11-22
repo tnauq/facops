@@ -13,6 +13,7 @@ import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, MID_Y, PLANTS, S_OUTER
 import { buildingOn, isBuilt, onlineHallIds } from './sites.js';
 import { alarmCost } from './cost.js';
 import { visitEnded } from './perks.js';
+import { winRun } from './finish.js';
 
 const EPS = 1e-9;
 const UP = -Math.PI / 2; // y grows downwards
@@ -125,6 +126,11 @@ export const strikesToFire = (state) => (buildingOn(state) ? Math.max(1, state.c
 function visitFor(state, kind, hall = null) {
   const cfg = state.config.ceo;
   if (kind === 'ribbon') return { areas: [`h${hall ?? cfg.ribbonHall}`], ...cfg.ribbon, inspect: cfg.inspect, zeroTolerance: false };
+  // Pass 9 (M54): the last inspection walks every area in play; a strike visit once strikes have begun.
+  if (kind === 'final') {
+    const strike = state.ceoWalks >= cfg.walks.length;
+    return { areas: onlineAreas(state), ...cfg.final, inspect: cfg.inspectHandover, strike, cost: strike ? null : cfg.final.cost, zeroTolerance: strike && strikesToFire(state) <= 1 };
+  }
   if (kind === 'handover') {
     const areas = onlineAreas(state).filter((a) => a[0] === 'h');
     return { areas, ...cfg.handover, inspect: cfg.inspectHandover, zeroTolerance: false };
@@ -361,6 +367,11 @@ function finish(state, c) {
   state.ceo = null;
   state.ceoVisits += 1;
   emit(state, 'ceoLeave', { kind: c.kind, sightings: c.sightings });
+  // Pass 9 (M54): the last inspection over (and not fired in it), the keys are handed over: the win.
+  if (c.kind === 'final') {
+    winRun(state);
+    return;
+  }
   visitEnded(state, c.sightings); // pass 8 (M51): a clean visit earns the pick of two
   // Walkthroughs follow the Handover, and each other, after a seeded gap.
   // Pass 5 (M33's checks): strike visits come closer together, so the late game ends the run.
