@@ -350,17 +350,42 @@ function finish(state, c) {
   }
 }
 
+// Pass 8 (M48): when a visit that is due may be announced, with busy and quiet spells.
+//  - `ceoWaits`: only in a quiet spell.
+//  - `ceoSync` (the owner's request, 21 Nov): a visit may instead be timed so the CEO arrives as a busy
+//    spell starts: announced once the quiet spell has no more than `lead` seconds left. Whether a visit
+//    is timed that way is drawn once per visit, more likely later in the run: never before `from`
+//    seconds of economy time, always after `to`.
+function ceoMayStart(state) {
+  const sp = buildingOn(state) && state.config.building.spells;
+  const spell = state.director && state.director.spell;
+  if (!sp || !sp.enabled || !spell) return true;
+  const due = state.ceoQueue.length > 0 || (state.ceoNext && state.t >= state.ceoNext.at - EPS);
+  if (!due) return true; // nothing to start: the caller returns anyway
+  const sync = sp.ceoSync;
+  if (sync && sync.enabled) {
+    if (state.ceoSyncPick === null || state.ceoSyncPick === undefined) {
+      const e = state.t - (state.economyStart ?? 0);
+      const p = Math.max(0, Math.min(1, (e - sync.from) / Math.max(1e-9, sync.to - sync.from)));
+      state.ceoSyncPick = state.ceoRng.next() < p;
+    }
+    // align 'busyStart': arrive as a busy spell starts (announced late in a quiet one); 'busyEnd': the
+    // warning runs through the end of a busy spell, so the CEO arrives as the crew is most stretched.
+    const kind = sync.align === 'busyEnd' ? 'busy' : 'quiet';
+    if (state.ceoSyncPick) return spell.kind === kind && spell.until - state.t <= sync.lead + EPS;
+  }
+  return !(sp.ceoWaits !== false && spell.kind === 'busy');
+}
+
 /** Advance the CEO by dt seconds. Called by game2.js step, after the meter has been updated. */
 export function ceoStep(state, dt) {
   const cfg = state.config.ceo;
   if (!cfg.enabled || state.scripted || state.over) return;
   // Pass 8 (M48): with busy and quiet spells, a visit is only announced in a quiet spell; one that
   // falls due in a busy spell waits for the next quiet one.
-  const spell = state.director && state.director.spell;
-  const sp = state.config.building && state.config.building.spells;
-  const busy = buildingOn(state) && sp && sp.enabled && sp.ceoWaits !== false && spell && spell.kind === 'busy';
-  if (!state.ceo && busy) return;
+  if (!state.ceo && !ceoMayStart(state)) return;
   if (!state.ceo) {
+    state.ceoSyncPick = null; // pass 8 (M48): drawn afresh for the next visit
     if (state.ceoQueue.length > 0) startVisit(state, state.ceoQueue.shift());
     else if (state.ceoNext && state.t >= state.ceoNext.at - EPS) {
       const { kind } = state.ceoNext;

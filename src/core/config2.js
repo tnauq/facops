@@ -174,7 +174,11 @@ export const DEFAULT_CONFIG2 = {
     // M48's checks: busyFactor 0.5 (0.67 lost a fifth of the picks; under 0.5 runs collapse). Off by
     // default: with the CEO waiting for the quiet, getting ready for the CEO stopped paying and the
     // CEO fired under a tenth of runs (docs/PROGRESS.md, M48); the owner decides.
-    spells: { enabled: false, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true },
+    // ceoSync (owner, 21 Nov: try timing visits with the spells, biased to late in the run): see ceo.js.
+    spells: {
+      enabled: false, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true,
+      ceoSync: { enabled: false, from: 600, to: 1080, lead: 12, align: 'busyEnd' },
+    },
   },
   tutorial: true, // the hall 1 tutorial (spec 8); the screen runs it, the rules only hold back while it does
   oneTap: false, // true: dispatch() queues an alarm when nobody is free

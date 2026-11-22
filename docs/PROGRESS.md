@@ -117,6 +117,44 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 
 ## Log
 
+### After M48: timing the CEO with the spells
+
+The owner asked (21 November) to try a timing scheme that ties the CEO's visits to the spells, perhaps less often, with visits that show during busy spells to raise how often the CEO fires, the overlaps biased toward the end of a run.
+
+Built (behind `building.spells.ceoSync`, off; spells themselves still off):
+
+- A visit that falls due may be **synced**: drawn once per visit, never before `from` seconds of economy time and always after `to`, in between in proportion. A synced visit is announced only when the aligned spell has `lead` (12) seconds or fewer left:
+  - `align: 'busyStart'`: announced at the end of a quiet spell, so the CEO arrives as a busy spell starts.
+  - `align: 'busyEnd'`: the warning runs through the end of a busy spell, so the CEO arrives when the crew is most stretched.
+- A visit not synced comes when due (`ceoWaits: false`) or waits for a quiet spell (`ceoWaits: true`).
+- 2 tests in `tests/spells.test.js` (586 in all).
+
+Results, spells on (busy gaps × 0.5), 12 seeds; "fired" counts the runs of each player that the CEO ended:
+
+| Timing | Strike gap | Compute first: median, fired of 12, score | Getting ready: median, fired of 12, score |
+|---|---|---|---|
+| CEO waits for a quiet spell (M48) | 12 to 18 s | 20:44, 2, $124,337 | 20:15, 2, $107,958 |
+| CEO comes when due | 12 to 18 s | 19:57, 4, $115,364 | 21:36, 1, $141,627 |
+| Synced, arriving as a busy spell starts, always | 12 to 18 s | 20:24, 0, $129,327 | 20:16, 0, $116,655 |
+| The same, from 10:00 to 18:00 | 12 to 18 s | 20:11, 4, $109,184 | 20:58, 0, $134,819 |
+| The same, less often | 20 to 30 s | 20:38, 1, $115,952 | 20:38, 1, $134,100 |
+| Synced, warning over the end of a busy spell, always | 12 to 18 s | 20:18, 1, $107,206 | 20:48, 1, $111,705 |
+| The same, from 10:00 to 18:00 | 12 to 18 s | 20:05, 3, $115,403 | 21:06, 0, $139,460 |
+
+**No timing raised the CEO's share.** Two reasons, both in the rules as built:
+
+- **Fairness** (pass 3): once the CEO has arrived, the director starts nothing new where the CEO could see it. So a visit during a busy spell walks a floor that the busy spell is not allowed to touch; sightings come only from outages already open, and the warning gives the crew time to reach them.
+- **The clock:** a strike visit's three strikes need three visits that see something, and service credits end most runs at about 20 minutes, before the third. The scripted players average one to two strikes a run.
+
+What would raise it, for the owner to choose from (none built):
+
+1. **Let the busy spell reach the CEO's route** (drop fairness during busy spells late in the run): the most direct, and the most likely to feel unfair.
+2. **Count a wrench the CEO walks past** with nobody on it as a sighting: rewards posting, fits warnings.
+3. **More strike visits late:** each strike visit sets a shorter gap than the one before.
+4. **Two strikes after a set time** (for example from 15:00).
+
+Spells stay off by default; the game plays as after M47.
+
 ### M48. Busy and quiet spells
 
 Pass 8 spec 5.

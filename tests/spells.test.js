@@ -5,7 +5,7 @@ import { createGame, raiseAlarm, spellNow, step } from '../src/core/index2.js';
 
 const NO_BURN = { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 };
 // Spells are off by default after M48's checks; these tests switch them on.
-const ON = { enabled: true, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true };
+const ON = { enabled: true, busy: [35, 45], quiet: [15, 25], busyFactor: 0.5, easeAfter: 10, ceoWaits: true, ceoSync: { enabled: false, from: 600, to: 1080, lead: 12, align: 'busyEnd' } };
 const game = (building = {}, extra = {}) => createGame({
   seed: 1,
   config: { tutorial: false, ceo: { enabled: false }, autoDispatch: { enabled: false, delay: 1 }, ...extra, building: { enabled: true, startCash: 50000, burn: NO_BURN, credits: { rate: 0, doubling: 0 }, spells: ON, ...building } },
@@ -108,3 +108,22 @@ test('ceoWaits false: the CEO comes when due, busy spell or not', () => {
   }
   assert.ok(busy, 'some visit was announced in a busy spell');
 });
+
+for (const align of ['busyEnd', 'busyStart']) {
+  test(`ceoSync (${align}): a synced visit is announced only in the last seconds of the aligned spell`, () => {
+    const t = createGame({ seed: 3, config: { tutorial: false, building: { enabled: true, startCash: 50000, burn: NO_BURN, credits: { rate: 0, doubling: 0 }, handoverAt: 30, spells: { ...ON, ceoWaits: false, ceoSync: { enabled: true, from: 0, to: 1, lead: 12, align } } } } });
+    let n = 0;
+    for (let i = 0; i < 6000; i++) {
+      const before = t.ceo;
+      step(t, 0.05);
+      if (!before && t.ceo && t.t > 2) {
+        n += 1;
+        const sp = t.director.spell;
+        // The spell may have just turned over on this very step: then the visit came at its end.
+        const fresh = Math.abs(sp.until - t.t) > 12.1;
+        if (!fresh) assert.equal(sp.kind, align === 'busyEnd' ? 'busy' : 'quiet', `at ${t.t}`);
+      }
+    }
+    assert.ok(n >= 2, `${n} visits`);
+  });
+}
