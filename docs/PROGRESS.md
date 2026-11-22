@@ -112,10 +112,38 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 | M49. The CEO's promises | `m49` | Done |
 | M50. Surges | `m50` | Done |
 | M51. The pick of two and the rescue call | `m51` | Done |
-| M52. Layers | `m52` | |
+| M52. Layers | `m52` | Done |
 | M53. The balance check | `m53` | |
 
 ## Log
+
+### M52. Layers
+
+Pass 8 spec 8.1. Screen only: no rules changed, so `SAVE_VERSION` stays `m51`. Standing orders (spec 8.2) are out, as the owner chose.
+
+Built:
+
+- **The Layers button** (44 x 44) at the strip's left end, in building mode. Each tap steps through none, Power, Cooling, Crew; the button shows the layer's name and turns ink while one is on. The strip gives up 46 px on its left for it.
+- **Everything outside the layer is dimmed** under a pale veil; the layer's equipment shows through clear. The CEO's banner, wrenches and cards stay on top.
+- **Power:** every chain from the power line down through the RMU, both transformers and switchboards to each rack row. Live links are solid ink, failed ones ink dashes, ones not built yet pale dots. Each half with racks gets a mark in its middle aisle, with the shields' shapes:
+  - whole shield, "1 RMU": backed up, still hanging on its one RMU;
+  - single shield, "Next to go dark": one side left;
+  - broken shield, "Dark".
+- **Cooling:** dry coolers, chillers, both kinds of pump and the CDUs show through. On each plant's lane: chillers running of built, dry coolers working of built, glycol and water pumps running, and (by Plant A) what the campus needs and how many are spare or short. Halls on one CDU get a single shield and "1 CDU"; a dry CDU or a hall without water a broken one.
+- **Crew:** each tech's route still to walk (ink line) and its post (dashed line); open warnings and the alarms being worked show through, and the techs. Above each area in play: its name and how long the nearest free tech would take to get there ("0:07 away", or "Nobody free"), plus "2 posted".
+- Pure helpers in `src/ui/layers.js`, drawing in `src/render/layers.js`.
+- **Tests:** 8 new in `tests/layers.test.js`. 627 in all.
+
+**One reading of the spec:** every half has exactly one RMU in this campus, so "halves on a single RMU marked" became the "1 RMU" words on each backed-up half: it is the one thing left that can take that half down at once.
+
+Worth knowing:
+
+- Checked in headless Chrome at 844 x 390 and 660 x 300 on a four-hall campus with one switchboard tripped: all three layers and back to none. No console errors.
+- Layers use only ink, pale and the shields' own drawings; hat colours still mean trade only.
+
+Owner's checklist:
+
+- With the Power layer on, you can see which halves would go dark next.
 
 ### M51. The pick of two and the rescue call
 

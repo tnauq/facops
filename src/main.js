@@ -70,6 +70,9 @@ import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
 import { setBundles, setLedger, setPerk, setPromises, setRescue } from './render/overlays.js';
 import { callOpen, choosePerk, closeCall, takeFunding } from './core/index2.js';
 import { perkCard, rescueCard, warrantyHalls } from './ui/perksView.js';
+import { fannedCrew } from './ui/crew.js';
+import { layerModel, layersTarget, nextLayer, stripWithLayers } from './ui/layers.js';
+import { drawLayer, drawLayersButton } from './render/layers.js';
 import { cancelPromise, takePromise } from './core/index2.js';
 import { promisesCard, promisesLine } from './ui/promisesView.js';
 import { postTech, postsOn, setPriority } from './core/index2.js';
@@ -485,7 +488,10 @@ const columnsNow = () => crewColumns(size.h, crewCount());
 // Pass 8 (M46): with posts in play the strip gives up its right end to the priority flag button.
 const layout = () => {
   const r = regions3(size.w, size.h, { crewColumns: columnsNow() });
-  return round && postsOn(round.state) ? { ...r, strip: stripWithFlag(r.strip, true) } : r;
+  // Pass 8 (M52): in building mode the strip also gives up its left end to the Layers button.
+  const layers = round && buildingOn(round.state);
+  const strip = layers ? stripWithLayers(r.strip) : r.strip;
+  return { ...r, strip: round && postsOn(round.state) ? stripWithFlag(strip, true) : strip, layersButton: layers ? layersTarget(r.strip) : null };
 };
 
 // The zoom is pass 1's on this screen (one crew column); a second crew column only narrows the view.
@@ -565,6 +571,8 @@ function draw() {
   const cv = round.ceoView;
   const ceoFx = { assistant: assistantAt(cv.trail), say: liveSay(cv, s.t), sayAt: cv.lastAt, shakes: liveShakes(cv, s.t) };
   markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t), ceo: ceoFx });
+  // Pass 8 (M52): a layer dims everything outside it; the banner, wrenches and cards stay on top.
+  if (round.layer) drawLayer(ctx, cameraView(cam), cam.rect, layerModel(s, round.layer), round.layer, fannedCrew(s.techs, cameraView(cam).scale));
   // The CEO's banner across the top of the map (pass 3 spec 4.7): one line when the map is narrow.
   drawBanner(ctx, cam.rect, bannerModel(s, cam.rect.w < 560));
   for (const m of markers) if (m.ceo) drawCeoMarker(ctx, m); // never hidden by the banner
@@ -582,6 +590,7 @@ function draw() {
   if (look) drawInspectCard(ctx, look.layout, look.info);
   drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
   drawStripWrenches(ctx, stripWrenches(s, regs.strip)); // pass 8 (M47)
+  if (regs.layersButton) drawLayersButton(ctx, regs.strip, regs.layersButton, round.layer); // pass 8 (M52)
   if (postsOn(s)) drawPostsOnStrip(ctx, regs.strip, stripPins(s, regs.strip), s.priorityArea, flagTarget(regs.strip), Boolean(round.flagging));
   drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
   const hireCard = buildingOn(s);
@@ -746,6 +755,12 @@ function onDown(e) {
   if (hit.kind !== 'empty') {
     applyTap(hit);
     revealFor(hit);
+    return;
+  }
+  // Pass 8 (M52): the Layers button steps through none, Power, Cooling, Crew.
+  if (regs.layersButton && inside(p, regs.layersButton)) {
+    round.layer = nextLayer(round.layer);
+    draw();
     return;
   }
   // Pass 8 (M46): the flag button arms the priority area; then a tap on the strip marks (or clears) it.
