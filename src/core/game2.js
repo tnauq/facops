@@ -50,8 +50,16 @@ export function arrivalPoint(hallId) {
   return { x: hallX(HALLS[hallId], S_OUTER), y: CORRIDOR_TOP };
 }
 
+// Pass 10 (M60): with the tutorial on, the run plays on the gentler first-run values. New objects, so
+// the caller's config is never changed.
+function gentle(cfg) {
+  const fr = cfg.building && cfg.building.enabled && cfg.tutorial && cfg.building.firstRun && cfg.building.firstRun.enabled ? cfg.building.firstRun : null;
+  if (!fr) return cfg;
+  return { ...cfg, building: { ...cfg.building, startCash: fr.startCash, tighten: fr.tighten, deadline: { ...cfg.building.deadline, at: fr.deadlineAt } } };
+}
+
 export function createGame({ seed = 1, config = {} } = {}) {
-  const cfg = makeConfig2(config);
+  const cfg = gentle(makeConfig2(config));
   const equip = {};
   for (const e of EQUIPMENT) {
     const dyn = { alarmId: null };

@@ -165,6 +165,10 @@ export const DEFAULT_CONFIG2 = {
     endurance: { enabled: true, levelEvery: 60, heatPerLevel: 0.1, capPerHeat: 0.5 },
     // Pass 9 spec 6 (M57): progress and support, shown on the screen. It changes no price or rule.
     split: { enabled: true },
+    // Pass 10 spec 3 (M60): a gentler first run, while the tutorial is on (a player's first run, or the
+    // menu's Tutorial): more starting cash, a later deadline (seconds of economy time) and the
+    // director's pass 8 tightening. Starting values.
+    firstRun: { enabled: true, startCash: 1600, deadlineAt: 1080, tighten: 0.015 },
     // Pass 7 spec 3.2 (M41, owner 17 Nov): service credits. Customers go live when the construction
     // loan is paid off (at once when there is no loan). From then every online rack row that is short of
     // full output costs `rate` dollars a second for each row short, doubling every `doubling` seconds

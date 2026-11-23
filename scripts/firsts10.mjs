@@ -1,4 +1,4 @@
-// Pass 10 spec 2.5 (M59): a first run's firsts, scripted. The game holds while a pause card shows, so
+// Pass 10 spec 2.5 (M59): a first run's firsts, scripted, on the first run's gentler rules (M60). The game holds while a pause card shows, so
 // closing it at once costs no game time; the held time is the cards times a reading time.
 //   node scripts/firsts10.mjs [seeds] [read seconds]
 import { playRun } from '../src/core/index2.js';
@@ -17,7 +17,7 @@ for (let seed = 1; seed <= seeds; seed++) {
   const f = createFirsts();
   let seen = 0;
   const pauses = [];
-  playRun({ seed, config: { tutorial: false, building: { enabled: true } }, builder: 'builder', policy: 'none', maxSeconds: 1800, onStep: (s) => {
+  playRun({ seed, config: { tutorial: true, building: { enabled: true } }, builder: 'builder', policy: 'none', maxSeconds: 1800, onStep: (s) => {
     const events = s.events.slice(seen);
     seen = s.events.length;
     const out = updateFirsts(f, s, events);

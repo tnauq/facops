@@ -134,11 +134,44 @@ The owner approved `docs/pass10-spec.md` (version 0.2) on 23 November 2026, with
 | Milestone | Tag | Status |
 |---|---|---|
 | M59. Firsts | `m59` | Done |
-| M60. A gentler first run | `m60` | |
+| M60. A gentler first run | `m60` | Done |
 | M61. The screen opens up | `m61` | |
 | M62. The reference card | `m62` | |
 
 ## Log
+
+### M60. A gentler first run
+
+Pass 10 spec 3.
+
+Built:
+
+- **Rules** (game2.js `createGame`; config `building.firstRun: { enabled: true, startCash: 1600, deadlineAt: 1080, tighten: 0.015 }`). With the tutorial on (a player's first run ever, or the main menu's Tutorial), the run starts with **$1,600** (later runs $800), the board's deadline is **18:00** (later runs 13:30), and the director tightens **1.5% every 10 s** (later runs 2%). Everything else, the CEO included, is a normal run. The values go into the run's own copy of the config, so the ledger starts from $1,600 and the HUD says "Due 18:00"; the caller's config is never changed. `SAVE_VERSION` is `m60`.
+- `scripts/firsts10.mjs` now plays its first runs on these rules.
+- **Tests:** 3 in `tests/firstRun.test.js`. 671 in all.
+
+Checks (24 seeds, the tutorial on):
+
+| Player | Won | Median win | Broke / fired / missed |
+|---|---|---|---|
+| Compute first | 23 (96%) | 11:17 | 0 / 0 / 1 |
+| Gets ready for the CEO | 23 | 11:17 | 1 / 0 / 0 |
+| Uses no pass 8 tool | 23 | 11:32 | 0 / 1 / 0 |
+| Never a backup | 18 | 9:44 | 2 / 1 / 3 |
+
+- **Compute first wins at least 80% of first runs:** met (96%, against 63% on normal rules).
+- **The cards' held time does not count against the deadline:** met by design: the game, and its economy clock, hold while a card shows.
+- **The firsts, rechecked on these rules** (12 seeds): 17 pause cards (16 to 18), 1:08 held at 4 s a card, the last card at a median 7:52 and **every card before 12:00** (latest 9:44), which M59 missed on normal rules. The deadline's five-minute card no longer comes: first runs are won before 13:00.
+
+Worth knowing:
+
+- 96% may be gentler than needed; if the owner's first run feels like it plays itself, the deadline (18:00) is the first thing to bring in.
+- **Leaderboards:** the owner chose boards kept on the device (23 November). They are in the pass 10 spec's Later list, for a milestone of their own.
+- Checked in headless Chrome at 660 x 300 (a first run from a cleared device: $1,591 after 6 s, the racks note) and 844 x 390 (a later run: $794, "Due 13:30"). No console errors.
+
+Owner's checklist:
+
+- The first run feels winnable, and the second one feels like the real thing.
 
 ### M59. Firsts
 

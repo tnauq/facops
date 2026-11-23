@@ -209,6 +209,6 @@ Firsts come first: the opening-up and the reference card both hang off them.
 ## 7. Later
 
 - **Pass 11: every word on screen** (`docs/tutorial-research.md` section 7). Every line, the firsts' cards included, rewritten for the owner to agree or replace.
-- **Leaderboards** (the owner, 23 November, with "M59 go"): one for compute delivered (GW) and one for the time to win (the sale at the finish). Not yet specified. A leaderboard shared between players needs the game to send scores to a server, which the build rules forbid ("no network requests"); a leaderboard kept on the device (the top ten runs) needs no change to that rule. The owner to choose.
+- **Leaderboards** (the owner, 23 November, with "M59 go"): one for compute delivered (GW) and one for the time to win (the sale at the finish). **The owner chose boards kept on the device** (23 November, with "go m60"): no network requests, so no rule changes. Not yet specified: a later milestone, for example the top ten runs on each board, from the main menu.
 - A final balance pass before shipping.
 - From pass 9's list: the blueprint look for the remaining cards, sound, a Settings card with reduce flashing and text size, the Home Screen icon, scenarios and the rest.
