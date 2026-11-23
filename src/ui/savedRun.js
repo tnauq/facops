@@ -4,6 +4,7 @@
 // Storage is used only inside try/catch: without it nothing is saved and the game still works.
 
 import { formatClock, loadGame, saveGame, SAVE_VERSION } from '../core/index2.js';
+import { firstsFromSave, firstsToSave } from './firsts.js';
 
 export const SAVE_KEY = 'facops.save.v1';
 export const SAVE_EVERY = 10; // seconds of real time between saves, and the page being hidden
@@ -13,7 +14,7 @@ const money = (n) => `${n < 0 ? '−' : ''}$${Math.round(Math.abs(n)).toLocaleSt
 /** The screen's part of a run, as plain data. */
 function screenPart(round) {
   const intros = round.intros ? { ...round.intros, given: [...round.intros.given] } : null;
-  return { tutorial: round.tutorial ? { ...round.tutorial } : null, intros, firstRun: Boolean(round.firstRun) };
+  return { tutorial: round.tutorial ? { ...round.tutorial } : null, intros, firstRun: Boolean(round.firstRun), firsts: firstsToSave(round.firsts) };
 }
 
 /** Write the run to storage. Returns true if it was saved. */
@@ -77,5 +78,5 @@ export function restoreRun(save) {
   if (!state) return null;
   const s = save.screen ?? {};
   const intros = s.intros ? { ...s.intros, given: new Set(s.intros.given ?? []) } : null;
-  return { state, tutorial: s.tutorial ?? null, intros, firstRun: Boolean(s.firstRun) };
+  return { state, tutorial: s.tutorial ?? null, intros, firstRun: Boolean(s.firstRun), firsts: firstsFromSave(s.firsts ?? null) };
 }

@@ -3,7 +3,7 @@
 // mode is 'playing'. Pass 6 (M37): the start card is the main menu ('menu'), and a Settings card
 // opens from the menu and the pause menu.
 
-export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver', 'ledger', 'promises', 'perk', 'rescue', 'won'];
+export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver', 'ledger', 'promises', 'perk', 'rescue', 'won', 'lesson'];
 
 // The tuning drawer opens from the start, pause and round-over cards, and from the HUD's settings
 // button during play. Done goes back to the card it came from; from play it goes to the pause card
@@ -37,7 +37,9 @@ const TABLE = {
     perk: { mode: 'perk', newRound: false }, // pass 8 (M51): the pick of two, after a clean visit
     rescue: { mode: 'rescue', newRound: false }, // pass 8 (M51): the CEO's call, the first time in the red
     won: { mode: 'won', newRound: false }, // pass 9 (M54): the win card, after the last inspection
+    lesson: { mode: 'lesson', newRound: false }, // pass 10 (M59): a first's card holds the game
   },
+  lesson: { continue: { mode: 'playing', newRound: false } },
   // Pass 9 (M54): the win card's Results button opens the run-over card.
   won: { over: { mode: 'over', newRound: false }, endurance: { mode: 'playing', newRound: false } }, // M56: Endurance plays on
   // Pass 8 (M51): both cards hold the game. The pick closes once a perk is taken; the call when it ends.

@@ -78,9 +78,13 @@ function strikesNext(state) {
 
 /** A fresh set of introductions: none given yet. */
 // bundles (pass 7 M43): the screen turns on the bundles hint; it needs the bundles card to exist.
-export function createIntros({ devices = true, bundles = false } = {}) {
-  return { given: new Set(), queue: [], text: '', ids: [], until: 0, devices, bundles };
+// notices (pass 10 M59): only the lines that report the run (endurance and its levels, the deadline's
+// last minute, credits outrunning income); a first run's firsts explain everything else.
+export function createIntros({ devices = true, bundles = false, notices = false } = {}) {
+  return { given: new Set(), queue: [], text: '', ids: [], until: 0, devices, bundles, notices };
 }
+
+const NOTICE = (type) => type === 'endurance' || type.startsWith('level') || type === 'deadline60' || type === 'creditsOver';
 
 /**
  * Advance one frame. Returns the callout to show now ('' when none). `ids` on the intros object
@@ -159,6 +163,7 @@ export function updateIntros(intros, state) {
     }
   }
   if (intros.text && state.t < intros.until) return intros.text;
+  if (intros.notices) intros.queue = intros.queue.filter((q) => NOTICE(q.type));
   intros.text = '';
   intros.ids = [];
   const warning = state.ceo !== null && state.ceo !== undefined && state.ceo.phase === 'warning';

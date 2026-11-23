@@ -37,6 +37,7 @@ import { deliveryCard } from './ui/delivery.js';
 import { createTutorial, lessonAlarms, updateTutorial } from './ui/tutorial.js';
 import { createIntros, updateIntros } from './ui/intros.js';
 import { createTutorial4, hireCardOpened, lessonAlarms4, updateTutorial4 } from './ui/tutorial4.js';
+import { closeFirst, createFirsts, markFirst, updateFirsts } from './ui/firsts.js';
 import { cardLayout, spotAt, spotInfo } from './ui/spots.js';
 import { hireCardText, shopModel } from './ui/shop.js';
 import { drawBuildCard, drawInspectCard } from './render/spots.js';
@@ -60,7 +61,7 @@ import { hudModel2 } from './ui/hud2.js';
 import { reduceFlow } from './ui/flow.js';
 import { BEST2_KEY, BEST4_KEY, BEST5_KEY, bestText, buildingBestText, defaultStorage, loadBest, recordBest, saveBest } from './ui/best.js';
 import { tuning2 } from './ui/tuning2.js';
-import { buildingSite, centreOn, createCamera, glide, isVisible, panBy, passOneScale } from './ui/camera.js';
+import { buildingSite, centreOn, createCamera, glide, isVisible, panBy, passOneScale, visibleSize } from './ui/camera.js';
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
 import { inStripTarget, regions3, stripModel, stripX, stripY, worldXAt } from './ui/strip.js';
 import { markerAt } from './ui/offmap.js';
@@ -159,6 +160,7 @@ function newRound({ tutorial = false, restored = null } = {}) {
     // Pass 7 (M44): a resumed run gets its lesson and introductions back, and starts held so the
     // player can look before anything moves, whatever Real-time mode says.
     round.tutorial = restored.tutorial;
+    round.firsts = restored.firsts ?? null; // pass 10 (M59)
     round.intros = restored.intros ?? createIntros({ devices: false, bundles: true });
     round.firstRun = restored.firstRun;
     held = true;
@@ -172,8 +174,10 @@ function newRound({ tutorial = false, restored = null } = {}) {
   // Building mode has its own tutorial (pass 4 M27): the build order, a trip with no backup, growing.
   if (buildingOn(round.state)) {
     if (cfg.tutorial && !round.auto) {
-      round.tutorial = createTutorial4(promptVerb());
-      round.intros = createIntros({ bundles: true });
+      // Pass 10 (M59): the first run plays as normal and stops for each first; the introductions
+      // keep only the lines that report the run. (Pass 4's script, createTutorial4, is retired.)
+      round.firsts = createFirsts();
+      round.intros = createIntros({ devices: false, bundles: false, notices: true });
     } else {
       round.intros = createIntros({ devices: false, bundles: !round.auto }); // the loan line and pass 7's lines
     }
@@ -260,6 +264,27 @@ function showCommissioned() {
   mode = reduceFlow(mode, 'commissioned').mode;
   showOverlay('commissioned', { title: card.title, quote: card.quote, price: card.price, sell: card.sell });
   document.querySelector('[data-overlay="commissioned"] [data-action="sell"]').disabled = !card.enabled;
+}
+
+// Pass 10 (M59): a first's card. The camera goes to what it is about, which stays ringed; the card sits
+// at the top or bottom of the screen, whichever is clear of it.
+function lookAt(target) {
+  const e = target && EQUIPMENT_BY_ID[target];
+  if (e && !isVisible(cam, e.x, e.y, 60)) glideTo(e.x, e.y, 600);
+}
+
+function showLesson(card) {
+  mode = reduceFlow(mode, 'lesson').mode;
+  round.lessonTarget = EQUIPMENT_BY_ID[card.target] ? card.target : null;
+  const e = round.lessonTarget && EQUIPMENT_BY_ID[round.lessonTarget];
+  // With a subject, the camera puts it in the upper part of the map and the card sits at the bottom;
+  // without one, the card sits at the top, clear of the middle of the map.
+  if (e) glideTo(e.x, e.y + visibleSize(cam).h * 0.2, 600);
+  const el = document.querySelector('[data-overlay="lesson"]');
+  el.classList.toggle('at-top', !e);
+  el.classList.toggle('at-bottom', Boolean(e));
+  showOverlay('lesson', { title: card.title, text: card.text });
+  round.selection = NOTHING;
 }
 
 // The win card (pass 9 spec 3.2): the finish time, the score, the CEO's line. The game is over.
@@ -382,6 +407,15 @@ function act(action) {
     setPromises(promisesCard(round.state));
     showOverlay('promises');
     round.selection = NOTHING;
+    draw();
+    return;
+  }
+  if (action === 'gotIt') {
+    if (mode !== 'lesson') return;
+    closeFirst(round.firsts, round.state);
+    round.lessonTarget = null;
+    mode = reduceFlow(mode, 'continue').mode;
+    showOverlay('playing');
     draw();
     return;
   }
@@ -637,6 +671,8 @@ function draw() {
   // Pass 8 (M47): warnings' wrenches, over the map and under the cards.
   drawWarnings(ctx, warningMarks(s, cam), sel.kind === 'warning' ? sel.id : null);
   // Pass 7 (M43): the advisor mark, under the cards; its edge arrow taps like an alarm's.
+  // Pass 10 (M59): what a first's card is about stays ringed while the card shows.
+  if (round.lessonTarget) drawAdvisor(ctx, cam, round.lessonTarget, performance.now());
   const advise = advisorNow();
   if (advise) {
     const arrow = drawAdvisor(ctx, cam, advise, performance.now(), advisorLabel(s, advise)); // pass 9 (M57): with its words
@@ -709,6 +745,16 @@ function frame(now) {
     }
   }
   if (!round.tutorial && round.intros && mode === 'playing') round.callout = updateIntros(round.intros, state);
+  // Pass 10 (M59): a first's pause card holds the game; its notes take the callout (one voice).
+  if (round.firsts && mode === 'playing' && !state.over) {
+    const out = updateFirsts(round.firsts, state, events);
+    if (out.pause) showLesson(out.pause);
+    else if (out.note) round.callout = out.note;
+    if (round.firsts.note && round.firsts.note.target && !round.firsts.noteSeen?.has(round.firsts.note.id)) {
+      (round.firsts.noteSeen ??= new Set()).add(round.firsts.note.id);
+      lookAt(round.firsts.note.target);
+    }
+  }
   // A build card closes once its spot is no longer empty.
   if (round.card && spotState(state, round.card.id) !== 'empty') round.card = null;
   const card = deliveryCard(state, events);
@@ -948,7 +994,10 @@ function buildingTap(tap) {
     return true;
   }
   if (round.card && round.card.id === spot.id) buildSpot(spot.id); // a second tap on the spot confirms
-  else round.card = { id: spot.id };
+  else {
+    round.card = { id: spot.id };
+    markFirst(round.firsts, 'buildCard'); // pass 10 (M59)
+  }
   round.selection = NOTHING;
   return true;
 }

@@ -133,12 +133,53 @@ The owner approved `docs/pass10-spec.md` (version 0.2) on 23 November 2026, with
 
 | Milestone | Tag | Status |
 |---|---|---|
-| M59. Firsts | `m59` | |
+| M59. Firsts | `m59` | Done |
 | M60. A gentler first run | `m60` | |
 | M61. The screen opens up | `m61` | |
 | M62. The reference card | `m62` | |
 
 ## Log
+
+### M59. Firsts
+
+Pass 10 spec 2.
+
+Built:
+
+- **`src/ui/firsts.js`** (pure, with tests): 31 firsts, each a **pause** (the game holds, the camera goes to the subject, which is ringed, until "Got it") or a **note** (a callout for 6 s; the game keeps running). Each shows once. The order is the run's own.
+  - **The goal comes first**, at 0:00: "Your job: get all 48 rack rows running before the board's deadline. Then the CEO signs it off." Nothing else shows before it is closed.
+  - The rest: a rack spot (3 s after the goal if no rack is bought), the build card, contractors, a half without power, the first of each of the eight failures, a backup carrying the load, a warning, a dry CDU, a hall without water, a new hall, Hall 2 and the strip, short-handed (alarms outnumbering free techs for 10 s), bundles, Hall 3 and Layers, four techs and posts, the loan, customers live, the uptime bonus, the CEO, a promise, the Handover, strikes and five minutes to the deadline. The words are drafts for pass 11.
+  - **Spacing:** at most one pause card every 20 s; a failure's card goes ahead of anything waiting and is never held back; during a CEO warning only the CEO's own cards show. **One voice:** a pause card takes over from a note, which waits and shows after it.
+- **The first run** (Skip tutorial off, as in a player's first run ever, or the main menu's Tutorial) now plays as a normal run, with the director's randomness, and stops for its firsts. **Pass 4's scripted lessons are retired** (`tutorial4.js` stays for classic saves; new runs never use it). The one-line introductions keep only the lines that report the run (endurance and its levels, the deadline's last minute, credits outrunning income) in a first run.
+- After the first finished run, Skip tutorial turns itself on, as before.
+- **The card:** title, one or two sentences, "Got it" (44 px). With a subject, the camera puts it in the upper part of the map and the card sits at the bottom; without one, the card sits at the top. The backdrop is lighter than other cards', so the map reads behind it.
+- Saves keep what the firsts have seen. `SAVE_VERSION` is `m59`.
+- `scripts/firsts10.mjs` for spec 2.5's check.
+- **Tests:** 9 in `tests/firsts.test.js`. 668 in all.
+
+Checks (12 scripted first runs, compute first, on today's normal rules; the gentler first run is M60):
+
+| Measure | Target | Result |
+|---|---|---|
+| Pause cards | Under 20 | Median 18 (18 to 19) |
+| Time held, at 4 s a card | Under 2:30 | 1:12 (2:24 at 8 s a card) |
+| Every pause card before 12:00 | | Median last card 10:23; **one run's first dry-cooler fan at 13:03** |
+| Notes | | 8 a run |
+
+The usual order: the goal at 0:00, a warning 0:20, a leak 0:39, a breaker trip 0:54, a half without power 1:15, a promise 1:35, a new hall 1:55, network 2:32, pump 3:36, the CEO 4:30, customers 5:07, a short 5:22, short-handed 5:43, RMU 6:22, chiller 8:20, the deadline's five minutes 8:30, the Handover 9:50. Strikes never came: on today's rules the run is won before strike visits begin.
+
+Worth knowing:
+
+- **The first run is hard on normal rules.** In the browser check a breaker tripped 40 s in and took the only side of Hall 1's top half down (0 of 13 MW). M60's gentler first run is the answer.
+- The dry cooler's fan is the one failure that sometimes comes late (only 1 run in 12 met it at all); if that card at 13:03 feels late, it could be a note instead.
+- **Leaderboards** (the owner's request with "M59 go") are noted in the pass 10 spec's Later list, with the question of where they live: shared online needs network requests, which the rules forbid; kept on the device needs nothing new.
+- Checked in headless Chrome at 844 x 390 and 660 x 300 from a cleared device: the goal card, the rack note with its ring, then a warning, a leak, a promise and a breaker trip, each with the camera on the subject and the card below it. No console errors.
+
+Owner's checklist:
+
+- Your first run teaches you by stopping when something new happens, and never twice for the same thing.
+- Nothing else talks over a card.
+- Your second run starts with no tutorial, and the Settings show it switched off.
 
 ### M58. The balance check
 

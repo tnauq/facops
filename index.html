@@ -27,6 +27,14 @@
       background: rgba(213, 219, 227, 0.72); touch-action: manipulation;
     }
     #overlay[hidden] { display: none; }
+    /* Pass 10 (M59): a first's card leaves the map readable behind it, and sits clear of its subject. */
+    #overlay.lesson-backdrop { background: rgba(213, 219, 227, 0.25); }
+    .card.lesson { max-width: min(520px, 94vw); padding: 10px 18px 12px; text-align: left; }
+    .card.lesson h1 { font-size: 16px; margin: 0 0 2px; }
+    .card.lesson p { font-size: 13px; margin: 0 0 4px; }
+    .card.lesson .buttons { justify-content: flex-end; margin: 0; }
+    .card.lesson.at-top { align-self: flex-start; margin-top: 52px; }
+    .card.lesson.at-bottom { align-self: flex-end; margin-bottom: 36px; }
     .card {
       box-sizing: border-box; max-width: min(440px, 92vw); max-height: 92vh; overflow: auto;
       background: #FFFFFF; border: 1px solid #C9D1DB; border-radius: 8px; padding: 16px 22px;
@@ -281,6 +289,11 @@
         <button data-action="keep">Keep running</button>
         <button class="primary" data-action="sell" data-field="sell">Hand over the keys</button>
       </div>
+    </div>
+    <div class="card lesson" data-overlay="lesson" hidden>
+      <h1 data-field="title"></h1>
+      <p data-field="text"></p>
+      <div class="buttons"><button class="primary" data-action="gotIt">Got it</button></div>
     </div>
     <div class="card" data-overlay="won" hidden>
       <h1 data-field="title">Campus handed over</h1>

@@ -26,6 +26,7 @@ export function showOverlay(mode, fields = {}) {
     }
   }
   el.hidden = !shown;
+  el.classList.toggle('lesson-backdrop', mode === 'lesson'); // pass 10 (M59): the map stays readable
 }
 
 /**
