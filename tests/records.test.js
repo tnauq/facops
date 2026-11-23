@@ -27,12 +27,12 @@ test('any run can set the high score; only a win sets the fastest win', () => {
 
 test('records survive storage that throws or holds rubbish', () => {
   const broken = { getItem() { throw new Error('no'); }, setItem() { throw new Error('no'); } };
-  assert.deepEqual(loadRecords(broken), { high: null, fastest: null });
+  assert.deepEqual(loadRecords(broken), { high: null, fastest: null, level: null });
   assert.equal(saveRecords({ high: { score: 1, seconds: 2 } }, broken), false);
   const mem = new Map();
   const store = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };
   store.setItem('facops.records.v9', '{"high":{"score":"x"}}');
-  assert.deepEqual(loadRecords(store), { high: null, fastest: null });
+  assert.deepEqual(loadRecords(store), { high: null, fastest: null, level: null });
   saveRecords({ high: { score: 5, seconds: 6 }, fastest: { wonAt: 700, score: 5 } }, store);
   assert.deepEqual(loadRecords(store).fastest, { wonAt: 700, score: 5 });
 });

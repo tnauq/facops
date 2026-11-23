@@ -13,6 +13,7 @@
 
 import { buildingOn, cannotSell, creditsOn, deadlineLeft, finishOn, formatClock, creditsRate, incomeRate, postsOn, strikesToFire } from '../core/index2.js';
 import { anyHallAffordable } from './bundles.js';
+import { ENDURANCE_START, levelLine } from './enduranceView.js';
 
 export const INTRO_SECONDS = 6;
 export const NOTICE_SECONDS = 4; // the loan line (pass 5 spec 3.2)
@@ -90,6 +91,16 @@ export function updateIntros(intros, state) {
     intros.given.add('loan');
     intros.queue.push({ type: 'loan', id: null });
   }
+  // Pass 9 (M56): endurance's first line, then each level as it comes (the latest one only).
+  if (state.endurance && !intros.given.has('endurance')) {
+    intros.given.add('endurance');
+    intros.queue.unshift({ type: 'endurance', id: null });
+  }
+  if (state.endurance && state.endurance.level > 1 && !intros.given.has(`level${state.endurance.level}`)) {
+    intros.given.add(`level${state.endurance.level}`);
+    intros.queue = intros.queue.filter((q) => !q.type.startsWith('level'));
+    intros.queue.unshift({ type: `level${state.endurance.level}`, id: null });
+  }
   // Pass 9 (M55): the CEO's countdown as it comes. (The HUD's note shows the date from the start.)
   for (const mark of state.deadlineSaid ?? []) {
     if (intros.given.has(`deadline${mark}`) || deadlineLeft(state) === null) continue;
@@ -157,6 +168,8 @@ export function updateIntros(intros, state) {
       : next.type === 'uptime' ? uptimeText(state.config.building.uptime.bonus)
       : next.type === 'loan' && creditsOn(state) ? CUSTOMERS_TEXT
       : next.type === 'sale' && finishOn(state) ? INTRO_TEXT.finish
+      : next.type === 'endurance' ? ENDURANCE_START
+      : next.type.startsWith('level') ? levelLine(Number(next.type.slice(5)), Math.pow(1 + state.config.building.endurance.heatPerLevel, Number(next.type.slice(5)) - 1))
       : next.type.startsWith('deadline') ? INTRO_TEXT[next.type] ?? `“${formatClock(Number(next.type.slice(8)))} left.”`
       : INTRO_TEXT[next.type];
     intros.ids = state.alarms.some((a) => a.id === next.id) ? [next.id] : [];

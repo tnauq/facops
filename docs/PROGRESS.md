@@ -117,17 +117,60 @@ The owner approved `docs/pass8-spec.md` (version 0.1) on 21 November 2026, every
 
 ## Pass 9
 
-The owner approved `docs/pass9-spec.md` (version 0.2) on 22 November 2026: a run is won by finishing the campus (all 48 rows built and at full output, then the CEO's last inspection), the score is the compute delivered in dollars, with a board deadline, free play after the win, progress and support, and a balance check against new targets.
+The owner approved `docs/pass9-spec.md` (version 0.2) on 22 November 2026: a run is won by finishing the campus (all 48 rows built and at full output, then the CEO's last inspection), the score is the compute delivered in dollars, with a board deadline, endurance after the win (free play until spec v0.3), progress and support, and a balance check against new targets.
 
 | Milestone | Tag | Status |
 |---|---|---|
 | M54. The win and the score | `m54` | Done |
 | M55. The board's deadline | `m55` | Done |
-| M56. Free play | `m56` | |
+| M56. Endurance | `m56` | Done |
 | M57. Progress and support | `m57` | |
 | M58. The balance check | `m58` | |
 
 ## Log
+
+### M56. Endurance
+
+Pass 9 spec 5, as v0.3 rewrote it at the owner's word with "M56 go": not "free play" (low stress, creative) but **endurance**, scaling level by level like Pac-Man or Tetris.
+
+Built:
+
+- **Rules** (finish.js, hooks in game2.js, ceo.js and bot2.js; config `building.endurance: { enabled: true, levelEvery: 60, heatPerLevel: 0.1, capPerHeat: 0.5 }`). `SAVE_VERSION` is `m56`.
+  - **Endurance starts from the win card** (`startEndurance`). The run stays won, its finish time stays, and the score keeps counting.
+  - **A level a minute.** Each level's heat is 1.1 times the last: 1× at level 1, 1.61× at level 6, 2.59× at level 11.
+  - With the heat: the director's gaps are divided by it, its cap gains an alarm for each 0.5 of heat above 1, the CEO's next visit comes at its usual gap divided by it, and **every row earns heat times as much**.
+  - **It ends** by going broke, being fired, or End endurance (`endEndurance`). The outcome stays "won"; `results().endurance` says the level, how long and how it ended. Event `levelUp`, `enduranceStart`.
+  - Drawer: "Endurance after a win". `playRun({ endurance: true })` plays on after the win.
+- **Screen:**
+  - **The win card** has **Endurance** beside Results.
+  - **The HUD's note** leads with "Endurance · level 3 · 1.21×" ("L3 · 1.21×" on a narrow phone).
+  - **Callouts:** on starting ("Endurance. Every minute is a new level: more alarms, closer CEO visits, and compute pays more. How long can you last?"), and one per level ("Level 4: alarms 1.33× as often, compute pays 1.33×.").
+  - **Pause menu:** End endurance in place of the sale.
+  - **The run-over card:** still "Campus handed over", with "Endurance · Level 7 · 6:10 · went broke".
+  - **Records:** a third, the best endurance level. Main menu: "Fastest win 1:51 · High score $42,026 · Endurance level 3"; the card says "New best endurance level!".
+- `scripts/endurance9.mjs` for spec 5.3's checks.
+- **Tests:** 6 in `tests/endurance.test.js`. 652 in all.
+
+Checks (12 seeds; spec 5.3):
+
+| Player | Won | In endurance: median (range) | Median level | Ended by | Score added |
+|---|---|---|---|---|---|
+| Compute first | 10 | 6:32 (0:45 to 9:11) | 7 | broke 7, fired 3 | +110% |
+| Also gets ready for the CEO | 11 | 7:19 (5:38 to 8:09) | 8 | broke 9, fired 2 | +142% |
+
+- **Lasts 4 to 10 minutes:** met. **Adds at least a quarter to the score:** met, by far.
+- Endurance more than doubles a winner's score, so the high score is now an endurance record above all. That is the arcade shape the owner described; if the fastest win should weigh more, M58 can lower the heat's pay (lever 6 is the heat's rise).
+
+Worth knowing:
+
+- **A clean CEO visit still offers the pick of two in endurance**, and the game waits for it, as in the main run.
+- The CEO's first endurance visit comes 12 to 18 s in, once strike visits have begun.
+- Checked in headless Chrome at 844 x 390 and 660 x 300: the win card's Endurance button, the level in the HUD, level 3 after two minutes, End endurance from the pause menu, the run-over card's Endurance line and the three records on the main menu. No console errors.
+
+Owner's checklist:
+
+- Each level is felt: busier, and better paid.
+- When endurance ends, the run still says Won, and the level you reached is on the card.
 
 ### M55. The board's deadline
 

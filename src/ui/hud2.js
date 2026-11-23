@@ -4,6 +4,7 @@
 
 import { promiseNote } from './promisesView.js';
 import { perkNote } from './perksView.js';
+import { enduranceNote } from './enduranceView.js';
 import { buildProgress, buildingOn, deadlineAt, deadlineLeft, finishOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
@@ -75,6 +76,10 @@ export function deadlineNote(state) {
 /** The HUD note's wordings, longest first, with the deadline (M55). */
 function noteWordings(state, extra) {
   const list = noteWordingsBase(state, extra);
+  // Pass 9 (M56): in endurance the level and heat lead, and are what a narrow phone shows.
+  const en = enduranceNote(state);
+  // (The HUD fits the first wording that fits of the first, second and last: keep it to three.)
+  if (en) return [`${en.long} · ${list[0]}`, en.long, en.short];
   const d = deadlineNote(state);
   if (!d) return list;
   // In the last minutes the deadline leads, and is all a narrow phone shows. Before then it trails the

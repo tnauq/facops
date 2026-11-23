@@ -17,7 +17,7 @@ import { promisesStep, surgeGaps, surgeIncome } from './promises.js';
 import { buildTimeNow, bulkFactor, callOpen, freeHire, loyalFactor, maybeCall, patient, repaySecondLoan, secondLoanRate, underWarranty, usedBulk, usedFreeHire } from './perks.js';
 import { areaOf, ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
-import { deadlineOn, finishOn, winRun } from './finish.js';
+import { deadlineOn, enduranceCapExtra, enduranceEnded, enduranceStep, finishOn, heat, winRun } from './finish.js';
 import { alarmCost } from './cost.js';
 import { runningPumps, supply } from './supply.js';
 import { HALL_IDS, buildingOn, builtCdus, builtMsbs, dryCapacity, hallOnline, isBuilt, msbFed, onlineHallIds, plantHasPump, refreshSites } from './sites.js';
@@ -774,7 +774,7 @@ export function lateCapExtra(state) {
 export function alarmCap(state) {
   const d = state.config.director;
   // Building mode: the cap follows what is built, so a hire is relief, not more alarms (M24's checks).
-  if (buildingOn(state)) return state.config.building.capExtra + Math.ceil(onlineRows(state).length / ROWS_PER_HALL - EPS) + lateCapExtra(state);
+  if (buildingOn(state)) return state.config.building.capExtra + Math.ceil(onlineRows(state).length / ROWS_PER_HALL - EPS) + lateCapExtra(state) + enduranceCapExtra(state);
   const growth = state.fullCampusAt === null || !(d.capGrowEvery > 0) ? 0 : Math.floor((state.t - state.fullCampusAt) / d.capGrowEvery + EPS);
   return state.techs.length + d.capExtra + growth;
 }
@@ -936,7 +936,8 @@ function directorStep(state) {
   if (spell === 'quiet') return;
   if (buildingOn(state) && state.redSince !== null && state.redSince !== undefined && spellsOn(state)) return;
   // Pass 8 (M50): a surge halves the gaps too.
-  const factor = (spell === 'busy' ? state.config.building.spells.busyFactor : 1) * (buildingOn(state) ? surgeGaps(state) : 1);
+  // Pass 9 (M56): in endurance the gaps shrink with the heat.
+  const factor = ((spell === 'busy' ? state.config.building.spells.busyFactor : 1) * (buildingOn(state) ? surgeGaps(state) : 1)) / heat(state);
   if (state.t >= state.director.nextSpawn - EPS) {
     directorSpawnOne(state);
     const base = buildingOn(state) ? buildingInterval(state) : spawnInterval(state.config, state.halls, state.t - state.phaseStart);
@@ -1116,7 +1117,8 @@ export function buyUpgrade(state, id) {
 // Money in: each rack row earns `income` dollars a second at full output (pass 4 spec 2.5).
 function earn(state, deliveredMw, dt) {
   // Pass 8 (M50): a surge pays half as much again.
-  const dollars = (deliveredMw / state.config.rowMw) * state.config.building.income * surgeIncome(state) * dt;
+  // Pass 9 (M56): in endurance, compute pays the heat times as much.
+  const dollars = (deliveredMw / state.config.rowMw) * state.config.building.income * surgeIncome(state) * heat(state) * dt;
   state.cash += dollars;
   state.stats.earned += dollars;
   state.stats.delivered = (state.stats.delivered ?? 0) + dollars; // pass 9 (M54): the score
@@ -1711,6 +1713,7 @@ export function step(state, dt) {
     checkCommissioned(state, now.deliveredMw);
     if (!state.scripted) burn(state, dt);
     if (!state.scripted) deadlineStep(state); // pass 9 (M55)
+    enduranceStep(state); // pass 9 (M56)
   }
 
   // Construction: the next hall comes on a timer, faster while the load is green. It waits while
@@ -1729,6 +1732,7 @@ export function step(state, dt) {
     state.overReason = 'stability';
     emit(state, 'over', { reason: 'stability' });
   }
+  if (state.over) enduranceEnded(state); // pass 9 (M56): how an endurance run ended
   return state;
 }
 
@@ -1824,12 +1828,14 @@ export function results(state) {
     score: score(state),
     // Pass 9 (M54): the win at the finish, and the compute delivered (the score, in dollars).
     finish: finishOn(state),
-    won: state.overReason === 'won',
+    won: Boolean(state.won),
     wonAt: state.won ? state.won.t - (buildingOn(state) ? state.economyStart ?? 0 : 0) : null,
     delivered: buildingOn(state) ? state.stats.delivered ?? 0 : 0,
     outcome: outcomeOf(state),
     // Pass 9 (M55): the board's deadline, and how far the campus got.
     missedDeadline: state.overReason === 'deadline',
+    // Pass 9 (M56): endurance after the win: { level, seconds, endedBy } or null.
+    endurance: state.endurance ? { level: state.endurance.level, seconds: (state.endurance.endedAt ?? state.t) - state.endurance.startedAt, endedBy: state.endurance.endedBy ?? state.overReason } : null,
     rowsBuilt: buildingOn(state) ? onlineRows(state).length : 0,
   };
 }
@@ -1838,7 +1844,7 @@ export function results(state) {
 function outcomeOf(state) {
   if (!state.over) return null;
   const r = state.overReason;
-  if (r === 'won') return 'won';
+  if (r === 'won' || state.won) return 'won'; // pass 9 (M56): an endurance run stays won, however it ends
   if (r === 'sold') return finishOn(state) ? 'soldEarly' : 'sold';
   if (r === 'bankrupt') return 'broke';
   if (r === 'ceo') return 'fired';

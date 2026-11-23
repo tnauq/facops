@@ -39,7 +39,7 @@ const TABLE = {
     won: { mode: 'won', newRound: false }, // pass 9 (M54): the win card, after the last inspection
   },
   // Pass 9 (M54): the win card's Results button opens the run-over card.
-  won: { over: { mode: 'over', newRound: false } },
+  won: { over: { mode: 'over', newRound: false }, endurance: { mode: 'playing', newRound: false } }, // M56: Endurance plays on
   // Pass 8 (M51): both cards hold the game. The pick closes once a perk is taken; the call when it ends.
   perk: { continue: { mode: 'playing', newRound: false } },
   rescue: { continue: { mode: 'playing', newRound: false }, promises: { mode: 'promises', newRound: false }, sellAsk: { mode: 'sell', newRound: false } },

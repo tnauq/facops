@@ -50,6 +50,7 @@ export function pumpsShortText(r) {
 
 const dollars = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
 // The highest milestone reached (pass 5 spec 5.2).
+const ENDED_BY = { bankrupt: 'went broke', ceo: 'fired by the CEO', ended: 'you stopped' };
 export const MILESTONE = { ribbon: 'Ribbon-cutting', handover: 'Handover', commissioned: 'Commissioned' };
 
 const NUMBER = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
@@ -97,6 +98,8 @@ export function resultsPanel(r, record, formatClock) {
     if (r.sold) lines[0] = ['Sale', `The buyer paid ${dollars(r.salePrice)}`];
     // Pass 9 (M55): how far the campus got before the board pulled the plug.
     if (r.missedDeadline) lines.splice(0, 0, ['Campus', `${r.rowsBuilt} of 48 rows`]);
+    // Pass 9 (M56): how far endurance went.
+    if (r.endurance) lines.splice(0, 0, ['Endurance', `Level ${r.endurance.level} · ${formatClock(r.endurance.seconds)} · ${ENDED_BY[r.endurance.endedBy] ?? 'ended'}`]);
   }
   if (r.building) {
     if (!Number.isFinite(r.score)) big[1] = { value: `$${Math.round(r.earned).toLocaleString('en-US')}`, label: 'earned' };

@@ -73,6 +73,7 @@ import { perkCard, rescueCard, warrantyHalls } from './ui/perksView.js';
 import { fannedCrew } from './ui/crew.js';
 import { loadRecords, recordRun, recordsLine, recordsText, saveRecords } from './ui/records.js';
 import { winCard } from './ui/finishView.js';
+import { endEndurance, enduranceOn, inEndurance, startEndurance } from './core/index2.js';
 import { layerModel, layersTarget, nextLayer, stripWithLayers } from './ui/layers.js';
 import { drawLayer, drawLayersButton } from './render/layers.js';
 import { cancelPromise, takePromise } from './core/index2.js';
@@ -232,6 +233,17 @@ function showPaused() {
   const row = document.getElementById('sell-row');
   const button = document.getElementById('sell-button');
   const why = document.querySelector('[data-overlay="paused"] [data-field="sellWhy"]');
+  // Pass 9 (M56): in endurance the sale's place holds End endurance.
+  if (round && inEndurance(round.state)) {
+    row.hidden = false;
+    why.hidden = true;
+    button.textContent = 'End endurance';
+    button.disabled = false;
+    button.dataset.action = 'endEndurance';
+    showOverlay('paused');
+    return;
+  }
+  button.dataset.action = 'sellAsk';
   row.hidden = !b;
   why.hidden = !b || b.enabled;
   if (b) {
@@ -255,6 +267,7 @@ function showWon() {
   if (!round.auto) clearSave(defaultStorage());
   mode = reduceFlow(mode, 'won').mode;
   showOverlay('won', winCard(results(round.state), formatClock));
+  document.getElementById('endurance-button').hidden = !enduranceOn(round.state); // pass 9 (M56)
 }
 
 // The main menu (pass 6 spec 2.1): the best score and its milestone under the buttons. Pass 7 (M44):
@@ -377,6 +390,21 @@ function act(action) {
     roundOver();
     return;
   }
+  // Pass 9 (M56): play on into endurance from the win card; end it from the pause menu.
+  if (action === 'endurance') {
+    if (mode !== 'won' || !startEndurance(round.state).ok) return;
+    mode = reduceFlow(mode, 'endurance').mode;
+    showOverlay('playing');
+    lastSave = 0; // save the endurance run soon
+    draw();
+    return;
+  }
+  if (action === 'endEndurance') {
+    if (mode !== 'paused' || !endEndurance(round.state).ok) return;
+    mode = reduceFlow(mode, 'resume').mode;
+    roundOver();
+    return;
+  }
   if (action === 'ledger') {
     if (mode !== 'playing' || !buildingOn(round.state)) return;
     mode = reduceFlow(mode, 'ledger').mode;
@@ -476,7 +504,7 @@ function roundOver() {
     // Pass 9 (M54): the fastest win and the high score replace the single best.
     const rec = recordRun(records, r);
     records = rec.records;
-    if (!round.auto && (rec.newHigh || rec.newFastest)) saveRecords(records, defaultStorage());
+    if (!round.auto && (rec.newHigh || rec.newFastest || rec.newLevel)) saveRecords(records, defaultStorage());
     recordText = recordsLine(rec, formatClock);
     record = { best: { energyGwh: r.energyGwh, seconds: r.seconds, score: r.score }, isNew: false };
   } else {

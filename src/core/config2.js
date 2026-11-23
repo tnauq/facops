@@ -160,6 +160,9 @@ export const DEFAULT_CONFIG2 = {
     // Handover's clock), or the board pulls the plug: a loss. Needs the win at the finish.
     // `marks`: seconds left at which the CEO counts down (spec 4.1: 5:00 and 1:00).
     deadline: { enabled: true, at: 960, marks: [300, 60] },
+    // Pass 9 spec 5 (M56): endurance after a win. A level every `levelEvery` seconds; each level's heat
+    // is (1 + heatPerLevel) times the last; one more alarm may be open for each `capPerHeat` of heat.
+    endurance: { enabled: true, levelEvery: 60, heatPerLevel: 0.1, capPerHeat: 0.5 },
     // Pass 7 spec 3.2 (M41, owner 17 Nov): service credits. Customers go live when the construction
     // loan is paid off (at once when there is no loan). From then every online rack row that is short of
     // full output costs `rate` dollars a second for each row short, doubling every `doubling` seconds

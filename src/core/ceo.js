@@ -13,7 +13,7 @@ import { CORRIDOR_TOP, EQUIPMENT, EQUIPMENT_BY_ID, HALLS, MID_Y, PLANTS, S_OUTER
 import { buildingOn, isBuilt, onlineHallIds } from './sites.js';
 import { alarmCost } from './cost.js';
 import { visitEnded } from './perks.js';
-import { winRun } from './finish.js';
+import { heat, winRun } from './finish.js';
 
 const EPS = 1e-9;
 const UP = -Math.PI / 2; // y grows downwards
@@ -379,7 +379,8 @@ function finish(state, c) {
     const cfg = state.config.ceo;
     const nextIsStrike = state.ceoWalks >= cfg.walks.length;
     const [lo, hi] = nextIsStrike && cfg.strikeGap ? cfg.strikeGap : cfg.gap;
-    state.ceoNext = { at: state.t + state.ceoRng.range(lo, hi), kind: 'walk' };
+    // Pass 9 (M56): in endurance the gap shrinks with the heat.
+    state.ceoNext = { at: state.t + state.ceoRng.range(lo, hi) / heat(state), kind: 'walk' };
   }
 }
 

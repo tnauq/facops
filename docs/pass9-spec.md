@@ -1,6 +1,6 @@
 # FacOps pass 9 build spec
 
-Version 0.2, 22 November 2026. **The owner answered section 1's questions and approved the spec on 22 November** ("M54 go", with section 1's reading on selling early as written). It is the source of truth for pass 9, as `docs/pass8-spec.md` is for pass 8. Pass 8's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.3, 22 November 2026 (v0.3: free play becomes endurance, with levels, at the owner's word with M56). **The owner answered section 1's questions and approved the spec on 22 November** ("M54 go", with section 1's reading on selling early as written). It is the source of truth for pass 9, as `docs/pass8-spec.md` is for pass 8. Pass 8's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Values marked *starting value* are for scripted checks to settle; everything else is the owner's decision.
 
@@ -10,7 +10,7 @@ Values marked *starting value* are for scripted checks to settle; everything els
 
 1. **The win:** a fully built campus at full output, handed over, ends the run as a win. Going broke, the CEO and the board's deadline are the ways to lose.
 2. **The board's deadline:** the finish line has a date on it.
-3. **Free play:** after the win, the same campus plays on for a high score, with alarms, the CEO and the price of compute all climbing.
+3. **Endurance:** after the win, the same campus plays on in levels, like Pac-Man or Tetris, for a high score: alarms, the CEO and the price of compute all climb.
 4. **The score is compute delivered,** counted in dollars.
 5. **Progress and support:** every build either moves the campus towards the win or protects what is there, and the game says which.
 6. **A balance check** against targets for a game you can win.
@@ -46,10 +46,10 @@ M54 to M57 change rules. Each change sits behind a drawer switch, off until its 
 | # | Question | Answer |
 |---|---|---|
 | 1 | **What counts as finished?** | **Built and at full output:** all 48 rack rows built and delivering full output at the same moment, as Commissioned is today |
-| 2 | **After the win** | **Free play, with a high score to chase:** the win is locked in; the campus plays on with alarms and CEO visits coming more and more often |
+| 2 | **After the win** | **Endurance, with a high score to chase** ("free play" until v0.3): the win is locked in; the campus plays on with alarms and CEO visits coming more and more often |
 | 3 | **Selling before the finish** | **Yes:** "Sold early" stays, and is not a win |
 | 4 | **The board's deadline** | **Yes** |
-| 5 | **The score** | **Compute delivered,** shown in dollars. In free play the price of compute (the rent customers pay) rises alongside the alarm frequency |
+| 5 | **The score** | **Compute delivered,** shown in dollars. In endurance the price of compute (the rent customers pay) rises alongside the alarm frequency |
 | 6 | **The targets** (section 7) | **As written** |
 
 **One reading to confirm.** With the score as compute delivered, the sale price no longer adds to the score. Selling early then ends a run with the compute delivered so far, recorded as "Sold early" rather than a loss: a cleaner exit, not a bigger score. Section 3.1 is written that way. If the owner wants an early sale to pay something into the score, say how much.
@@ -62,7 +62,7 @@ One per session, in order. Commit titles start with the milestone so the action 
 |---|---|---|---|
 | M54 | The win and the score (3) | Rules (behind a switch), screen, scripted players | Medium to large |
 | M55 | The board's deadline (4) | Rules (behind a switch), screen | Small to medium |
-| M56 | Free play (5) | Rules (behind a switch), screen | Medium |
+| M56 | Endurance (5) | Rules (behind a switch), screen | Medium |
 | M57 | Progress and support (6) | Rules helper, screen | Medium |
 | M58 | The balance check (7) | Config, checks | Medium |
 
@@ -75,7 +75,7 @@ The win and the score come first because everything after measures against them.
 - **Finished** (question 1): the first moment all 48 rack rows are built and delivering full output at once. This is today's Commissioned; the word stays. Recorded once. Event `commissioned`, as now.
 - **The last inspection.** On Commissioned, the CEO comes for one walkthrough of the whole campus with no warning (*starting value*: the Handover visit's pace). It fines sightings as any visit does, and a sighting is a strike if strike visits have begun. Outages that open during it still count as sightings.
 - **The win.** When the inspection ends, the keys are handed over and the run is won. If the inspection's strike was the third, the CEO fires you at the last door: no win. Event `won`.
-- **The score** (question 5): **the compute the campus delivered, in dollars.** Each rack row earns its income for every second it delivers, as now (`building.income`, $4 a second at full output); the score is the total of that income over the run. In the main run the price is fixed. Free play raises it (section 5). Service credits, wages and spending do not lower the score: they spend cash, and cash is what keeps the run alive.
+- **The score** (question 5): **the compute the campus delivered, in dollars.** Each rack row earns its income for every second it delivers, as now (`building.income`, $4 a second at full output); the score is the total of that income over the run. In the main run the price is fixed. Endurance raises it (section 5). Service credits, wages and spending do not lower the score: they spend cash, and cash is what keeps the run alive.
   - The results also show the energy: "1.42 GWh delivered" (MW delivered over time).
   - The uptime bonus and promise payments are cash, not compute, and do not count.
 - **Selling early** (question 3): from the Handover, as now. The run ends "Sold early", with the compute delivered so far as its score. It is not a win, and not a loss. The sale price still shows on the confirm card, as what the buyer pays you; it no longer joins the score.
@@ -86,7 +86,7 @@ The win and the score come first because everything after measures against them.
 ### 3.2 Screen
 
 - **The finish:** the Commissioned celebration (every hall title lights in turn) and the CEO's line *"Fine. It's finished. Let me look at it."*, then the banner for the last inspection.
-- **The win card** after the inspection: **"Campus handed over"**, the time large ("Finished in 12:40"), the score, and two buttons: **Results** (primary) and **Free play**.
+- **The win card** after the inspection: **"Campus handed over"**, the time large ("Finished in 12:40"), the score, and two buttons: **Results** (primary) and **Endurance** (M56).
 - **The HUD:** the score in place of today's run total, as "Delivered $48,200".
 - **Results and the run-over card** lead with the outcome: *Won*, *Sold early*, *Went broke*, *Fired*, *Missed the deadline*. A win shows the finish time large; every run shows the score and the GWh.
 - **The main menu** shows two records: **the fastest win** ("Fastest win 12:40") and **the high score** ("High score $182,300"). Bests from older rules stay, labeled as now.
@@ -112,7 +112,7 @@ The win and the score come first because everything after measures against them.
 - **Miss it** and the run ends: "The board pulled the plug." A loss. The score is the compute delivered.
 - **The CEO counts down:** a line at 5:00 left (*"The board wants this live in five minutes."*) and at 1:00 left. Nothing else changes: the walkthroughs, the strikes and the fines run as now.
 - The last inspection (3.1) counts as in time if Commissioned came before the deadline.
-- Free play has no deadline.
+- Endurance has no deadline.
 
 ### 4.2 Screen
 
@@ -130,35 +130,41 @@ The win and the score come first because everything after measures against them.
 - From the first minute, you know when the campus is due.
 - When a run misses the deadline, you can see where the time went.
 
-## 5. M56. Free play
+## 5. M56. Endurance
 
-### 5.1 Rules (`building.freePlay`, switch "Free play")
+**The owner, 22 November (with "M56 go"):** not "free play", which suggests low-stress creative building, but an **endurance mode that scales like Pac-Man or Tetris**. v0.3 renames it and gives it levels.
 
-- **Free play** starts from the win card. The run's outcome (Won) and finish time are locked. The score keeps counting.
-- **Everything climbs** (question 2), on one dial: the **heat**, which starts at 1 when free play begins and rises by 10% a minute (*starting value*).
-  - **Alarms:** the director's gaps are divided by the heat, and its cap rises by one alarm for each 0.5 of heat (*starting values*).
-  - **The CEO:** strike visits come at the strike gap divided by the heat (today 12 to 18 s). Three strikes still fire you.
-  - **The price of compute** (question 5): every row earns its income times the heat. Busier means better paid, if the campus keeps running.
-- **Free play ends** when you go broke or are fired, or when you choose End free play from the pause menu. However it ends, the run stays a win; the score is final.
-- **Records:** the high score counts the whole run, free play included. The fastest win does not change in free play.
-- Free play is only offered after a win.
+### 5.1 Rules (`building.endurance`, switch "Endurance after a win")
+
+- **Endurance** starts from the win card. The run's outcome (Won) and finish time are locked. The score keeps counting.
+- **Levels, as in an arcade game:** level 1 as endurance starts, and one level more every minute (`levelEvery: 60`, *starting value*).
+- **Everything climbs with the level** (question 2), on one dial: the **heat**, 1.1 times the last level's (`heatPerLevel: 0.1`, *starting value*): 1× at level 1, 1.61× at level 6, 2.59× at level 11.
+  - **Alarms:** the director's gaps are divided by the heat, and its cap rises by one alarm for each 0.5 of heat above 1 (`capPerHeat: 0.5`, *starting value*).
+  - **The CEO:** visits keep coming, at their usual gap divided by the heat. Three strikes still fire you.
+  - **The price of compute** (question 5): every row earns its income times the heat.
+- **Endurance ends** when you go broke or are fired, or when you choose End endurance from the pause menu. However it ends, the run stays a win; the score is final.
+- **Records:** the high score counts the whole run, endurance included, and a third record keeps the **best endurance level**. The fastest win does not change in endurance.
+- Endurance is only offered after a win. It has no deadline.
 
 ### 5.2 Screen
 
-- **The HUD's note:** "Free play · heat 1.4×". The score's rate shows the higher price.
-- **Pause menu:** **End free play** in place of the sale.
-- **Results:** "Won in 12:40 · free play 6:10 · high score $261,400" (or "New high score").
-- **Introduction**, once, when free play starts: *"The campus is yours. Everything gets busier, and compute pays more. How long can you keep it running?"*
+- **The win card:** **Endurance** beside Results.
+- **The HUD's note** leads with "Endurance · level 3 · 1.21×" ("L3 · 1.21×" on a narrow phone). The cash rate shows the higher price.
+- **Each level** gets a callout: "Level 4: alarms 1.33× as often, compute pays 1.33×."
+- **Pause menu:** **End endurance** in place of the sale.
+- **Results:** "Endurance · Level 7 · 6:10 · went broke", with the records ("New best endurance level!").
+- **Main menu:** "Fastest win 12:40 · High score $261,400 · Endurance level 7".
+- **Introduction**, once, when endurance starts: *"Endurance. Every minute is a new level: more alarms, closer CEO visits, and compute pays more. How long can you last?"*
 
 ### 5.3 Checks
 
-- A competent scripted player in free play (compute first, `freePlay: true`) lasts a median of 4 to 10 minutes (*starting value*): long enough to matter, short enough to end.
-- Its free play adds at least a quarter to its score, so free play is worth playing.
+- A competent scripted player in endurance (compute first, `endurance: true`) lasts a median of 4 to 10 minutes (*starting value*): long enough to matter, short enough to end.
+- Endurance adds at least a quarter to its score, so it is worth playing.
 
 ### 5.4 Owner's checklist
 
-- Free play gets visibly harder, and the score visibly speeds up.
-- When free play ends, the run still says Won.
+- Each level is felt: busier, and better paid.
+- When endurance ends, the run still says Won, and the level you reached is on the card.
 
 ## 6. M57. Progress and support
 
@@ -205,7 +211,7 @@ Every pass 9 switch on. `scripts/pacing4.mjs`, 12 and 24 seeds.
 | Backups early | Broke in at least half the runs |
 | 150 MW | 6 to 9 minutes |
 | Every tool against none | At least a quarter higher score (pass 8's, kept) |
-| Free play | As in 5.3 |
+| Endurance | As in 5.3 |
 
 The owner's earlier split (a third each to outages, the CEO and the sale) becomes, for a competent player: **about half won, and the losses shared between the money and the CEO.**
 
@@ -216,7 +222,7 @@ The owner's earlier split (a third each to outages, the CEO and the sale) become
 3. **Build prices** for progress pieces.
 4. **The director's tightening.**
 5. The credits' doubling and the strike gap, last.
-6. For free play only: the heat's rise per minute.
+6. For endurance only: the heat's rise per level.
 
 Report every change, with the table, in `docs/PROGRESS.md`.
 
@@ -232,7 +238,7 @@ Report every change, with the table, in `docs/PROGRESS.md`.
 
 ## 9. Later
 
-- **The tutorial (pass 10).** It starts with a research deep dive: which game tutorials stand out and why, from games such as **Old School RuneScape** (Tutorial Island), Mini Metro, Into the Breach, Portal, Factorio, Overcooked, Prison Architect and Two Point Hospital. The deep dive becomes a project doc, then a pass 10 spec that rewrites the lessons for the finished game: the finish line first, then progress and support, then the crew, then free play.
+- **The tutorial (pass 10).** It starts with a research deep dive: which game tutorials stand out and why, from games such as **Old School RuneScape** (Tutorial Island), Mini Metro, Into the Breach, Portal, Factorio, Overcooked, Prison Architect and Two Point Hospital. The deep dive becomes a project doc, then a pass 10 spec that rewrites the lessons for the finished game: the finish line first, then progress and support, then the crew, then endurance.
 - **A final balance pass** before shipping, with every feature in.
 - From pass 8's list: the blueprint look for the results, Hire, Commissioned and sale cards; sound; a Settings card with reduce flashing and text size; the Home Screen icon; the comedy; scenarios, device upgrades, site events, decommissioning, Overclock, a choice of pace, a head start after a sale.
 - By the owner's decision: support rooms, generators, Operate mode, more campuses.
