@@ -4,6 +4,7 @@ export { ALARMS2, DEFAULT_CONFIG2, TRADES, UPGRADES, YARD_ALARMS, gameDefaults2,
 export { createRng } from './rng.js';
 export { SAVE_VERSION, loadGame, saveGame } from './save.js';
 export { AREAS, postPoint } from './posts.js';
+export { buildRole, plantNeeds, progressMeter, splitOn } from './roles.js';
 export { deadlineOn, endEndurance, enduranceOn, finishOn, heat, inEndurance, startEndurance, won } from './finish.js';
 export { PERKS, callOpen, choosePerk, closeCall, perksOn, perksRunning, rescueOn, takeFunding } from './perks.js';
 export { cancelPromise, delivered, promiseLeft, promisesOn, surgeIncome, surgesOn, surging, takePromise } from './promises.js';

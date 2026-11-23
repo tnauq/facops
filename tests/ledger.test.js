@@ -1,7 +1,7 @@
 // The ledger (pass 7 spec 6.1, M45): where the money goes, now and over the run so far.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, hire, raiseAlarm, step } from '../src/core/index2.js';
+import { build, createGame, hire, raiseAlarm, step } from '../src/core/index2.js';
 import { buildMove } from '../src/core/builder.js';
 import { greedyMove } from '../src/core/bot2.js';
 import { ledger } from '../src/ui/ledger.js';
@@ -32,7 +32,8 @@ for (const seed of [2, 9]) {
 }
 
 test('now: income by online hall, the loan with what is left, upkeep, wages and credits with their notes', () => {
-  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ceo: { enabled: false }, building: { enabled: true, startCash: 5000 } } });
+  // Pass 9 (M57): pass 7's spending lines, so with progress and support off.
+  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ceo: { enabled: false }, building: { enabled: true, startCash: 5000, split: { enabled: false } } } });
   for (let i = 0; i < 100; i++) step(s, 0.05);
   hire(s, 'network');
   const l = ledger(s);
@@ -56,8 +57,8 @@ test('now: income by online hall, the loan with what is left, upkeep, wages and 
 });
 
 // The run-over card (spec 6.2).
-// Pass 9 (M54): pass 7's run-over lines, so with the win at the finish off (tests/finish.test.js has its own).
-const quiet = (building = {}) => createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ceo: { enabled: false }, building: { enabled: true, startCash: 5000, finish: { enabled: false }, ...building } } });
+// Pass 9 (M54, M57): pass 7's run-over lines, so with the win at the finish and the split off (tests/finish.test.js has its own).
+const quiet = (building = {}) => createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ceo: { enabled: false }, building: { enabled: true, startCash: 5000, finish: { enabled: false }, split: { enabled: false }, ...building } } });
 
 test('the CEO\'s parting line: the first that applies', async () => {
   const { idleBackupSpend, partingLine } = await import('../src/ui/runOver.js');
@@ -106,4 +107,16 @@ test('the cash readout is a 44 px button in building mode only', async () => {
   assert.ok(!railTargets2(classic, regs, 1).buttons.some((x) => x.id === 'cash'));
   // Every other HUD button sits clear of it.
   for (const x of railTargets2(quiet(), regs, 1).buttons.filter((y) => y.id !== 'cash')) assert.ok(x.x >= b.x + b.w, x.id);
+});
+
+test('with progress and support on, spending reads as building the campus or keeping it running', () => {
+  const s = createGame({ seed: 1, config: { tutorial: false, autoDispatch: { enabled: false }, director: { enabled: false }, ceo: { enabled: false }, building: { enabled: true, startCash: 5000 } } });
+  build(s, 'row-1-t-2');
+  build(s, 'cdu-1-b');
+  hire(s, 'network');
+  const l = ledger(s);
+  assert.equal(l.soFar.find((x) => x.label === 'Building the campus').value, '−$150');
+  assert.equal(l.soFar.find((x) => x.label === 'Keeping it running').value, '−$650');
+  assert.ok(!l.soFar.some((x) => x.label === 'Spent on building'));
+  assert.ok(Math.abs(l.total - s.cash) < 1e-6);
 });

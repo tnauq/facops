@@ -59,6 +59,25 @@ const RED = '#D9483B'; // the HUD's red band colour
 
 // Building mode (pass 4 spec 3.3): "Cash" then the cash and its rate, where Stability was; in the red,
 // the cash and the countdown in the red band colour.
+// Pass 9 (M57): the progress meter beneath the load: "31/48 rows" small, then a bar that fills in ink
+// for rows at full output and pale for rows built but not at full output. Ink, not a band colour.
+function drawProgress(ctx, layout, cy, width, p) {
+  const y = cy * 2 - 6;
+  ctx.save();
+  ctx.font = `700 9px ${FONT}`;
+  ctx.fillStyle = INK;
+  ctx.fillText(p.text, layout.load.x, y);
+  const x = layout.load.x + ctx.measureText(p.text).width + 5;
+  const w = Math.max(12, layout.load.x + width - x);
+  ctx.fillStyle = TRACK;
+  ctx.fillRect(x, y - 1.5, w, 3);
+  ctx.fillStyle = MUTED;
+  ctx.fillRect(x, y - 1.5, w * p.built, 3);
+  ctx.fillStyle = INK;
+  ctx.fillRect(x, y - 1.5, w * p.full, 3);
+  ctx.restore();
+}
+
 function drawMoney(ctx, layout, money) {
   const { cy } = layout;
   ctx.font = `11px ${FONT}`;
@@ -174,6 +193,7 @@ export function drawHud(ctx, W, layout, model, note = '', buttons = { held: fals
   drawBandMark(ctx, layout.bandMark.cx, cy, layout.bandMark.size, model.band);
   ctx.fillStyle = INK;
   ctx.fillText(model.load, layout.load.x, cy);
+  if (model.progress) drawProgress(ctx, layout, cy, ctx.measureText(model.load).width, model.progress);
 
   if (model.money) drawMoney(ctx, layout, model.money);
   else {

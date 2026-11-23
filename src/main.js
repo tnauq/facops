@@ -64,7 +64,7 @@ import { buildingSite, centreOn, createCamera, glide, isVisible, panBy, passOneS
 import { endGesture, moveGesture, startGesture } from './ui/drag.js';
 import { inStripTarget, regions3, stripModel, stripX, stripY, worldXAt } from './ui/strip.js';
 import { markerAt } from './ui/offmap.js';
-import { advisorSpot } from './ui/advisor.js';
+import { advisorLabel, advisorSpot } from './ui/advisor.js';
 import { drawAdvisor } from './render/advisor.js';
 import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
 import { setBundles, setLedger, setPerk, setPromises, setRescue } from './render/overlays.js';
@@ -639,7 +639,7 @@ function draw() {
   // Pass 7 (M43): the advisor mark, under the cards; its edge arrow taps like an alarm's.
   const advise = advisorNow();
   if (advise) {
-    const arrow = drawAdvisor(ctx, cam, advise, performance.now());
+    const arrow = drawAdvisor(ctx, cam, advise, performance.now(), advisorLabel(s, advise)); // pass 9 (M57): with its words
     if (arrow) markers.push(arrow);
   }
   const open = openCard();

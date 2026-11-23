@@ -98,6 +98,8 @@ export function resultsPanel(r, record, formatClock) {
     if (r.sold) lines[0] = ['Sale', `The buyer paid ${dollars(r.salePrice)}`];
     // Pass 9 (M55): how far the campus got before the board pulled the plug.
     if (r.missedDeadline) lines.splice(0, 0, ['Campus', `${r.rowsBuilt} of 48 rows`]);
+    // Pass 9 (M57): what went on progress and on support.
+    if (r.split) lines.push(['Spent', `${dollars(r.spentProgress)} on progress · ${dollars(r.spentSupport)} on support`]);
     // Pass 9 (M56): how far endurance went.
     if (r.endurance) lines.splice(0, 0, ['Endurance', `Level ${r.endurance.level} · ${formatClock(r.endurance.seconds)} · ${ENDED_BY[r.endurance.endedBy] ?? 'ended'}`]);
   }

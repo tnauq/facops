@@ -6,7 +6,7 @@
 
 import {
   EQUIPMENT, EQUIPMENT_BY_ID, buildingOn, cannotBuild, chillersNeeded, hallOnline, isBuilt, msbFed, onlineRows, plantHasPump, pumpNeeds,
-  buyPrice, priceOf, runningChillers, spotState,
+  buyPrice, priceOf, runningChillers, spotState, buildRole, splitOn,
 } from '../core/index2.js';
 import { cameraView } from './camera.js';
 
@@ -30,7 +30,8 @@ export function spotsModel(state) {
     const st = spotState(state, e.id);
     if (st === 'built') continue;
     const progress = st === 'building' ? 1 - Math.max(0, state.equip[e.id].buildEnd - state.t) / state.config.building.buildTime : 0;
-    out.push({ id: e.id, type: e.type, x: e.x, y: e.y, state: st, progress: Math.min(1, progress), affordable: state.cash + 1e-9 >= buyPrice(state, e.id) });
+    // Pass 9 (M57): role, 'progress' or 'support' (null with the split off), so support spots can step back.
+    out.push({ id: e.id, type: e.type, x: e.x, y: e.y, state: st, progress: Math.min(1, progress), affordable: state.cash + 1e-9 >= buyPrice(state, e.id), role: splitOn(state) ? buildRole(state, e.id) : null });
   }
   return out;
 }
@@ -148,7 +149,25 @@ export function spotInfo(state, id) {
     upkeep,
     canBuild: reason === null,
     button: reason === 'cash' ? `Need ${money(price - state.cash)} more` : 'Build',
+    role: splitOn(state) ? roleTag(state, e) : null, // pass 9 (M57)
   };
+}
+
+const SHORT_HALF = { t: 'top', b: 'bottom' };
+const SPARE = { chiller: 'chiller', dry: 'dry cooler', pump: 'pump' };
+
+/**
+ * Pass 9 (M57): the build card's role line: { role, text }, e.g. "Progress · +1 row",
+ * "Progress · opens H3 top", "Support · backup for H3 top", "Support · spare chiller".
+ */
+export function roleTag(state, e) {
+  const role = buildRole(state, e.id);
+  const where = e.half && e.type !== 'cdu' ? `H${e.hall} ${SHORT_HALF[e.half]}` : `H${e.hall}`;
+  let detail;
+  if (e.type === 'row') detail = '+1 row';
+  else if (e.hall) detail = role === 'progress' ? `opens ${where}` : `backup for ${where}`;
+  else detail = role === 'progress' ? 'for the next rows' : `spare ${SPARE[e.type] ?? e.type}`;
+  return { role, text: `${role === 'progress' ? 'Progress' : 'Support'} · ${detail}` };
 }
 
 export const CARD = { w: 236, h: 104, pad: 10, button: 44 };

@@ -11,7 +11,7 @@ const INK = '#1F3A5F';
 const DISC = 15;
 
 /** Draw the ring, or the edge arrow. Returns the arrow (a marker to tap) or null. now: ms, for the pulse. */
-export function drawAdvisor(ctx, cam, id, now) {
+export function drawAdvisor(ctx, cam, id, now, label = null) {
   const e = EQUIPMENT_BY_ID[id];
   const v = cameraView(cam);
   const [m] = offMapMarkers([{ id: 'advisor', x: e.x, y: e.y, type: 'advisor' }], cam);
@@ -34,6 +34,23 @@ export function drawAdvisor(ctx, cam, id, now) {
   ctx.lineWidth = 3;
   ctx.strokeStyle = '#FFFFFF';
   ctx.stroke();
+  ctx.globalAlpha = 1;
+  // Pass 9 (M57): what the mark points at, below the ring, ink on white.
+  if (label) {
+    ctx.font = "700 11px system-ui, -apple-system, 'Segoe UI', sans-serif";
+    const w = ctx.measureText(label).width + 10;
+    ctx.beginPath();
+    ctx.roundRect(x - w / 2, y + r + 4, w, 16, 5);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = INK;
+    ctx.stroke();
+    ctx.fillStyle = INK;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y + r + 12);
+  }
   ctx.restore();
   return null;
 }

@@ -3,7 +3,7 @@
 // parts. The run so far: from the starting cash, everything in and out, down to the cash now.
 
 import {
-  EQUIPMENT_BY_ID, burnParts, creditPerRow, creditsOn, customersLiveAt, economyTime, formatClock, loanLeft, loanTimeLeft, onlineHallIds, onlineRows,
+  splitOn, EQUIPMENT_BY_ID, burnParts, creditPerRow, creditsOn, customersLiveAt, economyTime, formatClock, loanLeft, loanTimeLeft, onlineHallIds, onlineRows,
 } from '../core/index2.js';
 import { TITLE as PROMISE_TITLE } from './promisesView.js';
 
@@ -72,8 +72,10 @@ export function ledger(state) {
     ['Earned from racks', st.earned - uptime - (st.promises ?? 0), false],
     ['Uptime bonuses', uptime, false],
     ['Promises', st.promises ?? 0, false], // pass 8 (M49): advances and payments, less advances handed back
-    ['Spent on building', -(st.spentBuild ?? 0), true],
-    ['Spent on hiring and upgrades', -(st.spentCrew ?? 0), true],
+    // Pass 9 (M57): with the split, spending reads as building the campus or keeping it running.
+    ...(splitOn(state)
+      ? [['Building the campus', -(st.spentProgress ?? 0), true], ['Keeping it running', -(st.spentSupport ?? 0), true]]
+      : [['Spent on building', -(st.spentBuild ?? 0), true], ['Spent on hiring and upgrades', -(st.spentCrew ?? 0), true]]),
     ['Loan repaid', -parts.loan, true],
     ['Site overhead', -parts.overhead, true],
     ['Upkeep', -parts.upkeep, true],

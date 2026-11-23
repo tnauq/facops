@@ -124,10 +124,51 @@ The owner approved `docs/pass9-spec.md` (version 0.2) on 22 November 2026: a run
 | M54. The win and the score | `m54` | Done |
 | M55. The board's deadline | `m55` | Done |
 | M56. Endurance | `m56` | Done |
-| M57. Progress and support | `m57` | |
+| M57. Progress and support | `m57` | Done |
 | M58. The balance check | `m58` | |
 
 ## Log
+
+### M57. Progress and support
+
+Pass 9 spec 6.
+
+Built:
+
+- **Rules helper** (new `src/core/roles.js`; config `building.split: { enabled: true }`). It changes no price or rule. `SAVE_VERSION` is `m57` (the state records each piece's role, and spending by role).
+  - `buildRole(state, id)`: **progress** for rack rows, each half's RMU and first power side (transformer and switchboard), each hall's first CDU, and plant equipment up to what the rows need; **support** for the other side of a half, a hall's second CDU, spare plant equipment, hires and upgrades.
+  - **One reading of the spec:** "plant equipment up to what the rows built so far need" counts the rows bought so far **plus one hall's worth** (the hall being opened). Without it the chiller or pump that opens a new hall would read as a spare, before the rows it is for are bought. (`plantNeeds` says what that comes to.)
+  - A piece keeps the role it was bought as; a backup that turns out to be what keeps rows running (its partner was never built) reads as progress from then on. The starting campus is all progress.
+  - `progressMeter(state)`: rows built in online halls, how many at full output, of 48. `results()` gains `spentProgress`, `spentSupport` and `split`.
+  - Drawer: none. The spec gives the split a switch name but no drawer row, and it changes nothing but words; it stays in config (`building.split.enabled`).
+- **Screen:**
+  - **The HUD:** "2/48 rows" under the MW, with a thin bar: ink for rows at full output, grey for rows built but short of it.
+  - **Build cards:** "Progress · +1 row", "Progress · opens H2 top", "Progress · for the next rows", "Support · backup for H1 top", "Support · spare pump", beside the Build button, above the upkeep.
+  - **Spots:** support spots (backups, spares) are drawn half faded, so the progress spots stand out. **A change from the spec**, which says progress "+" solid and support outlined: pass 5 already uses solid and hollow to say whether the cash covers a spot, so the split uses fading instead and keeps that.
+  - **The advisor mark** says "Next: progress" or "Next: support" under its ring.
+  - **The ledger:** "Building the campus" and "Keeping it running" in place of "Spent on building" and "Spent on hiring and upgrades".
+  - **Results:** "Spent · $14,200 on progress · $9,800 on support".
+- `scripts/split9.mjs` for spec 6.3's check.
+- **Tests:** 6 in `tests/roles.test.js`, 1 more in `tests/ledger.test.js`. The ledger tests that pin pass 7's spending lines now run with the split off, and say so. 659 in all.
+
+Checks (12 seeds; spec 6.3):
+
+| Player | Before Hall 4, on progress | Whole run, on progress | Support pieces bought |
+|---|---|---|---|
+| Compute first | 94% | 57% | $8,488 a run |
+| Never a backup | 95% | 87% | $0 (its support is hires and upgrades) |
+
+- **Compute first spends most on progress before Hall 4:** met. **Never a backup spends nothing on support pieces:** met.
+- No rule changed, so pass 9's other numbers are as after M56.
+
+Worth knowing:
+
+- Checked in headless Chrome at 844 x 390 and 660 x 300: "2/48 rows" under the MW, the build card's "Progress · +1 row", faded spare pumps at Plant A, and the advisor's "Next: progress". No console errors.
+
+Owner's checklist:
+
+- At any moment you can see how far the campus is from finished.
+- When you buy something, you know whether it gets you closer or keeps you safe.
 
 ### M56. Endurance
 

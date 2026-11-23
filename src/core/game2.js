@@ -17,6 +17,7 @@ import { promisesStep, surgeGaps, surgeIncome } from './promises.js';
 import { buildTimeNow, bulkFactor, callOpen, freeHire, loyalFactor, maybeCall, patient, repaySecondLoan, secondLoanRate, underWarranty, usedBulk, usedFreeHire } from './perks.js';
 import { areaOf, ceoStep, onCeoRoute, queueCeo, queueCeoVisit, strikesToFire } from './ceo.js';
 import { autoDispatch } from './auto.js';
+import { recordSpend, splitOn } from './roles.js';
 import { deadlineOn, enduranceCapExtra, enduranceEnded, enduranceStep, finishOn, heat, winRun } from './finish.js';
 import { alarmCost } from './cost.js';
 import { runningPumps, supply } from './supply.js';
@@ -161,6 +162,10 @@ export function createGame({ seed = 1, config = {} } = {}) {
     // Pass 7 M45, for the ledger: what was spent on building and on the crew, and the burn by part.
     state.stats.spentBuild = 0;
     state.stats.spentCrew = 0;
+    state.stats.spentProgress = 0; // pass 9 M57
+    state.stats.spentSupport = 0;
+    // Pass 9 (M57): the starting campus is the bare minimum for one hall, so all of it is progress.
+    state.roles = Object.fromEntries(cfg.building.start.map((id) => [id, 'progress']));
     state.stats.burnParts = { loan: 0, overhead: 0, upkeep: 0, wages: 0 };
     state.stats.promises = 0; // pass 8 M49: promise money, net of advances handed back (part of earned)
     state.stats.troubled = {}; // pass 7 M45: halves ('3-t') and halls ('3') that had a failure a backup covers
@@ -1076,6 +1081,7 @@ export function build(state, equipId) {
   state.cash -= price;
   state.stats.spent += price;
   state.stats.spentBuild = (state.stats.spentBuild ?? 0) + price; // pass 7 M45: for the ledger
+  recordSpend(state, equipId, price); // pass 9 (M57): progress or support, decided as it is bought
   const until = state.t + buildTimeNow(state); // pass 8 M51: Fast contractor
   state.equip[equipId].buildEnd = until;
   emit(state, 'buildStart', { equipId, price, until });
@@ -1093,6 +1099,7 @@ export function hire(state, trade) {
   state.cash -= price;
   state.stats.spent += price;
   state.stats.spentCrew = (state.stats.spentCrew ?? 0) + price; // pass 7 M45: for the ledger
+  recordSpend(state, 'hire', price); // pass 9 (M57): support
   const tech = addTech(state, trade, 1);
   return { ok: true, techId: tech.id };
 }
@@ -1109,6 +1116,7 @@ export function buyUpgrade(state, id) {
   state.cash -= price;
   state.stats.spent += price;
   state.stats.spentCrew = (state.stats.spentCrew ?? 0) + price; // pass 7 M45: for the ledger
+  recordSpend(state, 'upgrade', price); // pass 9 (M57): support
   state.upgrades[id] += 1;
   emit(state, 'upgrade', { upgrade: id, level: state.upgrades[id] });
   return { ok: true };
@@ -1809,6 +1817,10 @@ export function results(state) {
     building: buildingOn(state),
     earned: buildingOn(state) ? state.stats.earned : 0,
     spent: buildingOn(state) ? state.stats.spent : 0,
+    // Pass 9 (M57): what was spent on progress and on support.
+    spentProgress: buildingOn(state) ? state.stats.spentProgress ?? 0 : 0,
+    spentSupport: buildingOn(state) ? state.stats.spentSupport ?? 0 : 0,
+    split: splitOn(state),
     burned: buildingOn(state) ? state.stats.burned : 0,
     bankrupt: state.overReason === 'bankrupt',
     // Pass 7 spec 3.5: service credits charged, and whether they are what broke the bank (after customers went live).

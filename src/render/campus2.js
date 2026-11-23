@@ -287,7 +287,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
     const sp = spot ? spot(e) : null;
     if (YARD_TYPES.has(e.type)) {
       // The yard draws the device itself (outdoor.js); a spot here only adds its "+" or build ring.
-      if (sp && sp.state === 'empty') drawEmptySpot(ctx, v, e, sp.affordable);
+      if (sp && sp.state === 'empty') drawEmptySpot(ctx, v, e, sp.affordable, sp.role === 'support');
       else if (sp) drawBuildRing(ctx, v, e, sp.progress);
       continue;
     }
@@ -296,7 +296,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
       ctx.globalAlpha = sp.state === 'building' ? 0.3 + 0.6 * sp.progress : 0.2;
       drawOne(ctx, v, e, {});
       ctx.globalAlpha = 1;
-      if (sp.state === 'empty') drawEmptySpot(ctx, v, e, sp.affordable);
+      if (sp.state === 'empty') drawEmptySpot(ctx, v, e, sp.affordable, sp.role === 'support');
       else drawBuildRing(ctx, v, e, sp.progress);
       continue;
     }
@@ -310,6 +310,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
 }
 
 const SPOT_INK = '#1F3A5F';
+const SUPPORT_ALPHA = 0.45;
 
 // The glycol pump rooms (pass 6 M38): a pad round each room's pumps and header. [{ plant, x, y, w, h }].
 function pumpRooms() {
@@ -332,9 +333,12 @@ function pumpRooms() {
 // An empty spot (pass 4 spec 3.1): a dashed outline round the device's footprint and a "+" badge.
 // Pass 5 (spec 7.2): the badge is solid ink with a white "+" when the cash covers the price, and
 // hollow (white with an ink "+") when it does not, so the map shows what the cash will buy.
-function drawEmptySpot(ctx, v, e, affordable = false) {
+// Pass 9 (M57): a support spot (a backup or a spare) steps back, half faded, so the progress spots,
+// the way to the finish, stand out at a glance; the fill still says whether the cash covers it.
+function drawEmptySpot(ctx, v, e, affordable = false, support = false) {
   const [hw, hh] = extentOf(e);
   ctx.save();
+  if (support) ctx.globalAlpha = SUPPORT_ALPHA;
   ctx.strokeStyle = 'rgba(31, 58, 95, 0.55)';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([5, 4]);

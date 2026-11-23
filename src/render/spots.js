@@ -81,9 +81,16 @@ export function drawBuildCard(ctx, layout, info) {
   ctx.font = `11px ${FONT}`;
   ctx.fillStyle = info.warn ? WARN : MUTED;
   twoLines(ctx, info.line, tw).forEach((line, i) => ctx.fillText(line, tx, y + 36 + i * 14));
+  // Pass 9 (M57): progress or support, above the upkeep, beside the button.
+  if (info.role) {
+    ctx.font = `700 10px ${FONT}`;
+    ctx.fillStyle = INK;
+    ctx.fillText(fitText(ctx, info.role.text, button.x - x - 14), x + 10, button.y + button.h / 2 - (info.upkeep ? 7 : 0));
+    ctx.font = `11px ${FONT}`;
+  }
   if (info.upkeep) {
     ctx.fillStyle = MUTED;
-    ctx.fillText(info.upkeep, x + 10, button.y + button.h / 2);
+    ctx.fillText(info.upkeep, x + 10, button.y + button.h / 2 + (info.role ? 8 : 0));
   }
 
   // The button: ink when it can be bought, pale with "Need $80 more" when not.

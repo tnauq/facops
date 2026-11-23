@@ -5,7 +5,7 @@
 // and after that only with the Settings switch. It hides while a card is open, during a CEO warning,
 // while the tutorial's lessons run, and when the builder wants nothing it could ring.
 
-import { buildingOn, economyTime, spotState } from '../core/index2.js';
+import { buildRole, buildingOn, economyTime, splitOn, spotState } from '../core/index2.js';
 import { nextWanted } from '../core/builder.js';
 
 export const ADVISOR_SECONDS = 180; // starting value (spec 4.2): the first 3:00 of a first run
@@ -15,6 +15,9 @@ export function advisorOn(state, { firstRun = false, setting = false } = {}) {
   if (!buildingOn(state) || state.over || state.scripted) return false;
   return setting || (firstRun && economyTime(state) < ADVISOR_SECONDS);
 }
+
+/** Pass 9 (M57): the mark's words, "Next: progress" or "Next: support", or null with the split off. */
+export const advisorLabel = (state, id) => (splitOn(state) && id ? `Next: ${buildRole(state, id)}` : null);
 
 /**
  * The spot to ring, or null. cardOpen: a build, inspect, hire or bundle card is open.

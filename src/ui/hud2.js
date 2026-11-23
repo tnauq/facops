@@ -5,7 +5,7 @@
 import { promiseNote } from './promisesView.js';
 import { perkNote } from './perksView.js';
 import { enduranceNote } from './enduranceView.js';
-import { buildProgress, buildingOn, deadlineAt, deadlineLeft, finishOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
+import { buildProgress, buildingOn, deadlineAt, progressMeter, splitOn, deadlineLeft, finishOn, burnRate, creditsRate, formatClock, incomeRate, load, loanLeft, redSecondsLeft, stabilityOn, strikesToFire } from '../core/index2.js';
 
 const shortArea = (a) => (a[0] === 'h' ? `H${a.slice(1)}` : `P${a.slice(1)}`);
 
@@ -114,6 +114,16 @@ function noteBase(state, extra) {
 }
 
 /**
+ * Pass 9 (M57): the progress meter under the load: { text: "31/48 rows", built, full } as shares of
+ * all rows (0 to 1), or null with the split off.
+ */
+export function progressModel(state) {
+  if (!splitOn(state)) return null;
+  const m = progressMeter(state);
+  return { text: `${m.built}/${m.of} rows`, built: m.built / m.of, full: m.full / m.of };
+}
+
+/**
  * The CEO's strikes for the HUD (pass 5 spec 4.2): { given, of } from the first strike on, else null.
  * Pass 3's zero tolerance (one strike) never shows them: its one strike ends the run.
  */
@@ -139,6 +149,7 @@ export function hudModel2(state, { auto = false } = {}) {
       noteShort: shorter[0],
       noteShorter: shorter.at(-1), // the shortest wording (M49: a promise's time left, "1:50")
       strikes: strikesModel(state),
+      progress: progressModel(state), // pass 9 (M57)
     };
   }
   const parts = [`Hall ${state.halls} of ${state.config.maxHalls}`];

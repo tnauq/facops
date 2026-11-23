@@ -163,6 +163,8 @@ export const DEFAULT_CONFIG2 = {
     // Pass 9 spec 5 (M56): endurance after a win. A level every `levelEvery` seconds; each level's heat
     // is (1 + heatPerLevel) times the last; one more alarm may be open for each `capPerHeat` of heat.
     endurance: { enabled: true, levelEvery: 60, heatPerLevel: 0.1, capPerHeat: 0.5 },
+    // Pass 9 spec 6 (M57): progress and support, shown on the screen. It changes no price or rule.
+    split: { enabled: true },
     // Pass 7 spec 3.2 (M41, owner 17 Nov): service credits. Customers go live when the construction
     // loan is paid off (at once when there is no loan). From then every online rack row that is short of
     // full output costs `rate` dollars a second for each row short, doubling every `doubling` seconds
