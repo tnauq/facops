@@ -80,11 +80,15 @@ function strikesNext(state) {
 // bundles (pass 7 M43): the screen turns on the bundles hint; it needs the bundles card to exist.
 // notices (pass 10 M59): only the lines that report the run (endurance and its levels, the deadline's
 // last minute, credits outrunning income); a first run's firsts explain everything else.
+// notices 'later' (pass 10 M62, question 6): a run after the first keeps those and the two its firsts
+// covered with a card of their own: the loan paid off and the deadline's five minutes. Everything
+// explained once is in the How it works card.
 export function createIntros({ devices = true, bundles = false, notices = false } = {}) {
   return { given: new Set(), queue: [], text: '', ids: [], until: 0, devices, bundles, notices };
 }
 
 const NOTICE = (type) => type === 'endurance' || type.startsWith('level') || type === 'deadline60' || type === 'creditsOver';
+const LATER_NOTICE = (type) => NOTICE(type) || type === 'loan' || type.startsWith('deadline');
 
 /**
  * Advance one frame. Returns the callout to show now ('' when none). `ids` on the intros object
@@ -163,7 +167,7 @@ export function updateIntros(intros, state) {
     }
   }
   if (intros.text && state.t < intros.until) return intros.text;
-  if (intros.notices) intros.queue = intros.queue.filter((q) => NOTICE(q.type));
+  if (intros.notices) intros.queue = intros.queue.filter((q) => (intros.notices === 'later' ? LATER_NOTICE : NOTICE)(q.type));
   intros.text = '';
   intros.ids = [];
   const warning = state.ceo !== null && state.ceo !== undefined && state.ceo.phase === 'warning';

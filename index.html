@@ -170,6 +170,23 @@
     #bundle-list em { font-style: normal; font-weight: 700; font-size: 12px; }
     #bundle-list:empty::after { content: 'Nothing left to build here.'; color: #56606E; font-size: 12px; }
     .card.bundles .buttons { margin-top: 4px; }
+    /* Pass 10 (M62): How it works, from the pause menu: the firsts met so far, in groups, three to a
+       row; one opened shows its picture beside its words. */
+    .card.howto { width: min(680px, 98vw); max-width: none; max-height: 97vh; overflow-y: auto; padding: 6px 14px 8px; text-align: left; }
+    .card.howto h1 { font-size: 17px; margin: 0; }
+    /* Back sits beside the title, so it is in reach however long the list grows. */
+    .card.howto .head { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: -6px; background: #FFFFFF; padding-top: 2px; }
+    .card.howto .head button { min-height: 44px; min-width: 88px; }
+    .card.howto h2 { font-size: 12px; margin: 6px 0 2px; color: #56606E; font-weight: 600; }
+    .card.howto p { font-size: 13px; margin: 2px 0 4px; }
+    #howto-list .group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    #howto-list button {
+      min-height: 44px; padding: 4px 8px; border-radius: 8px; cursor: pointer; text-align: left;
+      border: 1px solid #1F3A5F; background: #FFFFFF; color: #1F3A5F; font: 600 12px system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+    #howto-entry { display: flex; gap: 12px; align-items: center; margin: 6px 0; }
+    #howto-entry[hidden], #howto-entry canvas[hidden] { display: none; }
+    #howto-entry canvas { flex: none; }
     /* Pass 7 (M45): the ledger, two columns of lines, one on a narrow screen, scrolling in the card. */
     .card.ledger { width: min(700px, 98vw); max-width: none; max-height: 97vh; overflow-y: auto; padding: 6px 14px 8px; box-sizing: border-box; }
     .card.ledger h1 { font-size: 17px; margin: 0; }
@@ -266,6 +283,7 @@
         <button data-action="restart">Restart</button>
         <button data-action="settings">Settings</button>
       </div>
+      <div class="buttons"><button data-action="howto">How it works</button></div>
       <div class="buttons sell" id="sell-row" hidden>
         <button data-action="sellAsk" id="sell-button">Hand over the keys</button>
       </div>
@@ -289,6 +307,11 @@
         <button data-action="keep">Keep running</button>
         <button class="primary" data-action="sell" data-field="sell">Hand over the keys</button>
       </div>
+    </div>
+    <div class="card howto" data-overlay="howto" hidden>
+      <div class="head buttons"><h1 data-field="title">How it works</h1><button class="primary" data-action="howtoBack">Back</button></div>
+      <div id="howto-list"></div>
+      <div id="howto-entry" hidden><canvas id="howto-picture" width="72" height="72"></canvas><p data-field="text"></p></div>
     </div>
     <div class="card lesson" data-overlay="lesson" hidden>
       <h1 data-field="title"></h1>

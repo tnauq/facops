@@ -12,8 +12,12 @@ const MUTED = '#56606E';
 const WARN = '#9A5B00'; // a dark amber for "needs ..." lines: readable on white, not an alarm colour
 const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
 
-function picture(ctx, type, x, y, side) {
-  const fit = 38; // px the picture may take
+/** A device's picture, as the build card draws it, centred at (x, y) in about `fit` px (pass 10 M62: exported for How it works). */
+export function drawDevicePicture(ctx, type, x, y, fit = 38, side = 'A') {
+  picture(ctx, type, x, y, side, fit);
+}
+
+function picture(ctx, type, x, y, side, fit = 38) {
   if (type === 'row') {
     drawRack(ctx, x, y - 10, fit * 0.55, {});
     drawRack(ctx, x, y + 10, fit * 0.55, {});

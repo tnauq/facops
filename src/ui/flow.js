@@ -3,7 +3,7 @@
 // mode is 'playing'. Pass 6 (M37): the start card is the main menu ('menu'), and a Settings card
 // opens from the menu and the pause menu.
 
-export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver', 'ledger', 'promises', 'perk', 'rescue', 'won', 'lesson'];
+export const MODES = ['menu', 'playing', 'paused', 'over', 'tuning', 'settings', 'delivery', 'shop', 'sell', 'commissioned', 'bundles', 'startOver', 'ledger', 'promises', 'perk', 'rescue', 'won', 'lesson', 'howto'];
 
 // The tuning drawer opens from the start, pause and round-over cards, and from the HUD's settings
 // button during play. Done goes back to the card it came from; from play it goes to the pause card
@@ -64,7 +64,11 @@ const TABLE = {
     togglePause: { mode: 'playing', newRound: false },
     restart: { mode: 'playing', newRound: true },
     sellAsk: { mode: 'sell', newRound: false }, // pass 5: Hand over the keys
+    howto: { mode: 'howto', newRound: false }, // pass 10 (M62): How it works
   },
+  // Pass 10 (M62): How it works, from the pause menu; Back returns to it (an open entry closes first,
+  // which the screen handles: the mode stays 'howto').
+  howto: { back: { mode: 'paused', newRound: false } },
   over: { again: { mode: 'playing', newRound: true } },
 };
 

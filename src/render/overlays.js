@@ -346,3 +346,52 @@ export function setPromises(model) {
     offers.append(card([o.title, o.asks, `${o.within} · ${o.money}`], b));
   }
 }
+
+/**
+ * How it works (pass 10 M62). list: referenceList(...) from src/ui/reference.js; entry: an opened
+ * referenceEntry(...) or null; drawPicture(ctx, size, picture) draws its picture.
+ */
+export function setHowTo(list, entry, drawPicture) {
+  const root = document.querySelector('[data-overlay="howto"]');
+  const box = document.getElementById('howto-list');
+  const one = document.getElementById('howto-entry');
+  root.querySelector('[data-field="title"]').textContent = entry ? entry.title : 'How it works';
+  box.hidden = Boolean(entry);
+  one.hidden = !entry;
+  box.textContent = '';
+  if (!entry) {
+    if (!list.length) {
+      const p = document.createElement('p');
+      p.textContent = 'Nothing yet. The Tutorial, on the main menu, explains each thing the first time it comes up; it all collects here.';
+      box.append(p);
+    }
+    for (const g of list) {
+      const h = document.createElement('h2');
+      h.textContent = g.group;
+      const row = document.createElement('div');
+      row.className = 'group';
+      for (const e of g.entries) {
+        const b = document.createElement('button');
+        b.dataset.action = `howto-${e.id}`;
+        b.textContent = e.title;
+        row.append(b);
+      }
+      box.append(h, row);
+    }
+    return;
+  }
+  one.querySelector('[data-field="text"]').textContent = entry.text;
+  const canvas = document.getElementById('howto-picture');
+  canvas.hidden = !entry.picture;
+  if (!entry.picture) return;
+  const size = 72;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(size * dpr);
+  canvas.height = Math.round(size * dpr);
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+  drawPicture(ctx, size, entry.picture);
+}

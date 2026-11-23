@@ -41,7 +41,7 @@ import { closeFirst, createFirsts, markFirst, updateFirsts } from './ui/firsts.j
 import { livePulses, openingModel, updateOpening } from './ui/opening.js';
 import { cardLayout, spotAt, spotInfo } from './ui/spots.js';
 import { hireCardText, shopModel } from './ui/shop.js';
-import { drawBuildCard, drawInspectCard } from './render/spots.js';
+import { drawBuildCard, drawDevicePicture, drawInspectCard } from './render/spots.js';
 import { deviceAt, inspectInfo } from './ui/inspect.js';
 import { buildMove } from './core/builder.js';
 import { drawCallout } from './render/callout.js';
@@ -69,7 +69,8 @@ import { markerAt } from './ui/offmap.js';
 import { advisorLabel, advisorSpot } from './ui/advisor.js';
 import { drawAdvisor } from './render/advisor.js';
 import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
-import { setBundles, setLedger, setPerk, setPromises, setRescue } from './render/overlays.js';
+import { setBundles, setHowTo, setLedger, setPerk, setPromises, setRescue } from './render/overlays.js';
+import { loadKnown, mergeKnown, referenceEntry, referenceList, saveKnown } from './ui/reference.js';
 import { callOpen, choosePerk, closeCall, takeFunding } from './core/index2.js';
 import { perkCard, rescueCard, warrantyHalls } from './ui/perksView.js';
 import { fannedCrew } from './ui/crew.js';
@@ -116,6 +117,7 @@ let mode = 'menu'; // see src/ui/flow.js
 // was and shows, labelled, until a pass 5 run sets one.
 const bests = { classic: loadBest(defaultStorage(), BEST2_KEY), building: loadBest(defaultStorage(), BEST5_KEY) };
 const olderBest = loadBest(defaultStorage(), BEST4_KEY);
+let known = loadKnown(defaultStorage()); // pass 10 (M62): every first this device has been shown
 // Pass 9 (M54): the fastest win and the high score, for runs with the win at the finish.
 let records = loadRecords(defaultStorage());
 const bestKind = () => (tuning.building ? 'building' : 'classic');
@@ -180,7 +182,8 @@ function newRound({ tutorial = false, restored = null } = {}) {
       round.firsts = createFirsts();
       round.intros = createIntros({ devices: false, bundles: false, notices: true });
     } else {
-      round.intros = createIntros({ devices: false, bundles: !round.auto }); // the loan line and pass 7's lines
+      // Pass 10 (M62): a run after the first keeps only the lines that report the run (question 6).
+      round.intros = createIntros({ devices: false, bundles: false, notices: 'later' });
     }
   } else if (cfg.tutorial && cfg.startHalls === 1 && !round.auto) {
     round.tutorial = createTutorial(promptVerb());
@@ -287,6 +290,7 @@ function showLesson(card) {
   el.classList.toggle('at-top', !e);
   el.classList.toggle('at-bottom', Boolean(e));
   showOverlay('lesson', { title: card.title, text: card.text });
+  rememberFirst(card.id); // pass 10 (M62)
   round.selection = NOTHING;
 }
 
@@ -347,7 +351,42 @@ function pressButton(id) {
   draw();
 }
 
+// Pass 10 (M62): a first was shown; How it works keeps it, across runs.
+function rememberFirst(id) {
+  const more = id ? mergeKnown(known, [id]) : null;
+  if (!more) return;
+  known = more;
+  saveKnown(defaultStorage(), known);
+}
+
+// How it works (pass 10 M62): the list, or one entry opened (round.howtoEntry).
+function showHowTo() {
+  const entry = round.howtoEntry ? referenceEntry(round.howtoEntry, round.state) : null;
+  setHowTo(referenceList(known), entry, (ctx, size, picture) => {
+    if (picture === 'tech') drawTech(ctx, size / 2, size / 2 + 2, size * 0.9, 'elec');
+    else drawDevicePicture(ctx, picture, size / 2, size / 2, size * 0.8);
+  });
+  showOverlay('howto');
+}
+
 function act(action) {
+  // Pass 10 (M62): How it works, from the pause menu. Back closes an open entry first.
+  if (action === 'howto' || action === 'howtoBack' || action.startsWith('howto-')) {
+    if (action === 'howto') {
+      if (mode !== 'paused') return;
+      mode = reduceFlow(mode, 'howto').mode;
+      round.howtoEntry = null;
+    } else if (mode !== 'howto') return;
+    else if (action === 'howtoBack') {
+      if (!round.howtoEntry) {
+        act('back');
+        return;
+      }
+      round.howtoEntry = null;
+    } else round.howtoEntry = action.slice(6);
+    showHowTo();
+    return;
+  }
   if (action === 'reset') {
     changeTuning(tuning2.defaultTuning());
     return;
@@ -791,7 +830,10 @@ function frame(now) {
   if (round.firsts && mode === 'playing' && !state.over) {
     const out = updateFirsts(round.firsts, state, events);
     if (out.pause) showLesson(out.pause);
-    else if (out.note) round.callout = out.note;
+    else if (out.note) {
+      round.callout = out.note;
+      rememberFirst(round.firsts.note?.id); // pass 10 (M62)
+    }
     if (round.firsts.note && round.firsts.note.target && !round.firsts.noteSeen?.has(round.firsts.note.id)) {
       (round.firsts.noteSeen ??= new Set()).add(round.firsts.note.id);
       lookAt(round.firsts.note.target);

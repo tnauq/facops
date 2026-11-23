@@ -136,9 +136,36 @@ The owner approved `docs/pass10-spec.md` (version 0.2) on 23 November 2026, with
 | M59. Firsts | `m59` | Done |
 | M60. A gentler first run | `m60` | Done |
 | M61. The screen opens up | `m61` | Done |
-| M62. The reference card | `m62` | |
+| M62. The reference card | `m62` | Done |
 
 ## Log
+
+### M62. The reference card, and later runs' lines
+
+Pass 10 spec 5 (questions 5 and 6).
+
+Built:
+
+- **How it works** (`src/ui/reference.js`, pure; `setHowTo` in `src/render/overlays.js`). A button in the pause menu opens a list of every first this device has ever shown, in the spec's five groups (The build, Failures, Growing, Money and customers, The CEO and the finish), four to a row. Tap one to see its card's words (with this run's numbers) and, where it has one, its device's picture as the build card draws it. Back closes the entry, then the card; it sits beside the title, so it stays in reach on a 300 px tall screen however long the list grows. With nothing known yet it says the Tutorial on the main menu explains each thing and that it all collects here.
+- What the device knows is kept under `facops.howItWorks.v1`, inside try/catch: a first goes in when its card or note shows. Without storage the card knows just this visit's firsts.
+- **Later runs drop the explanations** (question 6). A run without the tutorial keeps only the lines that report the run: the loan paid off (with customers going live), the deadline's 5:00 and 1:00, credits outrunning income, endurance and its levels. Gone from later runs: the Handover's line, the uptime bonus, the strikes, bundles, posts, promises, the first warning, and the dry coolant unit and the hall without water. Each is in How it works.
+- Replay the tutorial stays on the main menu (Tutorial).
+- `drawDevicePicture` exported from `src/render/spots.js` (the build card's own drawing, now sized by the caller).
+- **Tests:** 8 in `tests/reference.test.js`, including that every first has an entry. 689 in all.
+- No change to the rules or the state, so no `SAVE_VERSION` bump.
+
+Checks:
+
+- Headless Chrome at 660 x 300 and 844 x 390. A first run: the pause menu fits with the new button, How it works lists what the run has shown so far, Coolant leak opens with the coolant unit's picture, and Back returns to the list, then the menu. A later run with every first known: all 31 entries in groups, Back in reach, Transformer short with its picture. No console errors.
+
+Worth knowing:
+
+- How it works shows only what *this device* has been shown. On a phone that played before pass 10 it starts empty until the Tutorial is replayed, or the firsts come up.
+- Pass 10 is now complete. Next: M63, the leaderboards (kept on the device), then pass 11 (every word on screen).
+
+Owner's checklist:
+
+- If you missed a card, you can find it again.
 
 ### M61. The screen opens up
 
