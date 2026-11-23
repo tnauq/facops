@@ -238,7 +238,8 @@ Report every change, with the table, in `docs/PROGRESS.md`.
 
 ## 9. Later
 
-- **The tutorial (pass 10).** It starts with a research deep dive: which game tutorials stand out and why, from games such as **Old School RuneScape** (Tutorial Island), Mini Metro, Into the Breach, Portal, Factorio, Overcooked, Prison Architect and Two Point Hospital. The deep dive becomes a project doc, then a pass 10 spec that rewrites the lessons for the finished game: the finish line first, then progress and support, then the crew, then endurance.
+- **The tutorial (pass 10).** The research deep dive is done: `docs/tutorial-research.md` (23 November). It starts with a research deep dive: which game tutorials stand out and why, from games such as **Old School RuneScape** (Tutorial Island), Mini Metro, Into the Breach, Portal, Factorio, Overcooked, Prison Architect and Two Point Hospital. The deep dive becomes a project doc, then a pass 10 spec that rewrites the lessons for the finished game: the finish line first, then progress and support, then the crew, then endurance.
+- **Every word on screen (pass 11, after the tutorial).** The owner, 23 November: review and rewrite all text a player sees (tutorial lessons, introductions, the CEO's lines, cards, menus, results, the HUD), one line at a time; the owner agrees or supplies a new line. The scope is listed in `docs/tutorial-research.md` section 7.
 - **A final balance pass** before shipping, with every feature in.
 - From pass 8's list: the blueprint look for the results, Hire, Commissioned and sale cards; sound; a Settings card with reduce flashing and text size; the Home Screen icon; the comedy; scenarios, device upgrades, site events, decommissioning, Overclock, a choice of pace, a head start after a sale.
 - By the owner's decision: support rooms, generators, Operate mode, more campuses.
