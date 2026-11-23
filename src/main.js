@@ -21,7 +21,7 @@
 // the scripted player. Pass 1 stays at ./pass1/; the M8 map preview at ./map.html.
 
 import { BUILDING, EQUIPMENT_BY_ID, HALLS, MID_Y, START_POINT, WORLD, assign, build, buildingOn, buyUpgrade, finishOn, hire, spotState, choose, createGame, dispatch, formatClock, getTech, greedyMove, pickFor, results, resultsText, sell, step } from './core/index2.js';
-import { drawFocusFrame } from './render/focus.js';
+import { drawFocusFrame, drawPulse } from './render/focus.js';
 import { COMMISSION_CARD_DELAY, commissionedCard, sellButton, sellConfirm } from './ui/sale.js';
 import { PAGE_COLOR } from './render/campus.js';
 import { drawMap2 } from './render/map2.js';
@@ -38,6 +38,7 @@ import { createTutorial, lessonAlarms, updateTutorial } from './ui/tutorial.js';
 import { createIntros, updateIntros } from './ui/intros.js';
 import { createTutorial4, hireCardOpened, lessonAlarms4, updateTutorial4 } from './ui/tutorial4.js';
 import { closeFirst, createFirsts, markFirst, updateFirsts } from './ui/firsts.js';
+import { livePulses, openingModel, updateOpening } from './ui/opening.js';
 import { cardLayout, spotAt, spotInfo } from './ui/spots.js';
 import { hireCardText, shopModel } from './ui/shop.js';
 import { drawBuildCard, drawInspectCard } from './render/spots.js';
@@ -205,7 +206,7 @@ function isFirstRun() {
 function advisorNow() {
   if (!round || round.auto) return null;
   const cardOpen = Boolean(round.card || round.inspect) || mode !== 'playing';
-  return advisorSpot(round.state, { firstRun: round.firstRun, setting: Boolean(tuning.advisorMark), cardOpen });
+  return advisorSpot(round.state, { firstRun: round.firstRun, setting: Boolean(tuning.advisorMark), cardOpen, shown: opening().spot });
 }
 
 // The bundles card for the hall it was opened on (pass 7 spec 4.2).
@@ -233,7 +234,7 @@ function markTutorialSeen() {
 // The menu (pass 5 spec 5.2): after the Handover it offers the sale, greyed with the reason when it
 // cannot be done now.
 function showPaused() {
-  const b = round ? sellButton(round.state) : null;
+  let b = round ? sellButton(round.state) : null;
   const row = document.getElementById('sell-row');
   const button = document.getElementById('sell-button');
   const why = document.querySelector('[data-overlay="paused"] [data-field="sellWhy"]');
@@ -248,6 +249,8 @@ function showPaused() {
     return;
   }
   button.dataset.action = 'sellAsk';
+  // Pass 10 (M61): a first run offers Sell early only from the Handover, when its card explains it.
+  if (!opening().sellEarly) b = null;
   row.hidden = !b;
   why.hidden = !b || b.enabled;
   if (b) {
@@ -573,18 +576,26 @@ function copyResults() {
 
 // ---- Layout and camera ----
 
-// The crew bar holds the techs and, in building mode, the Hire card (pass 4 M26).
-const crewCount = () => round.state.techs.length + (buildingOn(round.state) ? 1 : 0);
+// Pass 10 (M61): what a first run shows yet (everything, in any other run).
+const opening = () => openingModel(round ? round.firsts ?? null : null);
+// The crew bar holds the techs and, in building mode, the Hire card (pass 4 M26; M61: once it matters).
+const hireShown = () => buildingOn(round.state) && opening().hire;
+const crewCount = () => round.state.techs.length + (hireShown() ? 1 : 0);
 const columnsNow = () => crewColumns(size.h, crewCount());
 // Pass 3: the overview strip takes 30 px off the bottom of the map region (spec 3.2).
 // Pass 8 (M46): with posts in play the strip gives up its right end to the priority flag button.
 const layout = () => {
   const r = regions3(size.w, size.h, { crewColumns: columnsNow() });
+  const open = opening();
+  // Pass 10 (M61): until a first run's second hall, there is no strip and the map has its room.
+  if (!open.strip) return { ...r, map: regions(size.w, size.h, { crewColumns: columnsNow() }).map, strip: null, layersButton: null };
   // Pass 8 (M52): in building mode the strip also gives up its left end to the Layers button.
-  const layers = round && buildingOn(round.state);
+  const layers = round && buildingOn(round.state) && open.layers;
   const strip = layers ? stripWithLayers(r.strip) : r.strip;
-  return { ...r, strip: round && postsOn(round.state) ? stripWithFlag(strip, true) : strip, layersButton: layers ? layersTarget(r.strip) : null };
+  return { ...r, strip: flagShown() ? stripWithFlag(strip, true) : strip, layersButton: layers ? layersTarget(r.strip) : null };
 };
+// The priority flag sits on the strip's right end (pass 8 M46; M61: from a first run's fourth tech).
+const flagShown = () => Boolean(round && postsOn(round.state) && opening().flag);
 
 // The zoom is pass 1's on this screen (one crew column); a second crew column only narrows the view.
 function syncCamera() {
@@ -662,7 +673,7 @@ function draw() {
   const techId = sel.kind === 'tech' ? sel.id : null;
   const cv = round.ceoView;
   const ceoFx = { assistant: assistantAt(cv.trail), say: liveSay(cv, s.t), sayAt: cv.lastAt, shakes: liveShakes(cv, s.t) };
-  markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t), ceo: ceoFx });
+  markers = drawMap2(ctx, cam, size, s, { alarmId, techId }, { floats: liveFloats(round.feel, s.t), celebrations: liveCelebrations(round.feel, s.t), ceo: ceoFx, shown: opening().spot });
   // Pass 8 (M52): a layer dims everything outside it; the banner, wrenches and cards stay on top.
   if (round.layer) drawLayer(ctx, cameraView(cam), cam.rect, layerModel(s, round.layer), round.layer, fannedCrew(s.techs, cameraView(cam).scale));
   // The CEO's banner across the top of the map (pass 3 spec 4.7): one line when the map is narrow.
@@ -682,14 +693,18 @@ function draw() {
   if (open) drawBuildCard(ctx, open.layout, open.info);
   const look = inspectCard();
   if (look) drawInspectCard(ctx, look.layout, look.info);
-  drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
-  drawStripWrenches(ctx, stripWrenches(s, regs.strip)); // pass 8 (M47)
-  if (regs.layersButton) drawLayersButton(ctx, regs.strip, regs.layersButton, round.layer); // pass 8 (M52)
-  if (postsOn(s)) drawPostsOnStrip(ctx, regs.strip, stripPins(s, regs.strip), s.priorityArea, flagTarget(regs.strip), Boolean(round.flagging));
-  drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
-  const hireCard = buildingOn(s);
+  if (regs.strip) {
+    drawStrip(ctx, regs.strip, stripModel(s, regs.strip, cam));
+    drawStripWrenches(ctx, stripWrenches(s, regs.strip)); // pass 8 (M47)
+    if (regs.layersButton) drawLayersButton(ctx, regs.strip, regs.layersButton, round.layer); // pass 8 (M52)
+    if (flagShown()) drawPostsOnStrip(ctx, regs.strip, stripPins(s, regs.strip), s.priorityArea, flagTarget(regs.strip), Boolean(round.flagging));
+    drawCeoOnStrip(ctx, s, (x) => stripX(regs.strip, x), (y) => stripY(regs.strip, y));
+  }
+  const hireCard = hireShown();
   const crewFocus = Boolean(round.tutorial && round.tutorial.crewFocus);
-  drawCrewBar(ctx, crewCards(s, regs.crew, techId, { columns: columnsNow(), hire: hireCard, alarmType: alarmId !== null ? s.alarms.find((a) => a.id === alarmId)?.type : null }).map((c) => (c.kind === 'hire' ? { ...c, ...hireCardText(s) } : c)));
+  const crew = crewCards(s, regs.crew, techId, { columns: columnsNow(), hire: hireCard, alarmType: alarmId !== null ? s.alarms.find((a) => a.id === alarmId)?.type : null }).map((c) => (c.kind === 'hire' ? { ...c, ...hireCardText(s) } : c));
+  drawCrewBar(ctx, crew);
+  drawPulses(regs, crew);
   if (crewFocus) drawFocusFrame(ctx, regs.crew, performance.now()); // the roles lesson (pass 5 spec 6.1)
   const rail = railTickets2(s, regs.rail, alarmId, round.railFirst, round.railCompact);
   round.railFirst = rail.first;
@@ -711,6 +726,33 @@ function draw() {
   const notes = held ? ['Held: tap ▶ to carry on', 'Held'] : [model.note, model.noteShort, model.noteShorter].filter(Boolean);
   drawHud(ctx, w, hudLayout(w, { speedButtons: speedButtons() }), model, notes, { held, speed });
   drawHudFlash(ctx, w, HUD_HEIGHT, flashAlpha(round.feel, s.t));
+}
+
+// Pass 10 (M61): the pulse on each part of a first run's screen that has just appeared.
+function drawPulses(regs, crew) {
+  const live = livePulses(round.pulses, performance.now());
+  if (!live.length) return;
+  const v = cameraView(cam);
+  for (const { part, k } of live) {
+    let rect = null;
+    if (part === 'strip') rect = regs.strip;
+    else if (part === 'layers') rect = regs.layersButton;
+    else if (part === 'flag' && regs.strip) rect = flagTarget(regs.strip);
+    else if (part === 'hire') rect = crew.find((c) => c.kind === 'hire') ?? null;
+    else if (part.startsWith('hall-')) {
+      // A hall's spots: the hall's floor, on the map (and only there).
+      const h = HALLS[Number(part.slice(5))];
+      rect = { x: v.ox + h.x * v.scale, y: v.oy + h.y * v.scale, w: h.w * v.scale, h: h.h * v.scale };
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(cam.rect.x, cam.rect.y, cam.rect.w, cam.rect.h);
+      ctx.clip();
+      drawPulse(ctx, rect, k);
+      ctx.restore();
+      continue;
+    }
+    if (rect) drawPulse(ctx, rect, k);
+  }
 }
 
 function frame(now) {
@@ -755,6 +797,8 @@ function frame(now) {
       lookAt(round.firsts.note.target);
     }
   }
+  // Pass 10 (M61): parts of a first run's screen appear as they come to matter, each with a pulse.
+  if (mode === 'playing') for (const part of updateOpening(round.firsts ?? null, state)) (round.pulses ??= {})[part] = now;
   // A build card closes once its spot is no longer empty.
   if (round.card && spotState(state, round.card.id) !== 'empty') round.card = null;
   const card = deliveryCard(state, events);
@@ -840,7 +884,7 @@ function onDown(e) {
   e.preventDefault();
   const p = point(e);
   const regs = layout();
-  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst, round.railCompact, { speedButtons: Boolean(speedButtons()) });
+  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst, round.railCompact, { speedButtons: Boolean(speedButtons()), hire: hireShown() });
   // A rail that overflows scrolls with a drag, so its tickets and chips act when the finger lifts
   // (pass 3 spec 2.3). Otherwise HUD buttons, crew cards and tickets act at finger-down, as in pass 1.
   const onRail = p.x >= regs.rail.x && p.y >= regs.rail.y && !hitTest(p, { buttons: targets.buttons }).id;
@@ -871,11 +915,11 @@ function onDown(e) {
     return;
   }
   // Pass 8 (M46): the flag button arms the priority area; then a tap on the strip marks (or clears) it.
-  if (postsOn(round.state) && inside(p, flagTarget(regs.strip))) {
+  if (flagShown() && inside(p, flagTarget(regs.strip))) {
     round.flagging = !round.flagging;
     return;
   }
-  if (inStripTarget(regs.strip, p) && postsOn(round.state) && (round.flagging || round.selection.kind === 'tech')) {
+  if (regs.strip && inStripTarget(regs.strip, p) && flagShown() && (round.flagging || round.selection.kind === 'tech')) {
     const area = areaAtStrip(regs.strip, p.x);
     if (round.flagging) {
       setPriority(round.state, round.state.priorityArea === area ? null : area);
@@ -888,7 +932,7 @@ function onDown(e) {
     }
     return;
   }
-  if (inStripTarget(regs.strip, p)) {
+  if (regs.strip && inStripTarget(regs.strip, p)) {
     // The strip wins over the bottom of the map: tap or drag on it to move the view (spec 3.2).
     stripGesture = true;
     canvas.setPointerCapture?.(e.pointerId);
@@ -932,7 +976,7 @@ function onRailUp(e) {
   const g = railGesture;
   railGesture = null;
   if (e.type === 'pointercancel' || g.dragging || !canPlay()) return;
-  const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst, round.railCompact);
+  const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst, round.railCompact, { hire: hireShown() });
   if (!railTapCounts(round.railSwitchedAt, performance.now())) return; // the rail just changed under the finger
   const hit = hitTest(g.start, { tickets: targets.tickets });
   applyTap(hit); // a ticket, or the gap between tickets (clears the selection)
@@ -975,13 +1019,14 @@ function buildingTap(tap) {
   const look = inspectCard();
   if (look && inside(tap, look.layout)) return true;
   const hit = hitTest(tap, mapTargets2(round.state, cam));
-  const spot = hit.kind === 'empty' ? spotAt(round.state, cam, tap) : null;
+  const spot = hit.kind === 'empty' ? spotAt(round.state, cam, tap, opening().spot) : null;
   round.inspect = null;
   if (!spot) {
     round.card = null;
     // Pass 7 (M43): a hall's name opens its bundles card. Spots, alarms and techs win over it.
+    // Pass 10 (M61): not a hall whose spots a first run does not show yet.
     const hall = hit.kind === 'empty' ? hallNameAt(cam, tap) : null;
-    if (hall !== null) {
+    if (hall !== null && opening().spot(`row-${hall}-t-0`)) {
       round.bundleHall = hall;
       act('bundles');
       return true;

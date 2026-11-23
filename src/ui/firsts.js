@@ -147,7 +147,8 @@ export const FIRST_BY_ID = Object.fromEntries(FIRSTS.map((f) => [f.id, f]));
 
 /** A fresh set of firsts: none seen. */
 export function createFirsts() {
-  return { seen: new Set(), marks: new Set(), queue: [], current: null, note: null, lastPauseEnd: -Infinity, shortSince: null };
+  // opened: the parts of the screen that have appeared (src/ui/opening.js, M61).
+  return { seen: new Set(), marks: new Set(), queue: [], current: null, note: null, lastPauseEnd: -Infinity, shortSince: null, opened: [] };
 }
 
 /** The screen reports a first that only it can see ('buildCard': a build card opened). */

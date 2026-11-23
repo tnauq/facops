@@ -50,7 +50,8 @@ function trimAbove(button, tickets) {
  * scroll position (pass 3 spec 4b.2). `scrolls` says whether the rail overflows even as tiles
  * (then it acts on finger-up, so a drag can scroll it). There are no chips any more.
  */
-export function railTargets2(state, regs, crewColumns, railFirst = 0, railCompact = false, { speedButtons = !state.config.realtime } = {}) {
+// hire (pass 10 M61): whether the crew bar shows its Hire card; a first run shows it once it matters.
+export function railTargets2(state, regs, crewColumns, railFirst = 0, railCompact = false, { speedButtons = !state.config.realtime, hire = buildingOn(state) } = {}) {
   const rail = railTickets2(state, regs.rail, null, railFirst, railCompact);
   const tickets = rail.tickets.map(rectOf);
   // Pass 7 (M45): in building mode the cash readout is a button too: it opens the ledger.
@@ -64,7 +65,7 @@ export function railTargets2(state, regs, crewColumns, railFirst = 0, railCompac
   }
   return {
     buttons: [...hudButtonTargets(regs.hud.w, { speedButtons }).map((b) => trimAbove(b, tickets)), ...cash],
-    cards: crewCards(state, regs.crew, null, { columns: crewColumns, hire: buildingOn(state) }).map(rectOf),
+    cards: crewCards(state, regs.crew, null, { columns: crewColumns, hire }).map(rectOf),
     tickets,
     scrolls: rail.more !== null || rail.first > 0,
   };

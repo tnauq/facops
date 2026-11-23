@@ -22,9 +22,10 @@ export const advisorLabel = (state, id) => (splitOn(state) && id ? `Next: ${buil
 /**
  * The spot to ring, or null. cardOpen: a build, inspect, hire or bundle card is open.
  */
-export function advisorSpot(state, { firstRun = false, setting = false, cardOpen = false } = {}) {
+export function advisorSpot(state, { firstRun = false, setting = false, cardOpen = false, shown = () => true } = {}) {
   if (cardOpen || !advisorOn(state, { firstRun, setting })) return null;
   if (state.ceo && state.ceo.phase === 'warning') return null;
   const id = nextWanted(state, 'builder');
-  return id && spotState(state, id) === 'empty' ? id : null;
+  // Pass 10 (M61): only on a spot the first run shows yet.
+  return id && spotState(state, id) === 'empty' && shown(id) ? id : null;
 }

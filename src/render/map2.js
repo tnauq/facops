@@ -87,7 +87,7 @@ export function drawMap2(ctx, cam, screen, state, selection = {}, fx = {}) {
   // halls are online in any order, and devices not built yet show as spots.
   const building = buildingOn(state);
   const pipesOnline = building ? { online: 8, plantB: true } : { online: state.halls, plantB: plantBOnline(state) };
-  const spots = building ? new Map(spotsModel(state).map((sp) => [sp.id, sp])) : null;
+  const spots = building ? new Map(spotsModel(state, fx.shown).map((sp) => [sp.id, sp])) : null;
   drawBuilding(ctx, v, screen, {
     online: state.halls,
     plantB: plantBOnline(state),

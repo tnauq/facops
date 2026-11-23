@@ -15,3 +15,20 @@ export function drawFocusFrame(ctx, rect, nowMs) {
   ctx.stroke();
   ctx.restore();
 }
+
+/**
+ * Pass 10 (M61): a part of the screen has just appeared. An ink ring that grows from the part and
+ * fades, k from 0 to 1, twice over.
+ */
+export function drawPulse(ctx, rect, k) {
+  const beat = (k * 2) % 1;
+  const grow = 2 + 8 * beat;
+  ctx.save();
+  ctx.strokeStyle = INK;
+  ctx.globalAlpha = 0.85 * (1 - beat);
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(rect.x - grow, rect.y - grow, rect.w + 2 * grow, rect.h + 2 * grow, 8 + grow);
+  ctx.stroke();
+  ctx.restore();
+}

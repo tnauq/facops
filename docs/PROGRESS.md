@@ -135,10 +135,49 @@ The owner approved `docs/pass10-spec.md` (version 0.2) on 23 November 2026, with
 |---|---|---|
 | M59. Firsts | `m59` | Done |
 | M60. A gentler first run | `m60` | Done |
-| M61. The screen opens up | `m61` | |
+| M61. The screen opens up | `m61` | Done |
 | M62. The reference card | `m62` | |
 
 ## Log
+
+### M61. The screen opens up
+
+Pass 10 spec 4.
+
+Built:
+
+- **`src/ui/opening.js`** (pure). In a first run (the firsts are on) each part of the screen appears when it first matters, and stays; what has opened is kept with the firsts, so a resumed run keeps it. Every other run shows everything from the start, as before.
+
+| Part | Appears |
+|---|---|
+| Rows meter, cash, clock, deadline, hold and speed | From the start |
+| The overview strip | Hall 2 online (until then the map has the strip's room) |
+| The Layers button | Hall 3 online |
+| The priority flag | The fourth tech, once the strip is there (it sits on it) |
+| The Hire card | The short-handed card, or the cash covering a hire from 2:00 |
+| Sell early (pause menu) | The Handover |
+| Build spots | Hall 1, Plant A and Hall 1's yard from the start; each further hall, with its yard, once the hall before it has a rack built; Plant B with Hall 5 |
+
+- A spot not shown yet is a faint ghost with no "+": it cannot be tapped, the advisor mark never rings it, and its hall's name does not open the bundles card.
+- A part appearing gets a short ink pulse, once (1.6 s). Hall 1 and Hall 2 get none: they are there from the start.
+- The promises note needed nothing: it only ever appears once the CEO has offered a promise.
+- `SAVE_VERSION` is `m61` (the firsts now carry what has opened).
+- **Tests:** 10 in `tests/opening.test.js`. 681 in all.
+
+Checks:
+
+- `scripts/opening10.mjs` (12 first runs, compute first): **the scripted builder never wanted a spot the first run hides** (0 seconds in 12 runs), so a player following the advisor is never stuck. Parts appeared at a median of: the strip 0:18, Hall 3's spots 0:51, Layers 2:23, Hall 4's spots 2:42, Hire 3:13, the flag 4:22, Hall 5 and Plant B 5:06, Sell early 6:34, Hall 8 7:19. (The scripted builder is much faster than a player.)
+- Headless Chrome at 844 x 390 and 660 x 300, a first run from a cleared device: the opening screen has no strip, no Hire card and the map one strip taller; the strip arrives with Hall 2 (with the firsts' "Two halls" note), and Layers with Hall 3. A later run shows the strip, Layers, the flag and Hire from 0:00. No console errors.
+
+Worth knowing:
+
+- **Hall 2's spots show from the start.** The rule says a hall opens once the hall before it has a rack built, and Hall 1 starts with two racks. That matches question 8 ("Hall 1, the next hall and the plants").
+- **Leaderboards** are now down as M63, after M62 (the owner: "doesn't matter").
+
+Owner's checklist:
+
+- The first screen is calm: a hall, a plant, a few spots, and the goal.
+- Each new control arrives with its reason.
 
 ### M60. A gentler first run
 

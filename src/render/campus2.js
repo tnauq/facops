@@ -288,7 +288,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
     if (YARD_TYPES.has(e.type)) {
       // The yard draws the device itself (outdoor.js); a spot here only adds its "+" or build ring.
       if (sp && sp.state === 'empty') drawEmptySpot(ctx, v, e, sp.affordable, sp.role === 'support');
-      else if (sp) drawBuildRing(ctx, v, e, sp.progress);
+      else if (sp && sp.state === 'building') drawBuildRing(ctx, v, e, sp.progress);
       continue;
     }
     if (sp) {
@@ -297,7 +297,7 @@ export function drawBuilding(ctx, view, screen, { online = 1, plantB = false, st
       drawOne(ctx, v, e, {});
       ctx.globalAlpha = 1;
       if (sp.state === 'empty') drawEmptySpot(ctx, v, e, sp.affordable, sp.role === 'support');
-      else drawBuildRing(ctx, v, e, sp.progress);
+      else if (sp.state === 'building') drawBuildRing(ctx, v, e, sp.progress); // 'hidden' (M61): the ghost only
       continue;
     }
     const up = live(e);

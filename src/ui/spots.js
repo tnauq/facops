@@ -19,16 +19,24 @@ export const SPOT_MIN = 44; // px: every spot is at least a 44 x 44 tap target
 const HALF = { t: 'top', b: 'bottom' };
 const other = (id, a, b) => (id.endsWith(a) ? id.slice(0, -a.length) + b : id.slice(0, -b.length) + a);
 
+const ALL = () => true;
+
 /**
  * Spots not built yet: [{ id, type, x, y, state: 'empty' | 'building', progress, affordable }].
  * affordable (pass 5 spec 7.2): the cash covers the price, so the "+" is drawn solid.
+ * shown (pass 10 M61): which spots the first run shows yet (src/ui/opening.js); all by default. A
+ * spot not shown yet has state 'hidden': drawn as a faint ghost, with no "+", and not tappable.
  */
-export function spotsModel(state) {
+export function spotsModel(state, shown = ALL) {
   if (!buildingOn(state)) return [];
   const out = [];
   for (const e of EQUIPMENT) {
     const st = spotState(state, e.id);
     if (st === 'built') continue;
+    if (st === 'empty' && !shown(e.id)) {
+      out.push({ id: e.id, type: e.type, x: e.x, y: e.y, state: 'hidden', progress: 0, affordable: false, role: null });
+      continue;
+    }
     const progress = st === 'building' ? 1 - Math.max(0, state.equip[e.id].buildEnd - state.t) / state.config.building.buildTime : 0;
     // Pass 9 (M57): role, 'progress' or 'support' (null with the split off), so support spots can step back.
     out.push({ id: e.id, type: e.type, x: e.x, y: e.y, state: st, progress: Math.min(1, progress), affordable: state.cash + 1e-9 >= buyPrice(state, e.id), role: splitOn(state) ? buildRole(state, e.id) : null });
@@ -37,9 +45,9 @@ export function spotsModel(state) {
 }
 
 /** Screen rectangles of the empty spots inside the map (at least 44 x 44 px). */
-export function spotTargets(state, cam) {
+export function spotTargets(state, cam, shown = ALL) {
   const v = cameraView(cam);
-  return spotsModel(state)
+  return spotsModel(state, shown)
     .filter((s) => s.state === 'empty')
     .map((s) => {
       const [hw, hh] = extentOf(EQUIPMENT_BY_ID[s.id]);
@@ -53,8 +61,8 @@ export function spotTargets(state, cam) {
 }
 
 /** The empty spot under screen point p, or null. The smallest wins where two overlap. */
-export function spotAt(state, cam, p) {
-  const hits = spotTargets(state, cam).filter((r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
+export function spotAt(state, cam, p, shown = ALL) {
+  const hits = spotTargets(state, cam, shown).filter((r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
   hits.sort((a, b) => a.w * a.h - b.w * b.h);
   return hits[0] ?? null;
 }
