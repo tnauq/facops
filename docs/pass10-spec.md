@@ -1,6 +1,6 @@
 # FacOps pass 10 build spec: the tutorial
 
-Version 0.1, 23 November 2026. **A draft for the owner's approval.** Once approved it is the source of truth for pass 10, as `docs/pass9-spec.md` is for pass 9. Pass 9's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
+Version 0.2, 23 November 2026. **The owner approved it on 23 November, with questions 5 to 8 as recommended.** It is the source of truth for pass 10, as `docs/pass9-spec.md` is for pass 9. Pass 9's rules and screen carry over except where this spec says otherwise. If the spec is silent or looks wrong, stop and ask the owner.
 
 Values marked *starting value* are for scripted checks or the owner's playtests to settle; everything else is the owner's decision. Every line of text here is a **draft**: pass 11 reviews all text a player sees, and the owner agrees each line or supplies a new one.
 
@@ -29,7 +29,7 @@ The gentler first run is the only rules change: config values that apply only wh
 | 3 | A gentler first run? | **Yes** (section 3) |
 | 4 | Reveal the screen in stages? | **Yes, the game gradually opens up, at least in the first run** (section 4) |
 
-Open, each with a recommendation; "Approved" means all as recommended:
+Questions 5 to 8, answered **as recommended** ("Agree", 23 November):
 
 | # | Question | Recommended |
 |---|---|---|
@@ -185,7 +185,7 @@ In the first run, parts of the screen appear when their first does (2.3). In lat
 - The first screen is calm: a hall, a plant, a few spots, and the goal.
 - Each new control arrives with its reason.
 
-## 5. The reference card (M62, question 5)
+## 5. The reference card (M62, question 5: yes)
 
 - **"How it works"** in the pause menu: a list of the systems met so far in this player's runs (every first ever shown, kept on the device), each opening its card's text and its picture of the device.
 - **Replay the tutorial** stays on the main menu ("Tutorial").

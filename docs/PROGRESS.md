@@ -127,6 +127,17 @@ The owner approved `docs/pass9-spec.md` (version 0.2) on 22 November 2026: a run
 | M57. Progress and support | `m57` | Done |
 | M58. The balance check | `m58` | Done |
 
+## Pass 10
+
+The owner approved `docs/pass10-spec.md` (version 0.2) on 23 November 2026, with questions 5 to 8 as recommended: the first run ever is the tutorial, a normal run that stops to explain each first device, failure and system; a gentler first run; the screen opening up as it goes; and a "How it works" card. The research behind it is `docs/tutorial-research.md`. Pass 11, after it, reviews every word a player sees.
+
+| Milestone | Tag | Status |
+|---|---|---|
+| M59. Firsts | `m59` | |
+| M60. A gentler first run | `m60` | |
+| M61. The screen opens up | `m61` | |
+| M62. The reference card | `m62` | |
+
 ## Log
 
 ### M58. The balance check
