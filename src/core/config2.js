@@ -115,7 +115,7 @@ export const DEFAULT_CONFIG2 = {
     start: ['gpump-A-0', 'gpump-A-1', 'wpump-A-0', 'chiller-A-0', 'dry-A-0', 'rmu-1-t', 'xfmr-1-t-A', 'msb-1-t-A', 'cdu-1-t', 'row-1-t-0', 'row-1-t-1'],
     chillersPerDryCooler: 2, // each dry cooler unit lets this many of its plant's chillers run
     yardFromHalls: 3, // the director starts yard failures (M30) once this many halls are online
-    tighten: 0.015, // the director tightens this much every tightenEvery seconds, with no reset (M24's checks)
+    tighten: 0.02, // the director tightens this much every tightenEvery seconds, with no reset (M24's checks: 0.015; pass 9 M58: 0.02)
     firstSpawn: 20, // seconds before the first alarm: time to look round and buy a first backup
     chillersPerHall: 1, // replaces chillersPerHall: one chiller per hall's worth of racks (owner's compute-first economy)
     capExtra: 2, // the director stops at this many alarms plus one per hall's worth of racks online, whatever the crew
@@ -159,7 +159,7 @@ export const DEFAULT_CONFIG2 = {
     // Pass 9 spec 4 (M55): the board's deadline. Commissioned by `at` seconds of economy time (the
     // Handover's clock), or the board pulls the plug: a loss. Needs the win at the finish.
     // `marks`: seconds left at which the CEO counts down (spec 4.1: 5:00 and 1:00).
-    deadline: { enabled: true, at: 960, marks: [300, 60] },
+    deadline: { enabled: true, at: 810, marks: [300, 60] }, // M58: 13:30 (the spec's 16:00 caught nobody)
     // Pass 9 spec 5 (M56): endurance after a win. A level every `levelEvery` seconds; each level's heat
     // is (1 + heatPerLevel) times the last; one more alarm may be open for each `capPerHeat` of heat.
     endurance: { enabled: true, levelEvery: 60, heatPerLevel: 0.1, capPerHeat: 0.5 },
@@ -191,14 +191,16 @@ export const DEFAULT_CONFIG2 = {
     // and no service credits for `quietFor` seconds, within its window.
     promises: {
       enabled: true, offers: 3, held: 2, offerGap: 30, offerLife: 60, quietFor: 120,
+      // Pass 9 (M58): a quarter of pass 8's amounts, and moreMw at 3 s of income a row (was 15): taking
+      // every promise funded the build so well that the campus was finished in five minutes.
       table: {
-        lightsOn: { window: 120, advance: 150, payment: 250 },
-        hallTwo: { window: 120, advance: 300, payment: 300 },
-        moreMw: { window: 150, seconds: 15 },
-        belt: { window: 180, advance: 350, payment: 400 },
-        spare: { window: 180, advance: 300, payment: 300 },
-        oneOfEach: { window: 180, advance: 200, payment: 200 },
-        quietFloor: { window: 180, advance: 0, payment: 600 },
+        lightsOn: { window: 120, advance: 40, payment: 60 },
+        hallTwo: { window: 120, advance: 75, payment: 75 },
+        moreMw: { window: 150, seconds: 3 },
+        belt: { window: 180, advance: 90, payment: 100 },
+        spare: { window: 180, advance: 75, payment: 75 },
+        oneOfEach: { window: 180, advance: 50, payment: 50 },
+        quietFloor: { window: 180, advance: 0, payment: 150 },
       },
     },
     // Pass 8 spec 6.5 (M50): surges, offered among the promises from `fromHalls` halls online. Taken,

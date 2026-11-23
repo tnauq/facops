@@ -125,9 +125,71 @@ The owner approved `docs/pass9-spec.md` (version 0.2) on 22 November 2026: a run
 | M55. The board's deadline | `m55` | Done |
 | M56. Endurance | `m56` | Done |
 | M57. Progress and support | `m57` | Done |
-| M58. The balance check | `m58` | |
+| M58. The balance check | `m58` | Done |
 
 ## Log
+
+### M58. The balance check
+
+Pass 9 spec 7. Every pass 9 switch on.
+
+Built:
+
+- `scripts/pacing9.mjs`: per player, wins (and the median time to win), how the losses split (broke / fired / missed the deadline / sold early), the median score and 150 MW. Its fifth argument (`1`) plays endurance after a win. It also has "every tool but one" players, which found what made the every-tool player fast.
+- **Three changes, in the spec's lever order** (config2.js). `SAVE_VERSION` is `m58`.
+  1. **Promise payments** (lever 1): a quarter of pass 8's amounts (Lights on $40 now and $60 on delivery, down from $150 and $250, and so on), and More megawatts at 3 s of a row's income each way, down from 15. Taking every promise is what finished the campus in five minutes: without promises the every-tool player won at 10:00, without any other tool it still won at about 7:00.
+  2. **The deadline** (lever 2): **13:30**, down from 16:00, which caught nobody.
+  3. **The director's tightening** (lever 4): **2% every 10 s**, up from 1.5%, so more runs go broke before the finish. (Lever 3, dearer rack rows, was tried and made runs slower rather than poorer: $175 rows sent compute first to the deadline 12 times in 24 and broke once.)
+- The drawer's deadline moves in half minutes, to show 13:30.
+- The promises tests now set pass 8's table, as they check pass 8's mechanics with pass 8's amounts, and say so. 659 tests in all.
+
+What was tried (24 seeds unless marked):
+
+| Change | Compute first won | Its median win | Its losses broke / missed | Every tool's median win |
+|---|---|---|---|---|
+| None (M57), 12 seeds | 10 of 12 | 13:19 | 2 / 0 | 6:59 |
+| Promises at a quarter, More MW 3 s, deadline 12:00 | 12 of 24 | 12:45 | 3 / 9 | 8:56 |
+| ... and rows at $175, deadline 12:30 | 11 of 24 | 13:53 | 1 / 12 | 9:23 |
+| ... rows back at $150, deadline 13:00, tightening 2% | 14 of 24 | 13:35 | 3 / 7 | 9:08 |
+| **... deadline 13:30 (chosen)** | **15 of 24** | **13:51** | **3 / 6** | **9:08** |
+
+The chosen numbers:
+
+| Player | Won (24 seeds) | Median win | Broke / fired / missed | Won (12 seeds) | Median score (12) |
+|---|---|---|---|---|---|
+| Compute first | 15 (63%) | 13:51 | 3 / 0 / 6 | 7 (58%) | $56,090 |
+| Gets ready for the CEO | 18 (75%) | 13:31 | 2 / 0 / 4 | 9 | $60,382 |
+| Uses every pass 8 tool | 23 (96%) | 9:08 | 0 / 0 / 1 | 12 (at 9:34) | $64,703 |
+| Uses no pass 8 tool | 9 (38%) | 14:38 | 10 / 0 / 5 | 7 | $60,258 |
+| Never a backup | 4 (17%) | 11:56 | 15 / 0 / 5 | 4 | $33,681 |
+| Backups early | 0 | | 23 / 0 / 1 | 0 | $2,092 |
+| Never hires | 0 | | 24 / 0 / 0 | 0 | $21,150 |
+
+Targets (spec 7.1):
+
+- **Compute first wins 50% to 70%:** met (63% at 24 seeds, 58% at 12).
+- **Its median win 11 to 15 minutes:** met (13:51; 14:12 at 12 seeds).
+- **Neither going broke nor the CEO below a third of its losses:** met, just (3 broke and 6 missed the deadline at 24 seeds; 2 and 3 at 12). Nobody is fired before the finish: the CEO's share of losses is the board's deadline.
+- **Getting ready for the CEO wins more often than compute first:** met (18 against 15).
+- **Every tool wins more often than none, no sooner than a median 9:00:** met (23 against 9; 9:08, 9:34 at 12 seeds).
+- **Never a backup wins less often than compute first:** met (4 against 15).
+- **Backups early broke in at least half:** met (23 of 24).
+- **150 MW in 6 to 9 minutes:** met (8:02 at 24 seeds; 8:01 at 12).
+- **Every tool scores at least a quarter more than none:** **met only with endurance.** Played on into endurance after the win, every tool's median score is $253,349 against $71,850 (+253%); stopping at the win, $64,703 against $60,258 (+7%). With the score as compute delivered, finishing sooner delivers less before the win, so the tools pay off in winning, and in endurance.
+- **Endurance (spec 5.3):** compute first lasts a median 5:51 (3:51 to 8:27), level 6, and endurance adds 99% to its score: met.
+
+Worth knowing:
+
+- **Perks, rechecked (pass 8's miss):** a builder who takes the first perk now wins 15 times in 24 against 9 for one who takes none (and no funding round), with the same median score. They pay in winning.
+- **Never hires** now goes broke every time (24 of 24), so M55's "misses the deadline more often than it goes broke" stays unmet; it never lives long enough to meet the board.
+- With the faster tightening, a builder with no pass 8 tools goes broke much more often (10 of 24): perks, posts and promises matter more than they did.
+- The final balance pass before shipping should rerun this table with whatever else is in by then.
+- Checked in headless Chrome at 844 x 390 and 660 x 300: "Due 13:30" in the HUD's note, and the run plays. No console errors.
+
+Owner's checklist:
+
+- About half your runs are wins, and the losses feel like your doing.
+- Finishing faster feels possible, and risky.
 
 ### M57. Progress and support
 

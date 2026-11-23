@@ -4,9 +4,23 @@ import assert from 'node:assert/strict';
 import { build, cancelPromise, createGame, hire, promisesOn, step, takePromise } from '../src/core/index2.js';
 
 const NO_BURN = { loan: 0, loanRate: 0, base: 0, doubling: 0, upkeep: 0, wages: 0 };
+// Pass 9 (M58) cut the promises' amounts to a quarter; these tests check pass 8's mechanics with pass 8's
+// amounts, so they set that table (the amounts now are config, as the screen reads them).
+const PASS8_PROMISES = {
+  enabled: true, offers: 3, held: 2, offerGap: 30, offerLife: 60, quietFor: 120,
+  table: {
+    lightsOn: { window: 120, advance: 150, payment: 250 },
+    hallTwo: { window: 120, advance: 300, payment: 300 },
+    moreMw: { window: 150, seconds: 15 },
+    belt: { window: 180, advance: 350, payment: 400 },
+    spare: { window: 180, advance: 300, payment: 300 },
+    oneOfEach: { window: 180, advance: 200, payment: 200 },
+    quietFloor: { window: 180, advance: 0, payment: 600 },
+  },
+};
 const game = (building = {}, extra = {}) => createGame({
   seed: 1,
-  config: { tutorial: false, director: { enabled: false }, ceo: { enabled: false }, ...extra, building: { enabled: true, startCash: 50000, burn: NO_BURN, credits: { rate: 0, doubling: 0 }, uptime: { enabled: false, bonus: 20, floor: 0.9 }, ...building } },
+  config: { tutorial: false, director: { enabled: false }, ceo: { enabled: false }, ...extra, building: { enabled: true, startCash: 50000, burn: NO_BURN, credits: { rate: 0, doubling: 0 }, uptime: { enabled: false, bonus: 20, floor: 0.9 }, promises: PASS8_PROMISES, ...building } },
 });
 const advance = (s, seconds) => { for (let i = 0; i < Math.round(seconds / 0.05); i++) step(s, 0.05); };
 const keys = (s) => s.promises.offers.map((o) => o.key);
