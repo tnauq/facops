@@ -795,6 +795,10 @@ function drawPulses(regs, crew) {
 }
 
 function frame(now) {
+  // The next frame is asked for first, so one frame that fails (a drawing error, say) can never stop
+  // the game: it carries on, and the error shows in the console (fix, 25 November: a crew of 33
+  // made a card so short its drawing threw, and the game froze).
+  requestAnimationFrame(frame);
   const { state } = round;
   const paused = mode !== 'playing' || document.hidden || portrait() || state.over || held;
   runFrame(round.clock, now, (dt) => {
@@ -878,7 +882,6 @@ function frame(now) {
     if (k >= 1) gliding = null;
   }
   draw();
-  requestAnimationFrame(frame);
 }
 
 // ---- Input ----

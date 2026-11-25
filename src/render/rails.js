@@ -61,7 +61,7 @@ function drawHireCard(ctx, c) {
   const tall = c.h >= 70;
   const cx = tall ? c.x + c.w / 2 : c.x + 17;
   const cy = tall ? c.y + c.h / 2 - 12 : c.y + c.h / 2;
-  const r = tall ? 13 : Math.min(12, c.h / 2 - 6);
+  const r = tall ? 13 : Math.max(1, Math.min(12, c.h / 2 - 6)); // never negative, however short the card
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fillStyle = INK;
