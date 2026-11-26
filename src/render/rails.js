@@ -192,3 +192,20 @@ export function drawRail2(ctx, rail) {
   for (const t of rail.tickets) drawTile(ctx, t);
   if (rail.more) drawMore(ctx, rail.more);
 }
+
+/**
+ * Fix (25 November): a crew too big for the bar scrolls; how many cards are out of view above and
+ * below, over the bar's top and bottom edges, as the rail's "+N" note. more: crewMore(...).
+ */
+export function drawCrewMore(ctx, rect, more) {
+  if (more.below > 0) drawMore(ctx, { x: rect.x, y: rect.y + rect.h - 18, w: rect.w, h: 18, text: `▼ ${more.below} more` });
+  if (more.above > 0) {
+    const g = ctx.createLinearGradient(0, rect.y, 0, rect.y + 28);
+    g.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+    g.addColorStop(0.5, 'rgba(255, 255, 255, 0.9)');
+    g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(rect.x - 2, rect.y, rect.w + 4, 28);
+    text(ctx, `▲ ${more.above}`, rect.x + rect.w / 2, rect.y + 10, { weight: 700, color: INK, align: 'center' });
+  }
+}

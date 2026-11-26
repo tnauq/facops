@@ -29,7 +29,7 @@ import { drawStrip } from './render/strip.js';
 import { drawBanner, drawCeoMarker, drawCeoOnStrip } from './render/ceo.js';
 import { LINES, assistantAt, bannerModel, ceoEvents, createCeoView, liveSay, liveShakes, pickLine, trackCeo } from './ui/ceoView.js';
 import { drawHud, drawHudFlash } from './render/hud.js';
-import { drawCrewBar, drawRail2 } from './render/rails.js';
+import { drawCrewBar, drawCrewMore, drawRail2 } from './render/rails.js';
 import { bindOverlays, buildTuningControls, selectResultsText, setCopyLabel, setDelivery, setResults, setShop, setTuningControls, showOverlay } from './render/overlays.js';
 import { drawTech } from './render/icons.js';
 import { drawUpgrade } from './render/upgrades.js';
@@ -54,7 +54,7 @@ import { NOTHING, pruneSelection, reduceTap } from './ui/selection.js';
 import { mapTargets2, railTargets2 } from './ui/targets2.js';
 import { HUD_HEIGHT, crewColumns, hudLayout, regions } from './ui/regions.js';
 import { createFeel2, feelEvents2, flashAlpha, liveCelebrations, liveFloats } from './ui/feel2.js';
-import { crewCards, techForKey } from './ui/crewbar.js';
+import { clampCrewFirst, crewByDrag, crewCards, crewMore, crewScroll, techForKey } from './ui/crewbar.js';
 import { refusedTap } from './ui/refusal.js';
 import { autoTop, railTapCounts, railTickets2, scrollByDrag } from './ui/rail2.js';
 import { DRAG_PX } from './ui/drag.js';
@@ -110,6 +110,7 @@ let gliding = null; // { from, to, start, ms }
 let gesture = null;
 let stripGesture = false; // a finger on the overview strip: the view follows it
 let railGesture = null; // a touch on a rail that overflows: { start, startFirst, dragging }
+let crewGesture = null; // the same on a crew bar that overflows (fix, 25 November)
 let markers = [];
 let mode = 'menu'; // see src/ui/flow.js
 // Building mode keeps its own best, in money (pass 4 M27); the classic game keeps pass 2's.
@@ -741,8 +742,10 @@ function draw() {
   }
   const hireCard = hireShown();
   const crewFocus = Boolean(round.tutorial && round.tutorial.crewFocus);
-  const crew = crewCards(s, regs.crew, techId, { columns: columnsNow(), hire: hireCard, alarmType: alarmId !== null ? s.alarms.find((a) => a.id === alarmId)?.type : null }).map((c) => (c.kind === 'hire' ? { ...c, ...hireCardText(s) } : c));
+  round.crewFirst = clampCrewFirst(round.crewFirst ?? 0, crewCount(), regs.crew, columnsNow());
+  const crew = crewCards(s, regs.crew, techId, { columns: columnsNow(), hire: hireCard, first: round.crewFirst, alarmType: alarmId !== null ? s.alarms.find((a) => a.id === alarmId)?.type : null }).map((c) => (c.kind === 'hire' ? { ...c, ...hireCardText(s) } : c));
   drawCrewBar(ctx, crew);
+  drawCrewMore(ctx, regs.crew, crewMore(crewCount(), regs.crew, columnsNow(), round.crewFirst));
   drawPulses(regs, crew);
   if (crewFocus) drawFocusFrame(ctx, regs.crew, performance.now()); // the roles lesson (pass 5 spec 6.1)
   const rail = railTickets2(s, regs.rail, alarmId, round.railFirst, round.railCompact);
@@ -929,12 +932,19 @@ function onDown(e) {
   e.preventDefault();
   const p = point(e);
   const regs = layout();
-  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst, round.railCompact, { speedButtons: Boolean(speedButtons()), hire: hireShown() });
+  const targets = railTargets2(round.state, regs, columnsNow(), round.railFirst, round.railCompact, { speedButtons: Boolean(speedButtons()), hire: hireShown(), crewFirst: round.crewFirst ?? 0 });
   // A rail that overflows scrolls with a drag, so its tickets and chips act when the finger lifts
   // (pass 3 spec 2.3). Otherwise HUD buttons, crew cards and tickets act at finger-down, as in pass 1.
   const onRail = p.x >= regs.rail.x && p.y >= regs.rail.y && !hitTest(p, { buttons: targets.buttons }).id;
   if (onRail && targets.scrolls) {
     railGesture = { start: p, startFirst: round.railFirst, dragging: false };
+    canvas.setPointerCapture?.(e.pointerId);
+    return;
+  }
+  // A crew bar that overflows scrolls the same way: its cards act when the finger lifts.
+  const onCrew = inside(p, regs.crew) && !hitTest(p, { buttons: targets.buttons }).id;
+  if (onCrew && crewScroll(crewCount(), regs.crew, columnsNow()).max > 0) {
+    crewGesture = { start: p, startFirst: round.crewFirst ?? 0, dragging: false };
     canvas.setPointerCapture?.(e.pointerId);
     return;
   }
@@ -1004,6 +1014,12 @@ function onMove(e) {
     lookAtStrip(point(e));
     return;
   }
+  if (crewGesture) {
+    const dy = crewGesture.start.y - point(e).y; // finger up shows more of the crew below
+    if (!crewGesture.dragging && Math.abs(dy) > DRAG_PX) crewGesture.dragging = true;
+    if (crewGesture.dragging) round.crewFirst = crewByDrag(crewGesture.startFirst, dy, crewCount(), layout().crew, columnsNow());
+    return;
+  }
   if (railGesture) {
     const p = point(e);
     const dy = railGesture.start.y - p.y; // finger up moves further down the list
@@ -1021,7 +1037,7 @@ function onRailUp(e) {
   const g = railGesture;
   railGesture = null;
   if (e.type === 'pointercancel' || g.dragging || !canPlay()) return;
-  const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst, round.railCompact, { hire: hireShown() });
+  const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst, round.railCompact, { hire: hireShown(), crewFirst: round.crewFirst ?? 0 });
   if (!railTapCounts(round.railSwitchedAt, performance.now())) return; // the rail just changed under the finger
   const hit = hitTest(g.start, { tickets: targets.tickets });
   applyTap(hit); // a ticket, or the gap between tickets (clears the selection)
@@ -1099,6 +1115,20 @@ function onUp(e) {
   }
   if (railGesture) {
     onRailUp(e);
+    return;
+  }
+  if (crewGesture) {
+    const g = crewGesture;
+    crewGesture = null;
+    if (e.type === 'pointercancel' || g.dragging || !canPlay()) return;
+    // Not a drag: the card under the finger, as a tap at finger-down would have been.
+    const targets = railTargets2(round.state, layout(), columnsNow(), round.railFirst, round.railCompact, { hire: hireShown(), crewFirst: round.crewFirst ?? 0 });
+    const hit = hitTest(g.start, { cards: targets.cards });
+    if (hit.kind === 'tech' && hit.id === 'hire') act('shop');
+    else {
+      applyTap(hit);
+      if (hit.kind !== 'empty') revealFor(hit);
+    }
     return;
   }
   if (!gesture) return;

@@ -140,6 +140,16 @@ The owner approved `docs/pass10-spec.md` (version 0.2) on 23 November 2026, with
 
 ## Log
 
+### Fix, 25 November: a big crew froze the game; the crew bar now scrolls
+
+The owner hired 8 of each tech and the game froze.
+
+- **Cause:** with 33 crew cards on a phone-sized screen, each card shrank to about 13 px. The Hire card's circle got a negative radius, the drawing threw, and because each frame asked for the next one only after a successful draw, the game stopped. It did not happen at 844 x 390, which is why the browser checks missed it.
+- **Fixed (pushed first, on its own):** the radius can no longer go negative, and each frame now asks for the next one *first*, so one failed frame can never stop the game again.
+- **The crew bar scrolls** (the owner chose this over a crew cap, 25 November; no rule change). Cards never go below 44 px. A crew too big for the bar shows as many rows as fit, with "▼ N more" and "▲ N" markers. A drag on the bar scrolls it a row at a time, like the alarm rail, and a tap without a drag acts on the card under the finger when it lifts. The Hire card stays at the end of the list.
+- **Tests:** 5 in `tests/crewScroll.test.js` (34 techs at 270, 300 and 390 px tall: every card shown is at least 44 px and inside the bar, and the bar scrolls to the Hire card). 694 in all.
+- Checked in headless Chrome at 660 x 300, 844 x 390 and 568 x 270 with 34 techs: no errors, the game keeps running, a drag scrolls six rows, and a tap selects the right tech.
+
 ### M62. The reference card, and later runs' lines
 
 Pass 10 spec 5 (questions 5 and 6).
