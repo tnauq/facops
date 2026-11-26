@@ -170,6 +170,28 @@
     #bundle-list em { font-style: normal; font-weight: 700; font-size: 12px; }
     #bundle-list:empty::after { content: 'Nothing left to build here.'; color: #56606E; font-size: 12px; }
     .card.bundles .buttons { margin-top: 4px; }
+    /* Pass 10 (M63): the leaderboards, blueprint style, two boards side by side (one under the other
+       on a narrow screen), and the arcade initials picker. */
+    .card.boards { width: min(720px, 98vw); max-width: none; max-height: 97vh; overflow-y: auto; padding: 6px 14px 8px; text-align: left; }
+    .card.boards .head { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .card.boards h1 { font-size: 18px; margin: 0; }
+    #board-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 560px) { #board-tables { grid-template-columns: 1fr; } }
+    #board-tables h2 { font-size: 13px; margin: 4px 0 2px; color: #9FB3CC; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    #board-tables table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+    #board-tables td { padding: 1px 4px; border-bottom: 1px solid #2A4A73; white-space: nowrap; }
+    #board-tables td.rank, #board-tables td.date, #board-tables td.detail { color: #9FB3CC; }
+    #board-tables td.who { font-weight: 700; letter-spacing: 2px; }
+    #board-tables td.value { text-align: right; font-weight: 600; }
+    #board-tables p { font-size: 12px; margin: 4px 0; }
+    .card.initials { padding: 8px 18px 10px; }
+    .card.initials h1 { font-size: 18px; margin: 0; }
+    .card.initials p { font-size: 13px; margin: 2px 0 4px; }
+    .letters { display: flex; justify-content: center; gap: 14px; }
+    .letters .col { display: flex; flex-direction: column; align-items: center; }
+    .letters button { min-width: 48px; min-height: 40px; padding: 0; border-radius: 8px; border: 1px solid #9FB3CC; background: transparent; color: #FFFFFF; font-size: 15px; cursor: pointer; }
+    .letters span { font: 700 30px system-ui, -apple-system, 'Segoe UI', sans-serif; line-height: 38px; }
+    .card.initials .buttons { margin-top: 6px; }
     /* Pass 10 (M62): How it works, from the pause menu: the firsts met so far, in groups, three to a
        row; one opened shows its picture beside its words. */
     .card.howto { width: min(680px, 98vw); max-width: none; max-height: 97vh; overflow-y: auto; padding: 6px 14px 8px; text-align: left; }
@@ -252,6 +274,7 @@
         <button class="primary" data-action="resume" id="resume-button" hidden>Resume run</button>
         <button class="primary" data-action="start" id="start-button">New run</button>
         <button data-action="tutorial">Tutorial</button>
+        <button data-action="boards">Leaderboards</button>
         <button data-action="settings">Settings</button>
         <p class="bp-best">Best: <span data-field="best"></span></p>
         <p class="bp-best" data-field="saveNote" hidden></p>
@@ -275,6 +298,20 @@
         <button data-action="back">Back</button>
         <button class="primary" data-action="startConfirm">Start over</button>
       </div>
+    </div>
+    <div class="card bp boards" data-overlay="boards" hidden>
+      <div class="head buttons"><h1>Leaderboards</h1><button class="primary" data-action="back">Back</button></div>
+      <div id="board-tables"></div>
+    </div>
+    <div class="card bp initials" data-overlay="initials" hidden>
+      <h1>New entry</h1>
+      <p data-field="line"></p>
+      <div class="letters">
+        <div class="col"><button data-action="letter-up-0" aria-label="Next letter">▲</button><span id="letter-0">A</span><button data-action="letter-down-0" aria-label="Previous letter">▼</button></div>
+        <div class="col"><button data-action="letter-up-1" aria-label="Next letter">▲</button><span id="letter-1">A</span><button data-action="letter-down-1" aria-label="Previous letter">▼</button></div>
+        <div class="col"><button data-action="letter-up-2" aria-label="Next letter">▲</button><span id="letter-2">A</span><button data-action="letter-down-2" aria-label="Previous letter">▼</button></div>
+      </div>
+      <div class="buttons"><button class="primary" data-action="initialsOk">OK</button></div>
     </div>
     <div class="card bp" data-overlay="paused" hidden>
       <h1>Paused</h1>

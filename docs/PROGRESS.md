@@ -137,8 +137,38 @@ The owner approved `docs/pass10-spec.md` (version 0.2) on 23 November 2026, with
 | M60. A gentler first run | `m60` | Done |
 | M61. The screen opens up | `m61` | Done |
 | M62. The reference card | `m62` | Done |
+| M63. Leaderboards | `m63` | Done |
 
 ## Log
+
+### M63. Leaderboards
+
+Pass 10 spec 6.1 (written this session from the owner's answers, 26 November: two boards, GW delivered and time to full build; three initials; every run but the first).
+
+Built:
+
+- **`src/ui/boards.js`** (pure, with storage helpers that never throw). Two boards kept on the device under `facops.boards.v1`, the top ten each:
+  - **GW delivered:** energy delivered (GWh, as the results card says), most first; any run that ends, endurance included. Each entry also shows its score and date.
+  - **Time to full build:** when all 48 rows were running (Commissioned, as the results card says), fastest first; only runs that got there.
+  - Counted: building runs with the finish on. Not the tutorial run (the firsts on), and not the scripted player. A tie keeps the older entry above.
+- **Initials, arcade style:** a run that makes either board asks for three letters before the results. Each letter has ▲ and ▼ (wrapping A to Z), then OK; no keyboard, so nothing covers the screen. The letters start as the last ones used (AAA the first time).
+- **Leaderboards** on the main menu: both boards side by side (one under the other below 560 px wide), with Back at the top right. The results card's first line says where the run placed ("#2 for GW delivered · #2 for time to full build").
+- No change to the rules or the state, so no `SAVE_VERSION` bump.
+- **Tests:** 8 in `tests/boards.test.js`. 702 in all.
+
+Checks:
+
+- Headless Chrome at 844 x 390: a later run built through to the win, with two older entries on the boards. The win card's Results asked for initials ("#2 for GW delivered · #2 for time to full build"), stepping the letters worked, OK showed the results with the Leaderboards line, and the menu's Leaderboards listed the run between the older ones.
+- At 660 x 300: full boards (9 and 10 entries) fit without scrolling; the initials picker fits; a run that just made 10th place went in, and the lowest fell off. No console errors.
+
+Worth knowing:
+
+- "Time to full build" is the Commissioned time (all 48 rows running), which comes before the win's last inspection. In the check run that was 4:01 against a win at 5:50.
+- The boards start empty: runs before this build are not on them. (The menu's "Fastest win · High score" line is unchanged.)
+
+Owner's checklist:
+
+- A good run asks for your initials and lands on the board; the board is there from the main menu.
 
 ### Fix, 25 November: a big crew froze the game; the crew bar now scrolls
 

@@ -69,7 +69,8 @@ import { markerAt } from './ui/offmap.js';
 import { advisorLabel, advisorSpot } from './ui/advisor.js';
 import { drawAdvisor } from './render/advisor.js';
 import { bundleCard, buyBundle, hallNameAt, piecesText } from './ui/bundles.js';
-import { setBundles, setHowTo, setLedger, setPerk, setPromises, setRescue } from './render/overlays.js';
+import { setBoards, setBundles, setHowTo, setInitials, setLedger, setPerk, setPromises, setRescue } from './render/overlays.js';
+import { addRun, boardDate, boardRows, countsForBoards, entriesFor, loadBoards, placesFor, placesLine, saveBoards, stepLetter } from './ui/boards.js';
 import { loadKnown, mergeKnown, referenceEntry, referenceList, saveKnown } from './ui/reference.js';
 import { callOpen, choosePerk, closeCall, takeFunding } from './core/index2.js';
 import { perkCard, rescueCard, warrantyHalls } from './ui/perksView.js';
@@ -119,6 +120,8 @@ let mode = 'menu'; // see src/ui/flow.js
 const bests = { classic: loadBest(defaultStorage(), BEST2_KEY), building: loadBest(defaultStorage(), BEST5_KEY) };
 const olderBest = loadBest(defaultStorage(), BEST4_KEY);
 let known = loadKnown(defaultStorage()); // pass 10 (M62): every first this device has been shown
+let boards = loadBoards(defaultStorage()); // pass 10 (M63): the leaderboards
+let pendingBoard = null; // a run waiting for its initials: { entries, panel, initials }
 // Pass 9 (M54): the fastest win and the high score, for runs with the win at the finish.
 let records = loadRecords(defaultStorage());
 const bestKind = () => (tuning.building ? 'building' : 'classic');
@@ -371,6 +374,24 @@ function showHowTo() {
 }
 
 function act(action) {
+  // Pass 10 (M63): the initials picker, then the results.
+  if (action.startsWith('letter-') || action === 'initialsOk') {
+    if (mode !== 'initials' || !pendingBoard) return;
+    if (action === 'initialsOk') {
+      boards = addRun(boards, pendingBoard.entries, pendingBoard.initials);
+      saveBoards(boards, defaultStorage());
+      const panel = pendingBoard.panel;
+      pendingBoard = null;
+      mode = reduceFlow(mode, 'over').mode;
+      setResults(panel);
+      showOverlay('over');
+      return;
+    }
+    const [, dir, i] = action.split('-');
+    pendingBoard.initials = stepLetter(pendingBoard.initials, Number(i), dir === 'up' ? 1 : -1);
+    setInitials(pendingBoard.initials, pendingBoard.line);
+    return;
+  }
   // Pass 10 (M62): How it works, from the pause menu. Back closes an open entry first.
   if (action === 'howto' || action === 'howtoBack' || action.startsWith('howto-')) {
     if (action === 'howto') {
@@ -549,6 +570,10 @@ function act(action) {
   else if (mode === 'settings') showSettings();
   else if (mode === 'over') showOverlay('over');
   else if (mode === 'paused') showPaused();
+  else if (mode === 'boards') {
+    setBoards(boardRows(boards, formatClock)); // pass 10 (M63)
+    showOverlay('boards');
+  }
   else if (mode === 'sell') showOverlay('sell', sellConfirm(round.state));
   else if (mode === 'tuning') {
     setTuningControls(tuning, tuning2.tuningLabel);
@@ -561,7 +586,7 @@ function act(action) {
 
 // Pass 6 (M37): Settings and the drawer reached from the main menu keep the blueprint behind them.
 function markMenuBackdrop() {
-  const fromMenu = mode === 'menu' || mode === 'startOver' || (mode === 'settings' && settingsBack === 'menu') || (mode === 'tuning' && tuningBack === 'settings' && settingsBack === 'menu');
+  const fromMenu = mode === 'menu' || mode === 'startOver' || mode === 'boards' || (mode === 'settings' && settingsBack === 'menu') || (mode === 'tuning' && tuningBack === 'settings' && settingsBack === 'menu');
   document.getElementById('overlay').classList.toggle('bp-backdrop', fromMenu);
 }
 
@@ -589,6 +614,10 @@ function roundOver() {
     bests[kind] = record.best;
     if (record.isNew) saveBest(record.best, defaultStorage(), kind === 'building' ? BEST5_KEY : BEST2_KEY);
   }
+  // Pass 10 (M63): the leaderboards. Not the tutorial run, not the scripted player.
+  const boardRun = countsForBoards(r, { tutorial: Boolean(round.firsts), auto: round.auto }) ? entriesFor(r, boardDate(new Date())) : null;
+  const places = boardRun ? placesFor(boards, boardRun) : { gw: null, full: null };
+  const placed = placesLine(places);
   mode = reduceFlow(mode, 'over').mode;
   // When the CEO ended the run, the card carries the CEO's parting line (spec 4.7).
   const panel = resultsPanel(r, record, formatClock);
@@ -602,9 +631,18 @@ function roundOver() {
     if (promised) panel.lines.push(['Promises', promised]);
     panel.lines.push(...soFarLines(round.state));
   }
+  if (placed) panel.lines.unshift(['Leaderboards', placed]);
+  markTutorialSeen();
+  // A place on a board asks for initials first (arcade style), then shows the results.
+  if (placed) {
+    pendingBoard = { entries: boardRun, panel, initials: boards.initials ?? 'AAA', line: placed };
+    mode = 'initials';
+    setInitials(pendingBoard.initials, placed);
+    showOverlay('initials');
+    return;
+  }
   setResults(panel);
   showOverlay('over');
-  markTutorialSeen();
 }
 
 // Runs inside the button's click handler: Safari only allows clipboard writes during a tap.

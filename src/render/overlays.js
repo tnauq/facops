@@ -395,3 +395,45 @@ export function setHowTo(list, entry, drawPicture) {
   ctx.clearRect(0, 0, size, size);
   drawPicture(ctx, size, entry.picture);
 }
+
+/** The leaderboards card (pass 10 M63). rows: boardRows(...) from src/ui/boards.js. */
+export function setBoards(rows) {
+  const box = document.getElementById('board-tables');
+  box.textContent = '';
+  const board = (title, list, empty) => {
+    const wrap = document.createElement('div');
+    const h = document.createElement('h2');
+    h.textContent = title;
+    wrap.append(h);
+    if (!list.length) {
+      const p = document.createElement('p');
+      p.className = 'muted';
+      p.textContent = empty;
+      wrap.append(p);
+      return wrap;
+    }
+    const table = document.createElement('table');
+    for (const r of list) {
+      const tr = document.createElement('tr');
+      for (const [cls, text] of [['rank', `${r.rank}`], ['who', r.initials], ['value', r.value], ['detail', r.detail], ['date', r.date]]) {
+        const td = document.createElement('td');
+        td.className = cls;
+        td.textContent = text;
+        tr.append(td);
+      }
+      table.append(tr);
+    }
+    wrap.append(table);
+    return wrap;
+  };
+  box.append(
+    board('GW delivered', rows.gw, 'No runs yet. Every run but the tutorial counts.'),
+    board('Time to full build', rows.full, 'No full builds yet: all 48 rows running.'),
+  );
+}
+
+/** The initials picker (pass 10 M63): the three letters and the line saying where the run placed. */
+export function setInitials(initials, line) {
+  for (let i = 0; i < 3; i++) document.getElementById(`letter-${i}`).textContent = initials[i];
+  document.querySelector('[data-overlay="initials"] [data-field="line"]').textContent = line;
+}

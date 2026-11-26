@@ -206,9 +206,24 @@ In the first run, parts of the screen appear when their first does (2.3). In lat
 
 Firsts come first: the opening-up and the reference card both hang off them.
 
+## 6.1 Leaderboards (M63)
+
+The owner's answers (26 November): **two boards, GW delivered and time to full build; three initials, arcade style; every run but the first (the tutorial run) counts.** Kept on the device: no network requests.
+
+- **GW delivered:** the top ten runs by energy delivered (GWh, as the results card says), any run that ends, endurance included. Each entry: initials, GWh, the score, the date.
+- **Time to full build:** the top ten runs by the time all 48 rows were running (Commissioned, as the results card says), fastest first; only runs that got there. Each entry: initials, the time, the date.
+- **Which runs:** building runs with the finish on, never the scripted player, never a run with the tutorial (firsts) on. A tie keeps the older entry above.
+- **Initials:** a run that makes either board asks for three letters before the results, arcade style: three letters, each with ▲ and ▼ (44 px), and OK. They start as the last initials used (AAA the first time). No keyboard, so the screen stays clear.
+- **Where:** a Leaderboards button on the main menu shows both boards side by side (one under the other on a narrow screen), with Back. The results card says where the run placed ("#2 for GW delivered").
+- Saved under `facops.boards.v1`, inside try/catch; without storage the boards last the visit.
+
+### Owner's checklist
+
+- A good run asks for your initials and lands on the board; the board is there from the main menu.
+
 ## 7. Later
 
 - **Pass 11: every word on screen** (`docs/tutorial-research.md` section 7). Every line, the firsts' cards included, rewritten for the owner to agree or replace.
-- **Leaderboards** (the owner, 23 November, with "M59 go"): one for compute delivered (GW) and one for the time to win (the sale at the finish). **The owner chose boards kept on the device** (23 November, with "go m60"): no network requests, so no rule changes. Asked where it goes, the owner said it does not matter (23 November, with "go m61"): **after M62, as its own milestone (M63)**, for example the top ten runs on each board, from the main menu. Not yet specified.
+- **Leaderboards** (the owner, 23 November, with "M59 go"): one for compute delivered (GW) and one for the time to win (the sale at the finish). **The owner chose boards kept on the device** (23 November, with "go m60"): no network requests, so no rule changes. Asked where it goes, the owner said it does not matter (23 November, with "go m61"): **after M62, as its own milestone (M63)**, specified in 6.1.
 - A final balance pass before shipping.
 - From pass 9's list: the blueprint look for the remaining cards, sound, a Settings card with reduce flashing and text size, the Home Screen icon, scenarios and the rest.
